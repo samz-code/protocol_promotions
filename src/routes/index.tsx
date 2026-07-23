@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { SiteLayout } from "@/components/site/SiteLayout";
+import { Preloader, shouldSplash } from "@/components/site/Preloader";
 import {
   ArrowRight,
   Star,
@@ -38,21 +39,36 @@ export const Route = createFileRoute("/")({
 });
 
 function Index() {
+  // Gate the marketing page behind the splash. Decided synchronously so
+  // the header and hero never flash underneath it on first paint.
+  const [ready, setReady] = useState(() => !shouldSplash());
+
+  // Warm the product query while the splash is still up, so the hero has
+  // real photography to show the moment the page is revealed rather than
+  // starting its fetch from cold.
+  useNewestProducts(20);
+
   return (
-    <SiteLayout>
-      <MotionStyles />
-      <Statement />
-      <LogoMarquee />
-      <Catalogue />
-      <FeaturedProducts />
-      <Bestsellers />
-      <Techniques />
-      <Process />
-      <Argument />
-      <Sectors />
-      <Reviews />
-      <Close />
-    </SiteLayout>
+    <>
+      <Preloader onDone={() => setReady(true)} />
+
+      {ready ? (
+        <SiteLayout>
+          <MotionStyles />
+          <Statement />
+          <LogoMarquee />
+          <Catalogue />
+          <FeaturedProducts />
+          <Bestsellers />
+          <Techniques />
+          <Process />
+          <Argument />
+          <Sectors />
+          <Reviews />
+          <Close />
+        </SiteLayout>
+      ) : null}
+    </>
   );
 }
 
