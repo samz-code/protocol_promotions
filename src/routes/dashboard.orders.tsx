@@ -509,24 +509,28 @@ function OrderCard({ order, onCancel }: { order: OrderRow; onCancel: () => void 
       </Link>
 
       {/* Cancelling sits outside the link so tapping it does not navigate.
-          Only offered while nothing is committed. */}
+          Full width on a phone so it is an obvious, easy target. */}
       {!isCancelled && (
-        <div className="border-t border-border px-4 py-2.5">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground transition-colors hover:text-red-600"
-          >
-            {cancellable ? (
-              <>
-                <Ban className="h-3.5 w-3.5" /> Cancel this order
-              </>
-            ) : (
-              <>
-                <LifeBuoy className="h-3.5 w-3.5" /> Need to change or cancel this?
-              </>
-            )}
-          </button>
+        <div className="flex flex-col gap-2 border-t border-border p-3 sm:flex-row sm:justify-end">
+          {cancellable ? (
+            <button
+              type="button"
+              onClick={onCancel}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-2.5 text-xs font-bold text-red-600 transition-colors hover:border-red-300 hover:bg-red-100 sm:w-auto"
+            >
+              <Ban className="h-4 w-4" />
+              Cancel order
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={onCancel}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-border bg-white px-4 py-2.5 text-xs font-bold text-brand-navy transition-colors hover:border-brand-navy/40 hover:bg-brand-surface sm:w-auto"
+            >
+              <LifeBuoy className="h-4 w-4 text-brand-orange" />
+              Change or cancel
+            </button>
+          )}
         </div>
       )}
     </li>
@@ -639,11 +643,11 @@ function CancelDialog({
 
   return (
     <div
-      className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-brand-navy/50 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-end justify-center overflow-y-auto bg-brand-navy/50 backdrop-blur-sm sm:items-center sm:p-4"
       onClick={onClose}
     >
       <div
-        className="my-auto w-full max-w-md overflow-hidden rounded-xl bg-white"
+        className="max-h-[92vh] w-full overflow-y-auto rounded-t-2xl bg-white sm:my-auto sm:max-h-none sm:max-w-md sm:rounded-xl"
         onClick={(e) => e.stopPropagation()}
       >
         {done ? (
@@ -660,7 +664,7 @@ function CancelDialog({
           </div>
         ) : (
           <>
-            <div className="flex items-start justify-between gap-4 border-b border-border p-5">
+            <div className="sticky top-0 flex items-start justify-between gap-4 border-b border-border bg-white p-4 sm:p-5">
               <div className="min-w-0">
                 <h2 className="text-sm font-bold text-brand-navy">
                   {cancellable ? "Cancel this order" : "Change or cancel this order"}
@@ -679,7 +683,7 @@ function CancelDialog({
               </button>
             </div>
 
-            <div className="space-y-4 p-5">
+            <div className="space-y-4 p-4 sm:p-5">
               {cancellable ? (
                 <p className="text-sm leading-relaxed text-brand-navy/70">
                   Nothing has been paid or produced yet, so you can cancel this straight away. The
@@ -722,11 +726,11 @@ function CancelDialog({
                 </div>
               )}
 
-              <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <div className="flex flex-col-reverse gap-2 pt-1 sm:flex-row sm:justify-end">
                 <button
                   type="button"
                   onClick={onClose}
-                  className="rounded-md px-4 py-2.5 text-sm font-semibold text-muted-foreground transition-colors hover:text-brand-navy"
+                  className="w-full rounded-lg border border-border px-4 py-3 text-sm font-semibold text-muted-foreground transition-colors hover:text-brand-navy sm:w-auto sm:border-0 sm:py-2.5"
                 >
                   Keep the order
                 </button>
@@ -736,7 +740,7 @@ function CancelDialog({
                     type="button"
                     onClick={() => { setErr(null); cancel.mutate(); }}
                     disabled={busy}
-                    className="inline-flex items-center justify-center gap-2 rounded-md bg-red-600 px-5 py-2.5 text-sm font-bold text-white transition hover:brightness-110 disabled:opacity-50"
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-red-600 px-5 py-3 text-sm font-bold text-white transition hover:brightness-110 disabled:opacity-50 sm:w-auto sm:py-2.5"
                   >
                     {cancel.isPending ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
@@ -750,7 +754,7 @@ function CancelDialog({
                     type="button"
                     onClick={() => { setErr(null); raiseTicket.mutate(); }}
                     disabled={busy}
-                    className="inline-flex items-center justify-center gap-2 rounded-md bg-brand-navy px-5 py-2.5 text-sm font-bold text-white transition hover:brightness-110 disabled:opacity-50"
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-brand-navy px-5 py-3 text-sm font-bold text-white transition hover:brightness-110 disabled:opacity-50 sm:w-auto sm:py-2.5"
                   >
                     {raiseTicket.isPending ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
