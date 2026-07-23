@@ -36,7 +36,7 @@ type Product = {
   short_description: string | null;
   long_description: string | null;
   key_bullets: string[] | null;
-  specs: { label: string; value: string }[] | null;
+  specs: { label?: string; name?: string; value: string }[] | null;
   print_methods: string[] | null;
   materials: string[] | null;
   colors: string[] | null;
@@ -167,7 +167,7 @@ function ProductDetailPage() {
     <SiteLayout>
       {/* Breadcrumb */}
       <div className="border-b border-border bg-brand-surface/40">
-        <div className="container-page flex items-center gap-1.5 py-4 text-xs font-medium text-brand-navy/55">
+        <div className="container-page flex items-center gap-1.5 overflow-x-auto whitespace-nowrap py-3 text-[11px] font-medium text-brand-navy/55 sm:py-4 sm:text-xs">
           <Link to="/" className="hover:text-brand-navy transition-colors">Home</Link>
           <ChevronRight className="h-3 w-3" />
           <Link to="/shop" className="hover:text-brand-navy transition-colors">Shop</Link>
@@ -184,8 +184,8 @@ function ProductDetailPage() {
         </div>
       </div>
 
-      <section className="container-page py-8 md:py-14">
-        <div className="grid gap-10 lg:grid-cols-2 lg:gap-14">
+      <section className="container-page py-6 sm:py-8 md:py-14">
+        <div className="grid gap-8 sm:gap-10 lg:grid-cols-2 lg:gap-14">
           <Gallery images={images} name={product.name} badge={product.badge} />
 
           <div>
@@ -194,7 +194,7 @@ function ProductDetailPage() {
                 {product.categories.name}
               </div>
             )}
-            <h1 className="mt-2 text-3xl md:text-4xl font-extrabold tracking-tight text-brand-navy">
+            <h1 className="mt-2 text-2xl font-extrabold tracking-tight text-brand-navy sm:text-3xl md:text-4xl">
               {product.name}
             </h1>
 
@@ -210,7 +210,7 @@ function ProductDetailPage() {
             </div>
 
             {product.short_description && (
-              <p className="mt-5 text-base leading-relaxed text-brand-navy/70">{product.short_description}</p>
+              <p className="mt-4 text-[15px] leading-relaxed text-brand-navy/70 sm:mt-5 sm:text-base">{product.short_description}</p>
             )}
 
             {bullets.length > 0 && (
@@ -236,7 +236,7 @@ function ProductDetailPage() {
             </div>
 
             {/* Trust row */}
-            <div className="mt-8 grid grid-cols-3 gap-3 border-t border-border pt-6">
+            <div className="mt-7 grid grid-cols-3 gap-2 border-t border-border pt-5 sm:mt-8 sm:gap-3 sm:pt-6">
               <TrustItem icon={Truck} label="Nationwide delivery" />
               <TrustItem icon={ShieldCheck} label="Free proof first" />
               <TrustItem icon={Layers} label="Volume discounts" />
@@ -314,7 +314,7 @@ function Gallery({ images, name, badge }: { images: string[]; name: string; badg
 
 function VariantStockTable({ variants }: { variants: Variant[] }) {
   return (
-    <div className="mt-8 rounded-xl border border-brand-navy/12 overflow-hidden">
+    <div className="mt-6 overflow-hidden rounded-xl border border-brand-navy/12 sm:mt-8">
       <div className="bg-brand-surface px-4 py-2.5 text-[11px] font-bold uppercase tracking-widest text-brand-navy/60">
         Available colours & stock
       </div>
@@ -349,7 +349,9 @@ function TrustItem({ icon: Icon, label }: { icon: typeof Truck; label: string })
 
 function ProductTabs({ product, reviews }: { product: Product; reviews: Review[] }) {
   const [tab, setTab] = useState<"description" | "specs" | "reviews">("description");
-  const specs = toArray<{ label: string; value: string }>(product.specs);
+  // The admin editor saves specs as { name, value } while older records
+  // use { label, value }. Accept either so the left column is never blank.
+  const specs = toArray<{ label?: string; name?: string; value: string }>(product.specs);
 
   const tabs = [
     { key: "description", label: "Description" },
@@ -358,14 +360,14 @@ function ProductTabs({ product, reviews }: { product: Product; reviews: Review[]
   ] as const;
 
   return (
-    <div className="mt-16">
-      <div className="flex flex-wrap gap-1 border-b-2 border-brand-navy/10">
+    <div className="mt-10 sm:mt-14 md:mt-16">
+      <div className="flex gap-1 overflow-x-auto border-b-2 border-brand-navy/10 pb-px">
         {tabs.map((t) => (
           <button
             key={t.key}
             type="button"
             onClick={() => setTab(t.key)}
-            className={`px-5 py-3 text-sm font-bold uppercase tracking-wide -mb-0.5 border-b-2 transition-colors ${
+            className={`-mb-0.5 shrink-0 whitespace-nowrap border-b-2 px-3.5 py-3 text-[13px] font-bold uppercase tracking-wide transition-colors sm:px-5 sm:text-sm ${
               tab === t.key ? "border-brand-orange text-brand-navy" : "border-transparent text-brand-navy/45 hover:text-brand-navy"
             }`}
           >
@@ -374,9 +376,9 @@ function ProductTabs({ product, reviews }: { product: Product; reviews: Review[]
         ))}
       </div>
 
-      <div className="py-8">
+      <div className="py-6 sm:py-8">
         {tab === "description" && (
-          <div className="max-w-3xl text-base leading-relaxed text-brand-navy/75 whitespace-pre-line">
+          <div className="max-w-3xl whitespace-pre-line text-[15px] leading-relaxed text-brand-navy/75 sm:text-base">
             {product.long_description || product.short_description || "No description available for this product yet."}
           </div>
         )}
@@ -384,16 +386,24 @@ function ProductTabs({ product, reviews }: { product: Product; reviews: Review[]
         {tab === "specs" && (
           specs.length > 0 ? (
             <div className="max-w-2xl overflow-hidden rounded-xl border border-brand-navy/12">
-              <table className="w-full text-sm">
-                <tbody>
-                  {specs.map((s, i) => (
-                    <tr key={i} className="border-b border-brand-navy/8 last:border-0">
-                      <td className="w-1/3 bg-brand-surface/50 px-4 py-3 font-bold text-brand-navy">{s.label}</td>
-                      <td className="px-4 py-3 text-brand-navy/70">{s.value}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <dl className="divide-y divide-brand-navy/8">
+                {specs.map((s, i) => {
+                  const label = s.label ?? s.name ?? "";
+                  return (
+                    <div
+                      key={i}
+                      className="grid gap-0.5 px-4 py-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)] sm:gap-4 sm:px-5 sm:py-3.5"
+                    >
+                      <dt className="text-[11px] font-bold uppercase tracking-wide text-brand-navy/50 sm:self-center sm:text-sm sm:font-bold sm:normal-case sm:tracking-normal sm:text-brand-navy">
+                        {label}
+                      </dt>
+                      <dd className="text-sm leading-relaxed text-brand-navy/75 sm:self-center">
+                        {s.value}
+                      </dd>
+                    </div>
+                  );
+                })}
+              </dl>
             </div>
           ) : (
             <p className="text-sm text-brand-navy/50">No specifications listed for this product.</p>
