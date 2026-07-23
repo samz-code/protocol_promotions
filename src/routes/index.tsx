@@ -157,7 +157,7 @@ function useNewestProducts(limit: number) {
 function PressGrid() {
   return (
     <div
-      className="pointer-events-none absolute inset-0 opacity-[0.05]"
+      className="pointer-events-none absolute inset-0 opacity-[0.03]"
       style={{
         backgroundImage:
           "linear-gradient(var(--color-brand-navy) 1px, transparent 1px), linear-gradient(90deg, var(--color-brand-navy) 1px, transparent 1px)",
@@ -187,7 +187,7 @@ function LogoMarquee() {
           {[...LOGOS, ...LOGOS].map((fileName, i) => (
             <div
               key={i}
-              className="flex h-20 w-48 items-center justify-center opacity-60 transition-opacity duration-300 hover:opacity-100"
+              className="flex h-16 w-36 shrink-0 items-center justify-center sm:h-20 sm:w-48"
             >
               <img
                 src={`/${fileName}`}
@@ -210,7 +210,7 @@ function Statement() {
   return (
     <section className="relative overflow-hidden border-b border-brand-navy bg-white">
       <PressGrid />
-      <div className="container-page relative grid items-center gap-10 py-14 sm:py-20 md:py-28 lg:grid-cols-[1.15fr_1fr] lg:gap-16">
+      <div className="container-page px-5 sm:px-6 relative grid items-center gap-10 py-14 sm:py-20 md:py-28 lg:grid-cols-[1.15fr_1fr] lg:gap-16">
         <div>
           <p className="text-sm font-bold uppercase tracking-[0.25em] text-brand-orange">
             Nairobi, Kenya
@@ -260,16 +260,28 @@ function Statement() {
    ================================================================ */
 
 function HeroCarousel() {
-  const { data } = useNewestProducts(6);
+  // Pull a wider set so there is enough to choose from after filtering
+  // out anything without a real photo.
+  const { data } = useNewestProducts(20);
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
 
-  // Real product shots where we have them, otherwise the studio image.
   const slides = useMemo(() => {
-    const live = (data ?? [])
-      .filter((p) => p.image && !p.image.includes("picsum"))
-      .slice(0, 5)
-      .map((p) => ({ src: p.image, alt: p.name, label: p.category }));
+    const withPhotos = (data ?? []).filter(
+      (p) => p.image && !p.image.includes("picsum") && !p.image.includes("placeholder")
+    );
+
+    // Badged or featured products first, since those are the ones worth
+    // leading with. Everything else fills the remaining slots.
+    const featured = withPhotos.filter((p) => p.tag);
+    const rest = withPhotos.filter((p) => !p.tag);
+
+    const live = [...featured, ...rest].slice(0, 5).map((p) => ({
+      src: p.image,
+      alt: p.name,
+      label: p.name,
+      price: p.price,
+    }));
 
     if (live.length === 0) {
       return [
@@ -277,6 +289,7 @@ function HeroCarousel() {
           src: heroImg,
           alt: "Custom-branded apparel, mugs, tote bags and promotional items produced by Protocol Promotions",
           label: "Premium Quality",
+          price: null as number | null,
         },
       ];
     }
@@ -345,10 +358,19 @@ function HeroCarousel() {
         )}
 
         {/* Caption changes with the slide */}
-        <div className="absolute -bottom-px -left-px border border-brand-navy bg-brand-orange px-3 py-1.5 sm:px-4 sm:py-2">
-          <span className="text-[10px] font-bold uppercase tracking-widest text-white sm:text-[11px]">
-            {slides[index]?.label ?? "Premium Quality"}
-          </span>
+        {/* Names the product rather than a generic tagline, so the hero
+            shows what you actually sell. */}
+        <div className="absolute inset-x-0 bottom-0 bg-linear-to-t from-brand-navy/85 to-transparent px-4 pb-3.5 pt-10 sm:px-5 sm:pb-4">
+          <div className="flex items-end justify-between gap-3">
+            <span className="text-sm font-bold leading-tight text-white sm:text-base">
+              {slides[index]?.label ?? "Premium Quality"}
+            </span>
+            {slides[index]?.price != null && (
+              <span className="shrink-0 bg-brand-orange px-2.5 py-1 text-[11px] font-bold tabular-nums text-white">
+                {KSH.format(slides[index]!.price as number)}
+              </span>
+            )}
+          </div>
         </div>
       </div>
 
@@ -432,8 +454,8 @@ const LINES: Line[] = [
 function Catalogue() {
   return (
     <section className="border-b border-brand-navy bg-white">
-      <div className="container-page py-14 sm:py-16 md:py-24">
-        <div className="flex flex-wrap items-end justify-between gap-6 border-b-2 border-brand-navy pb-6">
+      <div className="container-page px-5 sm:px-6 py-14 sm:py-16 md:py-24">
+        <div className="flex flex-wrap items-end justify-between gap-4 border-b border-brand-navy/10 pb-5 sm:gap-6">
           <div>
             <p className="text-[11px] font-bold uppercase tracking-[0.25em] text-brand-orange">
               Production lines
@@ -628,8 +650,8 @@ function FeaturedProducts() {
 
   return (
     <section className="border-b border-brand-navy bg-brand-surface">
-      <div className="container-page py-14 sm:py-16 md:py-24">
-        <div className="flex flex-wrap items-end justify-between gap-6 border-b-2 border-brand-navy pb-6">
+      <div className="container-page px-5 sm:px-6 py-14 sm:py-16 md:py-24">
+        <div className="flex flex-wrap items-end justify-between gap-4 border-b border-brand-navy/10 pb-5 sm:gap-6">
           <div>
             <p className="text-[11px] font-bold uppercase tracking-[0.25em] text-brand-orange">
               Off the shelf
@@ -709,7 +731,7 @@ function Bestsellers() {
   const loop = [...picks, ...picks];
 
   return (
-    <section className="overflow-hidden border-b border-brand-navy bg-white">
+    <section className="overflow-hidden bg-white">
       <style>{`
         @keyframes bestsellerMarquee {
           from { transform: translateX(0); }
@@ -722,8 +744,8 @@ function Bestsellers() {
         }
       `}</style>
 
-      <div className="container-page pt-14 sm:pt-16 md:pt-24">
-        <div className="flex flex-wrap items-end justify-between gap-6 border-b-2 border-brand-navy pb-6">
+      <div className="container-page px-5 sm:px-6 pt-14 sm:pt-16 md:pt-24">
+        <div className="flex flex-wrap items-end justify-between gap-4 border-b border-brand-navy/10 pb-5 sm:gap-6">
           <div>
             <p className="text-[11px] font-bold uppercase tracking-[0.25em] text-brand-orange">
               Moving fastest this quarter
@@ -742,7 +764,7 @@ function Bestsellers() {
         </div>
       </div>
 
-      <div className="mt-8 pb-14 sm:mt-10 sm:pb-16 md:pb-24">
+      <div className="mt-8 overflow-hidden pb-14 sm:mt-10 sm:pb-16 md:pb-24">
         <div className="bestseller-track flex w-max gap-5 px-5 sm:gap-6 sm:px-6">
           {loop.map((b, i) => (
             <Link
@@ -750,9 +772,9 @@ function Bestsellers() {
               to="/shop/$slug"
               params={{ slug: b.slug }}
               tabIndex={i >= picks.length ? -1 : 0}
-              className="group w-60 shrink-0 overflow-hidden rounded-2xl border border-brand-navy/12 bg-white transition-all duration-300 hover:-translate-y-1 hover:border-brand-navy/30 hover:shadow-[0_14px_34px_-14px_rgba(30,41,89,0.28)] sm:w-64"
+              className="group w-56 shrink-0 overflow-hidden rounded-3xl border border-brand-navy/10 bg-white transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_12px_28px_-12px_rgba(30,41,89,0.22)] sm:w-64"
             >
-              <div className="overflow-hidden border-b border-brand-navy/10 bg-brand-surface">
+              <div className="overflow-hidden bg-brand-surface">
                 <img
                   src={b.image}
                   alt={b.name}
@@ -830,7 +852,7 @@ const TECHNIQUES = [
 function Techniques() {
   return (
     <section className="border-b border-brand-navy bg-brand-navy text-white">
-      <div className="container-page py-14 sm:py-16 md:py-24">
+      <div className="container-page px-5 sm:px-6 py-14 sm:py-16 md:py-24">
         <div className="flex flex-wrap items-end justify-between gap-6 border-b-2 border-white pb-6">
           <div>
             <p className="text-[11px] font-bold uppercase tracking-[0.25em] text-brand-orange">
@@ -920,7 +942,7 @@ const STEPS = [
 function Process() {
   return (
     <section className="border-b border-brand-navy bg-white">
-      <div className="container-page py-14 sm:py-16 md:py-24">
+      <div className="container-page px-5 sm:px-6 py-14 sm:py-16 md:py-24">
         <div className="border-b-2 border-brand-navy pb-6">
           <p className="text-[11px] font-bold uppercase tracking-[0.25em] text-brand-orange">
             Order to delivery
@@ -960,7 +982,7 @@ function Process() {
 function Argument() {
   return (
     <section className="border-b border-brand-navy bg-brand-navy text-white">
-      <div className="container-page py-14 sm:py-16 md:py-24">
+      <div className="container-page px-5 sm:px-6 py-14 sm:py-16 md:py-24">
         <div className="grid gap-12 lg:grid-cols-[minmax(0,24rem)_1fr] lg:gap-20">
           <div className="lg:sticky lg:top-24 lg:self-start">
             <h2 className="text-3xl font-extrabold leading-tight tracking-tight md:text-4xl">
@@ -1020,7 +1042,7 @@ const SECTORS = [
 function Sectors() {
   return (
     <section className="border-b border-brand-navy bg-white">
-      <div className="container-page py-14 sm:py-16 md:py-24">
+      <div className="container-page px-5 sm:px-6 py-14 sm:py-16 md:py-24">
         <div className="grid gap-10 lg:grid-cols-[minmax(0,22rem)_1fr] lg:gap-16">
           <div>
             <h2 className="text-3xl font-extrabold leading-tight tracking-tight text-brand-navy md:text-4xl">
@@ -1142,8 +1164,8 @@ function Reviews() {
         }
       `}</style>
 
-      <div className="container-page pt-14 sm:pt-16 md:pt-24">
-        <div className="flex flex-wrap items-end justify-between gap-6 border-b-2 border-brand-navy pb-6">
+      <div className="container-page px-5 sm:px-6 pt-14 sm:pt-16 md:pt-24">
+        <div className="flex flex-wrap items-end justify-between gap-4 border-b border-brand-navy/10 pb-5 sm:gap-6">
           <div className="flex items-start gap-4">
             <div className="mt-1 flex h-10 w-10 shrink-0 items-center justify-center border border-brand-navy/15 bg-white p-2 shadow-sm">
               <GoogleIcon />
@@ -1176,16 +1198,16 @@ function Reviews() {
         </div>
       </div>
 
-      <div className="mt-8 pb-14 sm:mt-10 sm:pb-16 md:pb-24">
-        <div className="review-track flex w-max gap-px">
+      <div className="mt-8 overflow-hidden pb-14 sm:mt-10 sm:pb-16 md:pb-24">
+        <div className="review-track flex w-max gap-4 px-5 sm:gap-5 sm:px-6">
           {loop.map((r, i) => {
             const initial = r.name.charAt(0);
             return (
               <figure
                 key={`${r.name}-${i}`}
-                className="relative w-80 shrink-0 border border-brand-navy/15 bg-white p-6 transition-colors hover:border-brand-navy"
+                className="relative w-68 shrink-0 rounded-2xl border border-brand-navy/12 bg-white p-5 transition-colors hover:border-brand-navy/30 sm:w-80 sm:p-6"
               >
-                <div className="absolute right-6 top-6 h-4 w-4 opacity-40">
+                <div className="absolute right-5 top-5 hidden h-4 w-4 opacity-30 sm:block">
                   <GoogleIcon />
                 </div>
 
@@ -1225,7 +1247,7 @@ function Close() {
   return (
     <section className="relative overflow-hidden bg-brand-navy text-white">
       <PressGrid />
-      <div className="container-page relative py-14 sm:py-20 md:py-28">
+      <div className="container-page px-5 sm:px-6 relative py-14 sm:py-20 md:py-28">
         <div className="grid gap-10 lg:grid-cols-2 lg:items-end">
           <div>
             <h2 className="text-4xl font-extrabold leading-[1.05] tracking-tight md:text-5xl">
