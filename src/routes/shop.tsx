@@ -313,7 +313,7 @@ function ShopPage() {
                         }`}
                       >
                         <div className="flex items-center gap-2">
-                          <CategoryIcon className="h-3.5 w-3.5 text-brand-navy/50 shrink-0" />
+                          <CategoryIcon className="h-4 w-4 shrink-0 text-brand-navy/70" strokeWidth={2.25} />
                           <span>{c.name}</span>
                         </div>
                         <span className="text-[11px] bg-brand-navy/10 text-brand-navy/70 font-semibold px-2 py-0.5 rounded-full">
@@ -540,7 +540,7 @@ function CategoryStrip({
                   : "bg-white text-brand-navy/70 border-brand-navy/15 hover:border-brand-navy/40 hover:text-brand-navy"
               }`}
             >
-              <Icon className="h-4 w-4 shrink-0" />
+              <Icon className="h-4.5 w-4.5 shrink-0" strokeWidth={2.25} />
               {c.name}
             </button>
           );

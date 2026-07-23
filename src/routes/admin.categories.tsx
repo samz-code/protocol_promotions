@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ComponentType } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
@@ -252,8 +252,18 @@ function CategoriesPage() {
                 <td className="px-4 py-4 align-middle text-xs leading-relaxed text-brand-navy/60">
                   {c.description ?? <span className="text-brand-navy/30">Not set</span>}
                 </td>
-                <td className="px-4 py-4 align-middle font-mono text-xs text-brand-navy/60">
-                  {c.icon ?? <span className="text-brand-navy/30">None</span>}
+                <td className="px-4 py-4 align-middle">
+                  {/* The glyph itself reads faster than its name. */}
+                  {c.icon ? (
+                    <span className="inline-flex items-center gap-2">
+                      <span className="grid h-9 w-9 place-items-center border-2 border-brand-navy/15 bg-brand-surface">
+                        <CategoryGlyph name={c.icon} />
+                      </span>
+                      <span className="font-mono text-[11px] text-brand-navy/50">{c.icon}</span>
+                    </span>
+                  ) : (
+                    <span className="text-xs text-brand-navy/30">None</span>
+                  )}
                 </td>
                 <td className="px-4 py-4 align-middle text-sm font-bold tabular-nums text-brand-navy">
                   {c.sort_order}
@@ -568,7 +578,11 @@ function IconPicker({
       ]
     : ICON_GROUPS;
 
-  const Selected = value ? (LucideIcons as any)[value] : null;
+  const Selected = value
+    ? ((LucideIcons as Record<string, unknown>)[value] as
+        | ComponentType<{ className?: string; strokeWidth?: number }>
+        | undefined)
+    : null;
 
   return (
     <div>
@@ -588,9 +602,9 @@ function IconPicker({
         className="flex w-full items-center justify-between gap-3 border-2 border-brand-navy/20 bg-white px-3 py-2.5 text-left transition-colors hover:border-brand-navy"
       >
         <span className="flex items-center gap-2.5">
-          <span className="grid h-8 w-8 place-items-center border border-brand-navy/15 bg-brand-surface">
+          <span className="grid h-11 w-11 place-items-center border-2 border-brand-navy/15 bg-brand-surface">
             {Selected ? (
-              <Selected className="h-4 w-4 text-brand-navy" />
+              <Selected className="h-6 w-6 text-brand-navy" strokeWidth={2.25} />
             ) : (
               <span className="text-[10px] font-bold text-brand-navy/35">None</span>
             )}
@@ -616,7 +630,7 @@ function IconPicker({
             />
           </div>
 
-          <div className="mt-3 max-h-64 overflow-y-auto pr-1">
+          <div className="mt-3 max-h-80 overflow-y-auto pr-1">
             <button
               type="button"
               onClick={() => { onChange(""); setOpen(false); }}
@@ -636,10 +650,12 @@ function IconPicker({
                   <div className="mb-2 text-[10px] font-black uppercase tracking-widest text-brand-navy/40">
                     {g.group}
                   </div>
-                  <div className="grid grid-cols-5 gap-1.5 sm:grid-cols-6">
+                  <div className="grid grid-cols-4 gap-2 sm:grid-cols-5">
                     {g.icons.map((name) => {
-                      const Icon = (LucideIcons as any)[name];
-                      if (!Icon) return null;
+                      const Icon = (LucideIcons as Record<string, unknown>)[name] as
+                        | ComponentType<{ className?: string; strokeWidth?: number }>
+                        | undefined;
+                      if (typeof Icon !== "function") return null;
                       const active = value === name;
                       return (
                         <button
@@ -647,13 +663,13 @@ function IconPicker({
                           type="button"
                           title={name}
                           onClick={() => { onChange(name); setOpen(false); }}
-                          className={`grid aspect-square place-items-center border-2 transition-colors ${
+                          className={`grid aspect-square place-items-center border-2 transition-all ${
                             active
-                              ? "border-brand-navy bg-brand-navy text-white"
-                              : "border-brand-navy/12 text-brand-navy/70 hover:border-brand-navy hover:text-brand-navy"
+                              ? "border-brand-navy bg-brand-navy text-white shadow-[2px_2px_0_0_var(--color-brand-orange)]"
+                              : "border-brand-navy/15 text-brand-navy hover:border-brand-navy hover:bg-brand-surface"
                           }`}
                         >
-                          <Icon className="h-4 w-4" />
+                          <Icon className="h-6 w-6" strokeWidth={2.25} />
                         </button>
                       );
                     })}
@@ -672,4 +688,18 @@ function IconPicker({
       )}
     </div>
   );
+}
+
+/** Resolves a lucide name to its glyph. Used in the list so you can see
+ *  at a glance what each category is set to. */
+function CategoryGlyph({ name }: { name: string }) {
+  const Icon = (LucideIcons as Record<string, unknown>)[name] as
+    | ComponentType<{ className?: string; strokeWidth?: number }>
+    | undefined;
+
+  if (typeof Icon !== "function") {
+    return <span className="text-[9px] font-bold text-brand-navy/30">?</span>;
+  }
+
+  return <Icon className="h-5 w-5 text-brand-navy" strokeWidth={2.25} />;
 }
