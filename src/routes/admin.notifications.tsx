@@ -318,7 +318,7 @@ function AdminNotificationsPage() {
             return (
               <li
                 key={n.id}
-                className={`flex items-start gap-4 p-4 transition-colors hover:bg-brand-surface/40 ${
+                className={`flex items-start gap-3 p-3.5 transition-colors hover:bg-brand-surface/40 sm:gap-4 sm:p-4 ${
                   !n.is_read ? "bg-brand-surface/30" : ""
                 }`}
               >

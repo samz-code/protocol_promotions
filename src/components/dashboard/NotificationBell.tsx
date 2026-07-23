@@ -186,7 +186,15 @@ export function NotificationBell({ to = "/dashboard/notifications" }: { to?: str
       </button>
 
       {open && (
-        <div className="absolute right-0 top-11 z-50 w-80 overflow-hidden rounded-xl border border-brand-navy/15 bg-white shadow-[0_16px_40px_-12px_rgba(30,41,89,0.3)]">
+        <div
+          className="fixed inset-0 z-40 bg-brand-navy/20 sm:hidden"
+          onClick={() => setOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
+      {open && (
+        <div className="fixed inset-x-3 top-16 z-50 overflow-hidden rounded-xl border border-brand-navy/15 bg-white shadow-[0_16px_40px_-12px_rgba(30,41,89,0.3)] sm:absolute sm:inset-x-auto sm:right-0 sm:top-11 sm:w-80">
           <div className="flex items-center justify-between border-b border-brand-navy/10 px-4 py-3">
             <span className="text-xs font-bold uppercase tracking-wide text-brand-navy">
               Notifications
@@ -214,7 +222,7 @@ export function NotificationBell({ to = "/dashboard/notifications" }: { to?: str
               <p className="mt-2.5 text-xs text-brand-navy/50">Nothing yet</p>
             </div>
           ) : (
-            <ul className="max-h-80 divide-y divide-brand-navy/8 overflow-y-auto">
+            <ul className="max-h-[60vh] divide-y divide-brand-navy/8 overflow-y-auto sm:max-h-80">
               {items.map((n) => {
                 const Icon = KIND_ICON[n.kind] ?? Megaphone;
                 const tone = KIND_TONE[n.kind] ?? "text-brand-navy bg-brand-surface";

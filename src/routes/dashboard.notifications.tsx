@@ -155,7 +155,7 @@ function NotificationsPage() {
 
   return (
     <div className="space-y-6">
-      <header className="flex flex-wrap items-end justify-between gap-4 border-b border-brand-navy/10 pb-5">
+      <header className="flex flex-wrap items-end justify-between gap-3 border-b border-brand-navy/10 pb-4 sm:gap-4 sm:pb-5">
         <div>
           <h1 className="text-xl font-bold text-brand-navy">Notifications</h1>
           <p className="mt-1 text-sm text-brand-navy/55">
@@ -265,7 +265,7 @@ function NotificationsPage() {
                         <button
                           type="button"
                           onClick={() => open(n)}
-                          className={`flex w-full items-start gap-4 p-4 text-left transition-colors hover:bg-brand-surface/50 ${
+                          className={`flex w-full items-start gap-3 p-3.5 text-left transition-colors hover:bg-brand-surface/50 sm:gap-4 sm:p-4 ${
                             !n.is_read ? "bg-brand-surface/40" : ""
                           }`}
                         >
