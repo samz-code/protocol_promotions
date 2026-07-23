@@ -655,7 +655,7 @@ function IconPicker({
                       const Icon = (LucideIcons as Record<string, unknown>)[name] as
                         | ComponentType<{ className?: string; strokeWidth?: number }>
                         | undefined;
-                      if (typeof Icon !== "function") return null;
+                      if (!Icon) return null;
                       const active = value === name;
                       return (
                         <button
@@ -697,7 +697,7 @@ function CategoryGlyph({ name }: { name: string }) {
     | ComponentType<{ className?: string; strokeWidth?: number }>
     | undefined;
 
-  if (typeof Icon !== "function") {
+  if (!Icon) {
     return <span className="text-[9px] font-bold text-brand-navy/30">?</span>;
   }
 

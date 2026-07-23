@@ -36,8 +36,10 @@ export const Route = createFileRoute("/shop")({
  *  rather than keeping a short hardcoded map that silently falls back. */
 function categoryIcon(name: string | null | undefined): typeof Shirt {
   if (!name) return Package;
+  // Lucide icons are forwardRef components, so they are objects at runtime
+  // rather than plain functions. Checking for a function rejects them all.
   const found = (LucideIcons as Record<string, unknown>)[name];
-  return (typeof found === "function" ? found : Package) as typeof Shirt;
+  return (found ? found : Package) as typeof Shirt;
 }
 
 type Category = {
