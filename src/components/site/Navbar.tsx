@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { Menu, Search, ShoppingCart, User, ChevronDown, X } from "lucide-react";
 import { Logo } from "./Logo";
 import { shopMenu, services, industries } from "./nav-data";
@@ -15,6 +15,15 @@ export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const { count } = useCart();
 
+  // Close every overlay on route change, otherwise the drawer survives
+  // navigation and leaves the page unusable.
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  useEffect(() => {
+    setMobileOpen(false);
+    setSearchOpen(false);
+    setPanel(null);
+  }, [pathname]);
+
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 4);
     onScroll();
@@ -26,18 +35,20 @@ export function Navbar() {
 
   return (
     <header
-      className={`sticky top-0 z-40 bg-white transition-shadow ${
-        scrolled ? "shadow-[0_1px_0_0_var(--color-border),0_8px_24px_-16px_rgb(0_0_0/0.18)]" : "border-b border-border"
+      className={`sticky top-0 z-50 bg-white transition-shadow ${
+        scrolled
+          ? "shadow-[0_1px_0_0_var(--color-border),0_8px_24px_-16px_rgb(0_0_0/0.18)]"
+          : "border-b border-border"
       }`}
       onMouseLeave={close}
     >
-      <div className="container-page flex h-16 items-center gap-3 md:h-20 xl:gap-5 2xl:gap-8">
-        <div className="shrink-0">
-          <Logo />
-        </div>
+      {/* min-w-0 lets the flex children actually shrink instead of overflowing */}
+      <div className="container-page flex h-16 min-w-0 items-center gap-2 px-4 sm:gap-3 sm:px-6 md:h-20 xl:gap-5 2xl:gap-8">
+        {/* Logo renders its own link and caps its own height per breakpoint */}
+        <Logo className="shrink" priority />
 
         {/* Desktop nav, only from xl up where there is real room for 7 items plus logo, CTA and icons */}
-        <nav className="hidden xl:flex items-center gap-0 text-[13.5px] font-semibold tracking-[-0.01em] whitespace-nowrap 2xl:gap-0.5 2xl:text-[15px]">
+        <nav className="hidden items-center gap-0 whitespace-nowrap text-[13.5px] font-semibold tracking-[-0.01em] xl:flex 2xl:gap-0.5 2xl:text-[15px]">
           <NavTrigger label="Shop" active={panel === "shop"} onEnter={() => setPanel("shop")} />
           <NavTrigger label="Services" active={panel === "services"} onEnter={() => setPanel("services")} />
           <NavTrigger label="Industries" active={panel === "industries"} onEnter={() => setPanel("industries")} />
@@ -47,10 +58,10 @@ export function Navbar() {
           <NavLink to="/contact" onEnter={close}>Contact</NavLink>
         </nav>
 
-        <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-1.5 md:gap-2 xl:gap-1.5 2xl:gap-2.5">
+        <div className="ml-auto flex shrink-0 items-center gap-0.5 sm:gap-1.5 md:gap-2 xl:gap-1.5 2xl:gap-2.5">
           <Link
             to="/request-quote"
-            className="hidden xl:inline-flex items-center whitespace-nowrap rounded-sm bg-brand-orange px-3.5 py-2.5 text-[13px] font-bold text-white shadow-sm transition hover:brightness-95 2xl:px-5 2xl:text-[15px]"
+            className="hidden items-center whitespace-nowrap rounded-sm bg-brand-orange px-3.5 py-2.5 text-[13px] font-bold text-white shadow-sm transition hover:brightness-95 xl:inline-flex 2xl:px-5 2xl:text-[15px]"
           >
             Request Quote
           </Link>
@@ -58,7 +69,7 @@ export function Navbar() {
             type="button"
             onClick={() => setSearchOpen(true)}
             aria-label="Search products"
-            className="inline-flex h-10 w-10 items-center justify-center rounded-sm text-brand-navy hover:bg-brand-navy/6 transition-colors"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-sm text-brand-navy transition-colors hover:bg-brand-navy/6"
           >
             <Search className="h-5 w-5" />
           </button>
@@ -66,18 +77,21 @@ export function Navbar() {
             <span className="relative">
               <ShoppingCart className="h-5 w-5" />
               {count > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 grid place-items-center h-4 min-w-4 rounded-full bg-brand-orange text-[10px] font-bold text-white px-1 tabular-nums">
+                <span className="absolute -right-1.5 -top-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-brand-orange px-1 text-[10px] font-bold tabular-nums text-white">
                   {count > 99 ? "99+" : count}
                 </span>
               )}
             </span>
           </IconLink>
-          <IconLink to="/login" label="Login" className="hidden sm:inline-flex"><User className="h-5 w-5" /></IconLink>
+          <IconLink to="/login" label="Login" className="hidden sm:inline-flex">
+            <User className="h-5 w-5" />
+          </IconLink>
           <button
             type="button"
-            className="xl:hidden inline-flex h-10 w-10 items-center justify-center rounded-sm text-brand-navy hover:bg-brand-navy/6"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-sm text-brand-navy hover:bg-brand-navy/6 xl:hidden"
             onClick={() => setMobileOpen(true)}
             aria-label="Open menu"
+            aria-expanded={mobileOpen}
           >
             <Menu className="h-6 w-6" />
           </button>
@@ -87,7 +101,7 @@ export function Navbar() {
       {/* Mega menu panels */}
       {panel && (
         <div
-          className="hidden xl:block absolute inset-x-0 top-full bg-white border-t-2 border-brand-navy shadow-lg"
+          className="absolute inset-x-0 top-full hidden border-t-2 border-brand-navy bg-white shadow-lg xl:block"
           onMouseEnter={() => setPanel(panel)}
         >
           <div className="container-page py-8">
@@ -102,7 +116,15 @@ export function Navbar() {
       {searchOpen && <SearchOverlay onClose={() => setSearchOpen(false)} />}
 
       {/* Mobile drawer */}
-      {mobileOpen && <MobileDrawer onClose={() => setMobileOpen(false)} onSearch={() => { setMobileOpen(false); setSearchOpen(true); }} />}
+      {mobileOpen && (
+        <MobileDrawer
+          onClose={() => setMobileOpen(false)}
+          onSearch={() => {
+            setMobileOpen(false);
+            setSearchOpen(true);
+          }}
+        />
+      )}
     </header>
   );
 }
@@ -137,32 +159,39 @@ function SearchOverlay({ onClose }: { onClose: () => void }) {
   const suggestions = ["Polo shirts", "Hoodies", "Mugs", "Banners", "Business cards", "Tote bags"];
 
   return (
-    <div className="fixed inset-0 z-60 bg-brand-navy/50 backdrop-blur-sm" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-60 bg-brand-navy/50 backdrop-blur-sm"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Search"
+    >
       <div
-        className="mx-auto mt-24 w-[92%] max-w-2xl bg-white rounded-xl shadow-2xl overflow-hidden"
+        className="mx-auto mt-20 w-[92%] max-w-2xl overflow-hidden rounded-xl bg-white shadow-2xl sm:mt-24"
         onClick={(e) => e.stopPropagation()}
       >
         <form onSubmit={submit} className="flex items-center gap-3 border-b border-border px-4 sm:px-5">
-          <Search className="h-5 w-5 text-brand-navy/40 shrink-0" />
+          <Search className="h-5 w-5 shrink-0 text-brand-navy/40" />
           <input
             ref={inputRef}
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Search products, categories, materials..."
-            className="flex-1 py-4 sm:py-5 text-base sm:text-lg text-brand-navy outline-none placeholder:text-brand-navy/35"
+            /* 16px minimum stops iOS Safari zooming the page on focus */
+            className="min-w-0 flex-1 py-4 text-base text-brand-navy outline-none placeholder:text-brand-navy/35 sm:py-5 sm:text-lg"
           />
           <button
             type="button"
             onClick={onClose}
             aria-label="Close search"
-            className="grid h-9 w-9 shrink-0 place-items-center rounded-md text-brand-navy/50 hover:bg-brand-navy/6 hover:text-brand-navy transition-colors"
+            className="grid h-10 w-10 shrink-0 place-items-center rounded-md text-brand-navy/50 transition-colors hover:bg-brand-navy/6 hover:text-brand-navy"
           >
             <X className="h-5 w-5" />
           </button>
         </form>
 
         <div className="p-4 sm:p-5">
-          <div className="text-[11px] font-bold uppercase tracking-widest text-brand-navy/40 mb-3">
+          <div className="mb-3 text-[11px] font-bold uppercase tracking-widest text-brand-navy/40">
             Popular searches
           </div>
           <div className="flex flex-wrap gap-2">
@@ -170,14 +199,17 @@ function SearchOverlay({ onClose }: { onClose: () => void }) {
               <button
                 key={s}
                 type="button"
-                onClick={() => { navigate({ to: "/shop", search: { q: s } }); onClose(); }}
-                className="rounded-full border border-brand-navy/15 bg-white px-3.5 py-1.5 text-sm font-medium text-brand-navy/70 hover:border-brand-navy hover:text-brand-navy transition-colors"
+                onClick={() => {
+                  navigate({ to: "/shop", search: { q: s } });
+                  onClose();
+                }}
+                className="rounded-full border border-brand-navy/15 bg-white px-3.5 py-1.5 text-sm font-medium text-brand-navy/70 transition-colors hover:border-brand-navy hover:text-brand-navy"
               >
                 {s}
               </button>
             ))}
           </div>
-          <p className="mt-5 text-xs text-brand-navy/45">
+          <p className="mt-5 hidden text-xs text-brand-navy/45 sm:block">
             Press Enter to search, or Escape to close.
           </p>
         </div>
@@ -192,6 +224,7 @@ function NavTrigger({ label, active, onEnter }: { label: string; active: boolean
       type="button"
       onMouseEnter={onEnter}
       onFocus={onEnter}
+      aria-expanded={active}
       className={`relative inline-flex items-center gap-1 whitespace-nowrap px-2.5 py-2 transition-colors 2xl:px-3.5 ${
         active ? "text-brand-navy" : "text-brand-navy/70 hover:text-brand-navy"
       }`}
@@ -199,7 +232,7 @@ function NavTrigger({ label, active, onEnter }: { label: string; active: boolean
       {label}
       <ChevronDown className={`h-3 w-3 transition-transform 2xl:h-3.5 2xl:w-3.5 ${active ? "rotate-180" : ""}`} />
       <span
-        className={`absolute left-2.5 right-2.5 -bottom-px h-0.5 bg-brand-orange transition-transform origin-left 2xl:left-3.5 2xl:right-3.5 ${
+        className={`absolute -bottom-px left-2.5 right-2.5 h-0.5 origin-left bg-brand-orange transition-transform 2xl:left-3.5 2xl:right-3.5 ${
           active ? "scale-x-100" : "scale-x-0"
         }`}
       />
@@ -220,12 +253,22 @@ function NavLink({ to, children, onEnter }: { to: string; children: React.ReactN
   );
 }
 
-function IconLink({ to, label, children, className = "" }: { to: string; label: string; children: React.ReactNode; className?: string }) {
+function IconLink({
+  to,
+  label,
+  children,
+  className = "",
+}: {
+  to: string;
+  label: string;
+  children: React.ReactNode;
+  className?: string;
+}) {
   return (
     <Link
       to={to}
       aria-label={label}
-      className={`inline-flex h-10 w-10 items-center justify-center rounded-sm text-brand-navy hover:bg-brand-navy/6 transition-colors ${className}`}
+      className={`inline-flex h-11 w-11 items-center justify-center rounded-sm text-brand-navy transition-colors hover:bg-brand-navy/6 ${className}`}
     >
       {children}
     </Link>
@@ -235,7 +278,7 @@ function IconLink({ to, label, children, className = "" }: { to: string; label: 
 /** Small crop-mark glyph, a nod to print registration marks, used as the section marker instead of a generic eyebrow label. */
 function RegistrationMark() {
   return (
-    <svg width="12" height="12" viewBox="0 0 12 12" className="text-brand-orange shrink-0" aria-hidden="true">
+    <svg width="12" height="12" viewBox="0 0 12 12" className="shrink-0 text-brand-orange" aria-hidden="true">
       <circle cx="6" cy="6" r="3.4" fill="none" stroke="currentColor" strokeWidth="1" />
       <line x1="6" y1="0" x2="6" y2="12" stroke="currentColor" strokeWidth="1" />
       <line x1="0" y1="6" x2="12" y2="6" stroke="currentColor" strokeWidth="1" />
@@ -248,7 +291,7 @@ function ShopPanel({ onSelect }: { onSelect: () => void }) {
     <div className="grid grid-cols-5 gap-8">
       {shopMenu.map((col) => (
         <div key={col.title}>
-          <div className="flex items-center gap-2 text-[13px] font-bold text-brand-navy mb-3.5">
+          <div className="mb-3.5 flex items-center gap-2 text-[13px] font-bold text-brand-navy">
             <RegistrationMark />
             {col.title}
           </div>
@@ -258,7 +301,7 @@ function ShopPanel({ onSelect }: { onSelect: () => void }) {
                 <Link
                   to={it.href}
                   onClick={onSelect}
-                  className="text-[14.5px] font-medium text-brand-navy/80 hover:text-brand-orange transition-colors"
+                  className="text-[14.5px] font-medium text-brand-navy/80 transition-colors hover:text-brand-orange"
                 >
                   {it.label}
                 </Link>
@@ -271,10 +314,20 @@ function ShopPanel({ onSelect }: { onSelect: () => void }) {
   );
 }
 
-function SimplePanel({ title, items, basePath, onSelect }: { title: string; items: string[]; basePath: string; onSelect: () => void }) {
+function SimplePanel({
+  title,
+  items,
+  basePath,
+  onSelect,
+}: {
+  title: string;
+  items: string[];
+  basePath: string;
+  onSelect: () => void;
+}) {
   return (
     <div>
-      <div className="flex items-center gap-2 text-[13px] font-bold text-brand-navy mb-4">
+      <div className="mb-4 flex items-center gap-2 text-[13px] font-bold text-brand-navy">
         <RegistrationMark />
         {title}
       </div>
@@ -284,7 +337,7 @@ function SimplePanel({ title, items, basePath, onSelect }: { title: string; item
             key={it}
             to={basePath}
             onClick={onSelect}
-            className="text-[14.5px] font-medium py-1.5 text-brand-navy/80 hover:text-brand-orange transition-colors"
+            className="py-1.5 text-[14.5px] font-medium text-brand-navy/80 transition-colors hover:text-brand-orange"
           >
             {it}
           </Link>
@@ -295,6 +348,27 @@ function SimplePanel({ title, items, basePath, onSelect }: { title: string; item
 }
 
 function MobileDrawer({ onClose, onSearch }: { onClose: () => void; onSearch: () => void }) {
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  // Lock scroll, close on Escape, and move focus into the drawer so
+  // keyboard and screen reader users are not left behind on the page.
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+
+    panelRef.current?.focus();
+
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prev;
+    };
+  }, [onClose]);
+
   const links = [
     { to: "/", label: "Home" },
     { to: "/shop", label: "Shop" },
@@ -308,23 +382,39 @@ function MobileDrawer({ onClose, onSearch }: { onClose: () => void; onSearch: ()
     { to: "/faqs", label: "FAQs" },
     { to: "/login", label: "Login" },
   ];
+
   return (
-    <div className="xl:hidden fixed inset-0 z-50 bg-brand-navy/40" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-60 bg-brand-navy/40 xl:hidden"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Menu"
+    >
       <div
-        className="absolute inset-y-0 right-0 w-[86%] max-w-sm bg-white flex flex-col"
+        ref={panelRef}
+        tabIndex={-1}
+        /* dvh keeps the panel correct when mobile browser chrome collapses */
+        className="absolute inset-y-0 right-0 flex h-full max-h-dvh w-[86%] max-w-sm flex-col bg-white outline-none"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between p-4 border-b border-border">
-          <Logo />
-          <button onClick={onClose} className="h-10 w-10 grid place-items-center rounded-sm hover:bg-brand-navy/6" aria-label="Close menu">
+        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border p-4">
+          <Logo className="shrink" imgClassName="h-8" />
+          <button
+            onClick={onClose}
+            className="grid h-11 w-11 shrink-0 place-items-center rounded-sm hover:bg-brand-navy/6"
+            aria-label="Close menu"
+          >
             <X className="h-5 w-5" />
           </button>
         </div>
-        <nav className="flex-1 overflow-y-auto p-2">
+
+        {/* Padded for the iOS home indicator so the last link is never cut off */}
+        <nav className="flex-1 overflow-y-auto overscroll-contain p-2 pb-[max(1rem,env(safe-area-inset-bottom))]">
           <button
             type="button"
             onClick={onSearch}
-            className="flex w-full items-center gap-3 px-4 py-3 text-[16px] font-semibold text-brand-navy border-l-2 border-transparent hover:border-brand-orange hover:bg-brand-navy/4 transition-colors"
+            className="flex w-full items-center gap-3 border-l-2 border-transparent px-4 py-3.5 text-[16px] font-semibold text-brand-navy transition-colors hover:border-brand-orange hover:bg-brand-navy/4"
           >
             <Search className="h-5 w-5 text-brand-navy/50" /> Search products
           </button>
@@ -333,13 +423,19 @@ function MobileDrawer({ onClose, onSearch }: { onClose: () => void; onSearch: ()
               key={l.to}
               to={l.to}
               onClick={onClose}
-              className="block px-4 py-3 text-[16px] font-semibold text-brand-navy border-l-2 border-transparent hover:border-brand-orange hover:bg-brand-navy/4 transition-colors"
+              className="block border-l-2 border-transparent px-4 py-3.5 text-[16px] font-semibold text-brand-navy transition-colors hover:border-brand-orange hover:bg-brand-navy/4"
             >
               {l.label}
             </Link>
           ))}
-          <Button asChild variant="default" className="w-full mt-4 rounded-sm bg-brand-orange hover:bg-brand-orange/90 text-white font-bold">
-            <Link to="/request-quote" onClick={onClose}>Request a Quote</Link>
+          <Button
+            asChild
+            variant="default"
+            className="mt-4 w-full rounded-sm bg-brand-orange py-6 font-bold text-white hover:bg-brand-orange/90"
+          >
+            <Link to="/request-quote" onClick={onClose}>
+              Request a Quote
+            </Link>
           </Button>
         </nav>
       </div>
