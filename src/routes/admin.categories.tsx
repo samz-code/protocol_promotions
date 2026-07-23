@@ -4,7 +4,11 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import {
   Loader2, Plus, Pencil, Trash2, X, AlertCircle, GripVertical, Check,
+  ChevronDown, Search,
 } from "lucide-react";
+// The picker renders whichever glyph a category is set to, so the whole
+// set has to be available by name rather than imported one by one.
+import * as LucideIcons from "lucide-react";
 
 export const Route = createFileRoute("/admin/categories")({
   component: CategoriesPage,
@@ -21,10 +25,49 @@ type Category = {
   is_active: boolean;
 };
 
-const ICON_OPTIONS = [
-  "Shirt", "Printer", "MonitorSmartphone", "Gift", "Package", "Palette",
-  "BookOpen", "ShoppingBag", "PenTool", "Megaphone", "Car", "Building2",
+/* Grouped so picking one is quick. Every name here must also exist in the
+   CATEGORY_ICONS map in shop.tsx, otherwise the shop falls back to a
+   generic box and the choice silently does nothing. */
+const ICON_GROUPS: { group: string; icons: string[] }[] = [
+  {
+    group: "Apparel",
+    icons: ["Shirt", "Footprints", "HardHat", "Watch", "Glasses", "Umbrella"],
+  },
+  {
+    group: "Print",
+    icons: ["Printer", "FileText", "BookOpen", "Newspaper", "StickyNote", "Files", "Stamp", "Mail"],
+  },
+  {
+    group: "Signage and display",
+    icons: ["Megaphone", "Flag", "PanelTop", "Presentation", "Frame", "Tv", "Lightbulb"],
+  },
+  {
+    group: "Drinkware and gifts",
+    icons: ["Coffee", "CupSoda", "Wine", "Gift", "Award", "Trophy", "Medal", "Cake"],
+  },
+  {
+    group: "Bags and packaging",
+    icons: ["ShoppingBag", "Package", "Box", "Briefcase", "Backpack", "Luggage", "Archive"],
+  },
+  {
+    group: "Tech and office",
+    icons: ["MonitorSmartphone", "Laptop", "Headphones", "Keyboard", "Mouse", "BatteryCharging", "Usb", "Calculator"],
+  },
+  {
+    group: "Design and tools",
+    icons: ["Palette", "PenTool", "Paintbrush", "Scissors", "Ruler", "Hammer", "Wrench", "Sparkles"],
+  },
+  {
+    group: "Vehicles and outdoor",
+    icons: ["Car", "Truck", "Bike", "Tent", "TreePine", "Sun"],
+  },
+  {
+    group: "Business",
+    icons: ["Building2", "Store", "Factory", "Users", "Handshake", "BadgeCheck", "Percent", "Tag"],
+  },
 ];
+
+const ICON_OPTIONS = ICON_GROUPS.flatMap((g) => g.icons);
 
 function slugify(s: string) {
   return s
@@ -367,21 +410,7 @@ function CategoryForm({
           </AdminField>
         </div>
 
-        <AdminField id="cat-icon" label="Icon" hint="Lucide name">
-          <select
-            id="cat-icon"
-            value={icon}
-            onChange={(e) => setIcon(e.target.value)}
-            className={inputCls}
-          >
-            <option value="">None</option>
-            {ICON_OPTIONS.map((i) => (
-              <option key={i} value={i}>
-                {i}
-              </option>
-            ))}
-          </select>
-        </AdminField>
+        <IconPicker value={icon} onChange={setIcon} />
 
         <AdminField id="cat-parent" label="Parent" hint="For subcategories">
           <select
@@ -511,6 +540,136 @@ export function ConfirmDialog({
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+/**
+ * Sixty six names in a dropdown is worse than twelve. This shows the
+ * actual glyphs, grouped and searchable, so the choice takes a second.
+ */
+function IconPicker({
+  value, onChange,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const [query, setQuery] = useState("");
+  const [open, setOpen] = useState(false);
+
+  const groups = query.trim()
+    ? [
+        {
+          group: "Matches",
+          icons: ICON_OPTIONS.filter((n) =>
+            n.toLowerCase().includes(query.trim().toLowerCase())
+          ),
+        },
+      ]
+    : ICON_GROUPS;
+
+  const Selected = value ? (LucideIcons as any)[value] : null;
+
+  return (
+    <div>
+      <div className="mb-1.5 flex items-baseline justify-between">
+        <label className="text-[11px] font-bold uppercase tracking-widest text-brand-navy">
+          Icon
+        </label>
+        <span className="text-[11px] text-brand-navy/45">
+          Shown on the shop and in the nav
+        </span>
+      </div>
+
+      {/* Current selection, click to change */}
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center justify-between gap-3 border-2 border-brand-navy/20 bg-white px-3 py-2.5 text-left transition-colors hover:border-brand-navy"
+      >
+        <span className="flex items-center gap-2.5">
+          <span className="grid h-8 w-8 place-items-center border border-brand-navy/15 bg-brand-surface">
+            {Selected ? (
+              <Selected className="h-4 w-4 text-brand-navy" />
+            ) : (
+              <span className="text-[10px] font-bold text-brand-navy/35">None</span>
+            )}
+          </span>
+          <span className="text-sm font-medium text-brand-navy">
+            {value || "Choose an icon"}
+          </span>
+        </span>
+        <ChevronDown
+          className={`h-4 w-4 shrink-0 text-brand-navy/40 transition-transform ${open ? "rotate-180" : ""}`}
+        />
+      </button>
+
+      {open && (
+        <div className="mt-2 border-2 border-brand-navy/15 bg-white p-3">
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-navy/40" />
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search icons"
+              className={`${inputCls} pl-9`}
+            />
+          </div>
+
+          <div className="mt-3 max-h-64 overflow-y-auto pr-1">
+            <button
+              type="button"
+              onClick={() => { onChange(""); setOpen(false); }}
+              className={`mb-3 w-full border-2 px-3 py-2 text-left text-xs font-bold uppercase tracking-wide transition-colors ${
+                value === ""
+                  ? "border-brand-navy bg-brand-navy text-white"
+                  : "border-brand-navy/15 text-brand-navy/60 hover:border-brand-navy/40"
+              }`}
+            >
+              No icon
+            </button>
+
+            {groups.map((g) => {
+              if (g.icons.length === 0) return null;
+              return (
+                <div key={g.group} className="mb-4 last:mb-0">
+                  <div className="mb-2 text-[10px] font-black uppercase tracking-widest text-brand-navy/40">
+                    {g.group}
+                  </div>
+                  <div className="grid grid-cols-5 gap-1.5 sm:grid-cols-6">
+                    {g.icons.map((name) => {
+                      const Icon = (LucideIcons as any)[name];
+                      if (!Icon) return null;
+                      const active = value === name;
+                      return (
+                        <button
+                          key={name}
+                          type="button"
+                          title={name}
+                          onClick={() => { onChange(name); setOpen(false); }}
+                          className={`grid aspect-square place-items-center border-2 transition-colors ${
+                            active
+                              ? "border-brand-navy bg-brand-navy text-white"
+                              : "border-brand-navy/12 text-brand-navy/70 hover:border-brand-navy hover:text-brand-navy"
+                          }`}
+                        >
+                          <Icon className="h-4 w-4" />
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+
+            {groups.every((g) => g.icons.length === 0) && (
+              <p className="py-6 text-center text-xs text-brand-navy/45">
+                Nothing matches that search.
+              </p>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

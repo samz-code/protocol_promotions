@@ -3,6 +3,7 @@ import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-r
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { SiteLayout, PageHeader } from "@/components/site/SiteLayout";
+import * as LucideIcons from "lucide-react";
 import {
   Filter, Shirt, Printer, MonitorSmartphone, Gift, Package, Palette,
   Star, ArrowRight, X, Truck, Layers, SearchX, AlertCircle,
@@ -31,14 +32,13 @@ export const Route = createFileRoute("/shop")({
   component: ShopPage,
 });
 
-const ICONS: Record<string, typeof Shirt> = {
-  Shirt,
-  Printer,
-  MonitorSmartphone,
-  Gift,
-  Package,
-  Palette,
-};
+/** Categories can be set to any lucide icon in admin, so resolve by name
+ *  rather than keeping a short hardcoded map that silently falls back. */
+function categoryIcon(name: string | null | undefined): typeof Shirt {
+  if (!name) return Package;
+  const found = (LucideIcons as Record<string, unknown>)[name];
+  return (typeof found === "function" ? found : Package) as typeof Shirt;
+}
 
 type Category = {
   id: string;
@@ -299,7 +299,7 @@ function ShopPage() {
                   </button>
                 </li>
                 {categories.map((c) => {
-                  const CategoryIcon = (c.icon && ICONS[c.icon]) || Package;
+                  const CategoryIcon = categoryIcon(c.icon);
                   const catCount = products.filter(p => p.category_id === c.id).length;
                   return (
                     <li key={c.id}>
@@ -527,7 +527,7 @@ function CategoryStrip({
     <section className="container-page pt-8 md:pt-10">
       <div className="flex gap-2.5 overflow-x-auto pb-3 -mx-1 px-1 sm:flex-wrap">
         {categories.map((c) => {
-          const Icon = (c.icon && ICONS[c.icon]) || Package;
+          const Icon = categoryIcon(c.icon);
           const isActive = activeSlug === c.slug;
           return (
             <button
@@ -552,7 +552,7 @@ function CategoryStrip({
 
 function ProductCard({ product }: { product: Product }) {
   const iconName = product.categories?.icon;
-  const Icon = (iconName && ICONS[iconName]) || Package;
+  const Icon = categoryIcon(iconName);
   const hasImage = product.images.length > 0;
   const onSale = product.compare_at_price && product.compare_at_price > product.price;
   const discount = onSale
