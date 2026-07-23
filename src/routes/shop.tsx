@@ -534,13 +534,23 @@ function CategoryStrip({
               key={c.id}
               type="button"
               onClick={() => onSelect(isActive ? null : c.slug)}
-              className={`shrink-0 inline-flex items-center gap-2 rounded-full border px-4 py-2 text-[13px] font-bold tracking-tight transition-all sm:gap-2.5 sm:px-5 sm:py-2.5 sm:text-sm ${
+              className={`group inline-flex shrink-0 items-center gap-2 rounded-full border px-3 py-2 text-[13px] font-bold tracking-tight transition-all sm:gap-2.5 sm:px-4 sm:py-2.5 sm:text-sm ${
                 isActive
-                  ? "bg-brand-navy text-white border-brand-navy shadow-md"
-                  : "bg-white text-brand-navy/70 border-brand-navy/15 hover:border-brand-navy/40 hover:text-brand-navy"
+                  ? "border-brand-navy bg-brand-navy text-white shadow-md"
+                  : "border-brand-navy/15 bg-white text-brand-navy/70 hover:border-brand-navy/40 hover:text-brand-navy"
               }`}
             >
-              <Icon className="h-4.5 w-4.5 shrink-0" strokeWidth={2.25} />
+              {/* The icon sits in its own tile so each category is
+                  distinguishable at a glance rather than all reading alike. */}
+              <span
+                className={`grid h-6 w-6 shrink-0 place-items-center rounded-full transition-colors sm:h-7 sm:w-7 ${
+                  isActive
+                    ? "bg-white/15 text-white"
+                    : "bg-brand-surface text-brand-orange group-hover:bg-brand-orange/10"
+                }`}
+              >
+                <Icon className="h-4 w-4" strokeWidth={2.4} />
+              </span>
               {c.name}
             </button>
           );
