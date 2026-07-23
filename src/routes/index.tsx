@@ -165,20 +165,12 @@ function MotionStyles() {
   return (
     <style>{`
       @keyframes ppDotDrift {
-        0%   { background-position: 0 0, 0 0; }
-        100% { background-position: 28px 28px, 56px 56px; }
+        0%   { background-position: 0 0; }
+        100% { background-position: 28px 28px; }
       }
       @keyframes ppDotPulse {
         0%, 100% { opacity: 0.18; }
         50%      { opacity: 0.42; }
-      }
-      @keyframes ppFloatSlow {
-        0%, 100% { transform: translate3d(0, 0, 0); }
-        50%      { transform: translate3d(0, -18px, 0); }
-      }
-      @keyframes ppFloatFast {
-        0%, 100% { transform: translate3d(0, 0, 0); }
-        50%      { transform: translate3d(0, 14px, 0); }
       }
       @keyframes ppSweep {
         0%   { transform: translateX(-120%); }
@@ -192,10 +184,6 @@ function MotionStyles() {
         from { transform: translateX(0); }
         to   { transform: translateX(-50%); }
       }
-      @keyframes ppSpinSlow {
-        from { transform: rotate(0deg); }
-        to   { transform: rotate(360deg); }
-      }
       @keyframes ppTicker {
         0%, 100% { opacity: 1; }
         50%      { opacity: 0.35; }
@@ -203,18 +191,16 @@ function MotionStyles() {
 
       .pp-dots {
         background-image:
-          radial-gradient(var(--color-brand-navy) 1.15px, transparent 1.15px),
-          radial-gradient(var(--color-brand-orange) 1.15px, transparent 1.15px);
-        background-size: 28px 28px, 56px 56px;
-        background-position: 0 0, 14px 14px;
+          radial-gradient(var(--color-brand-navy) 1.15px, transparent 1.15px);
+        background-size: 28px 28px;
+        background-position: 0 0;
         animation: ppDotDrift 22s linear infinite, ppDotPulse 9s ease-in-out infinite;
       }
       .pp-dots-light {
         background-image:
-          radial-gradient(rgba(255,255,255,0.9) 1.2px, transparent 1.2px),
-          radial-gradient(var(--color-brand-orange) 1.2px, transparent 1.2px);
-        background-size: 30px 30px, 60px 60px;
-        background-position: 0 0, 15px 15px;
+          radial-gradient(rgba(255,255,255,0.9) 1.2px, transparent 1.2px);
+        background-size: 30px 30px;
+        background-position: 0 0;
         animation: ppDotDrift 26s linear infinite reverse, ppDotPulse 11s ease-in-out infinite;
       }
       .pp-mask-fade {
@@ -225,9 +211,6 @@ function MotionStyles() {
         -webkit-mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, #000 25%, transparent 80%);
         mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, #000 25%, transparent 80%);
       }
-      .pp-float-slow { animation: ppFloatSlow 11s ease-in-out infinite; }
-      .pp-float-fast { animation: ppFloatFast 8s ease-in-out infinite; }
-
       .pp-rise { opacity: 0; }
       .pp-rise.pp-in { animation: ppRise 0.75s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
 
@@ -248,7 +231,6 @@ function MotionStyles() {
       .pp-track { animation: ppMarquee var(--pp-speed, 45s) linear infinite; }
       .pp-track:hover { animation-play-state: paused; }
 
-      .pp-spin-slow { animation: ppSpinSlow 26s linear infinite; }
       .pp-ticker-dot { animation: ppTicker 1.8s ease-in-out infinite; }
 
       .pp-underline {
@@ -263,10 +245,7 @@ function MotionStyles() {
       @media (prefers-reduced-motion: reduce) {
         .pp-dots,
         .pp-dots-light,
-        .pp-float-slow,
-        .pp-float-fast,
         .pp-track,
-        .pp-spin-slow,
         .pp-ticker-dot { animation: none !important; }
         .pp-sheen:hover::after { animation: none !important; }
         .pp-rise { opacity: 1 !important; }
@@ -479,18 +458,6 @@ function Statement() {
       {/* Animated dotted field, masked so it fades out toward the edges */}
       <DotField className="pp-mask-fade opacity-70" />
 
-      {/* Soft floating colour blooms behind the dots */}
-      <div
-        aria-hidden="true"
-        className="pp-float-slow pointer-events-none absolute -left-24 top-4 h-72 w-72 rounded-full opacity-[0.16] blur-3xl"
-        style={{ background: "var(--color-brand-orange)" }}
-      />
-      <div
-        aria-hidden="true"
-        className="pp-float-fast pointer-events-none absolute -right-20 bottom-0 h-80 w-80 rounded-full opacity-[0.13] blur-3xl"
-        style={{ background: "var(--color-brand-navy)" }}
-      />
-
       <div className="container-page relative grid items-center gap-10 px-5 py-14 sm:px-6 sm:py-20 md:py-28 lg:grid-cols-[1.15fr_1fr] lg:gap-16">
         <div>
           <Reveal>
@@ -641,10 +608,6 @@ function HeroCarousel() {
         aria-hidden="true"
         className="absolute -bottom-3 -right-3 hidden h-full w-full border border-brand-navy/25 sm:block"
       />
-      <div
-        aria-hidden="true"
-        className="pp-spin-slow pointer-events-none absolute -left-8 -top-8 hidden h-24 w-24 border border-dashed border-brand-orange/40 lg:block"
-      />
 
       <div
         className="relative overflow-hidden border border-brand-navy bg-brand-surface"
@@ -663,8 +626,6 @@ function HeroCarousel() {
             }`}
           />
         ))}
-
-        <div className="pointer-events-none absolute inset-0 bg-linear-to-tr from-brand-navy/25 via-transparent to-transparent" />
 
         {count > 1 && (
           <>
@@ -687,7 +648,7 @@ function HeroCarousel() {
           </>
         )}
 
-        <div className="absolute inset-x-0 bottom-0 bg-linear-to-t from-brand-navy/90 via-brand-navy/45 to-transparent px-4 pb-3.5 pt-14 sm:px-5 sm:pb-4">
+        <div className="absolute inset-x-0 bottom-0 bg-brand-navy/90 px-4 pb-3.5 pt-3.5 backdrop-blur-sm sm:px-5 sm:pb-4 sm:pt-4">
           <div className="flex items-end justify-between gap-3">
             <span className="text-sm font-bold leading-tight text-white sm:text-base">
               {active?.label ?? "Premium Quality"}
@@ -843,7 +804,7 @@ function Catalogue() {
                   <div className="group relative grid grid-cols-[22%_44%_13%_13%_8%] items-center px-6 py-5 transition-colors duration-300 hover:bg-brand-navy hover:text-white">
                     <span
                       aria-hidden="true"
-                      className="absolute left-0 top-0 h-full w-0.75origin-top scale-y-0 bg-brand-orange transition-transform duration-300 group-hover:scale-y-100"
+                      className="absolute left-0 top-0 h-full w-0.75 origin-top scale-y-0 bg-brand-orange transition-transform duration-300 group-hover:scale-y-100"
                     />
                     <div>
                       <Link
@@ -1235,11 +1196,6 @@ function Techniques() {
   return (
     <section className="relative overflow-hidden border-b border-brand-navy bg-brand-navy text-white">
       <DotField variant="light" className="pp-mask-fade-center opacity-30" />
-      <div
-        aria-hidden="true"
-        className="pp-float-slow pointer-events-none absolute -right-24 top-10 h-80 w-80 rounded-full opacity-20 blur-3xl"
-        style={{ background: "var(--color-brand-orange)" }}
-      />
 
       <div className="container-page relative px-5 py-14 sm:px-6 sm:py-16 md:py-24">
         <Reveal>
@@ -1382,11 +1338,6 @@ function Argument() {
   return (
     <section className="relative overflow-hidden border-b border-brand-navy bg-brand-navy text-white">
       <DotField variant="light" className="pp-mask-fade opacity-30" />
-      <div
-        aria-hidden="true"
-        className="pp-float-fast pointer-events-none absolute -left-20 bottom-0 h-72 w-72 rounded-full opacity-20 blur-3xl"
-        style={{ background: "var(--color-brand-orange)" }}
-      />
 
       <div className="container-page relative px-5 py-14 sm:px-6 sm:py-16 md:py-24">
         <div className="grid gap-12 lg:grid-cols-[minmax(0,24rem)_1fr] lg:gap-20">
@@ -1671,11 +1622,6 @@ function Close() {
     <section className="relative overflow-hidden bg-brand-navy text-white">
       <PressGrid />
       <DotField variant="light" className="pp-mask-fade-center opacity-35" />
-      <div
-        aria-hidden="true"
-        className="pp-float-slow pointer-events-none absolute -right-24 -top-16 h-96 w-96 rounded-full opacity-20 blur-3xl"
-        style={{ background: "var(--color-brand-orange)" }}
-      />
 
       <div className="container-page relative px-5 py-14 sm:px-6 sm:py-20 md:py-28">
         <div className="grid gap-10 lg:grid-cols-2 lg:items-end">
