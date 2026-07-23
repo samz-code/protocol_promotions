@@ -79,7 +79,7 @@ async function fetchPayChannels(): Promise<PayChannel[]> {
   return (data ?? []) as PayChannel[];
 }
 
-type InvoiceDisplayStatus = "Paid" | "Unpaid" | "Overdue";
+type InvoiceDisplayStatus = "Paid" | "Part paid" | "Unpaid" | "Overdue";
 
 const NAVY = [10, 37, 64] as const;
 const ORANGE = [249, 115, 22] as const;
@@ -152,7 +152,11 @@ function dueDate(createdAt: string) {
 }
 
 function displayStatus(inv: InvoiceRow): InvoiceDisplayStatus {
-  if ((inv.payment_status ?? "").toLowerCase() === "paid") return "Paid";
+  const state = (inv.payment_status ?? "").toLowerCase();
+  if (state === "paid") return "Paid";
+  // The trigger sets pending when something has cleared but not the full
+  // amount, so say so rather than calling it unpaid.
+  if (state === "pending") return "Part paid";
   return dueDate(inv.created_at).getTime() < Date.now() ? "Overdue" : "Unpaid";
 }
 
@@ -325,17 +329,20 @@ async function buildInvoicePdf(inv: InvoiceRow, channels: PayChannel[] = []): Pr
       ? { text: [21, 128, 61], bg: [240, 253, 244], border: [187, 247, 208] }
       : status === "Overdue"
         ? { text: [185, 28, 28], bg: [254, 242, 242], border: [254, 202, 202] }
-        : { text: [194, 65, 12], bg: [255, 247, 237], border: [254, 215, 170] };
+        : status === "Part paid"
+          ? { text: [29, 78, 216], bg: [239, 246, 255], border: [191, 219, 254] }
+          : { text: [194, 65, 12], bg: [255, 247, 237], border: [254, 215, 170] };
 
   const badgeY = y + 62;
   doc.setFillColor(badge.bg[0], badge.bg[1], badge.bg[2]);
   doc.setDrawColor(badge.border[0], badge.border[1], badge.border[2]);
   doc.setLineWidth(1);
-  doc.roundedRect(margin, badgeY, 72, 18, 3, 3, "FD");
+  const badgeWidth = status === "Part paid" ? 84 : 72;
+  doc.roundedRect(margin, badgeY, badgeWidth, 18, 3, 3, "FD");
   doc.setFont("helvetica", "bold");
   doc.setFontSize(8.5);
   doc.setTextColor(badge.text[0], badge.text[1], badge.text[2]);
-  doc.text(status.toUpperCase(), margin + 36, badgeY + 12, { align: "center" });
+  doc.text(status.toUpperCase(), margin + badgeWidth / 2, badgeY + 12, { align: "center" });
 
   y = badgeY + 34;
 
@@ -810,7 +817,9 @@ function StatusPill({ status }: { status: InvoiceDisplayStatus }) {
       ? "bg-emerald-50 text-emerald-700 border-emerald-200"
       : status === "Overdue"
         ? "bg-red-50 text-red-700 border-red-200"
-        : "bg-amber-50 text-amber-700 border-amber-200";
+        : status === "Part paid"
+          ? "bg-blue-50 text-blue-700 border-blue-200"
+          : "bg-amber-50 text-amber-700 border-amber-200";
   return (
     <span
       className={`inline-block whitespace-nowrap rounded-full border px-2.5 py-0.5 text-[11px] font-bold ${cls}`}

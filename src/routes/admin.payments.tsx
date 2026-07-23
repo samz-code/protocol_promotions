@@ -77,28 +77,6 @@ const CHANNEL_KINDS = [
   { value: "card", label: "Card" },
 ];
 
-/**
- * payment_channels.kind has more granularity (paybill / till / send_money)
- * than the payments.method DB enum, which only knows about
- * mpesa / cash / bank_transfer / cheque / card. Every M-Pesa-family channel
- * kind must collapse down to "mpesa" here, or inserting a payment record
- * from a confirmed submission throws "invalid input value for enum
- * payment_method".
- */
-const CHANNEL_TO_METHOD: Record<string, string> = {
-  paybill: "mpesa",
-  till: "mpesa",
-  send_money: "mpesa",
-  bank: "bank_transfer",
-  cheque: "cheque",
-  card: "card",
-};
-
-function methodForChannelKind(kind: string | null): string {
-  if (!kind) return "mpesa";
-  return CHANNEL_TO_METHOD[kind] ?? "mpesa";
-}
-
 const KIND_ICON: Record<string, typeof Smartphone> = {
   paybill: Smartphone,
   till: Smartphone,
@@ -569,16 +547,9 @@ function PaymentForm({
         if (error) throw error;
       }
 
-      // Settle the order when this payment covers it.
-      if (orderId && status === "paid") {
-        const order = orders.find((o) => o.id === orderId);
-        if (order && value >= Number(order.total)) {
-          await supabase
-            .from("orders")
-            .update({ payment_status: "paid", status: "paid" })
-            .eq("id", orderId);
-        }
-      }
+      // The order settles itself. A database trigger recalculates
+      // payment_status from the payments table whenever one is recorded,
+      // so every route stays consistent without repeating this here.
     },
     onSuccess: onSaved,
     onError: (e: Error) => setErr(e.message),
@@ -791,7 +762,7 @@ function SubmissionsTab({ query }: { query: ReturnType<typeof useQuery<Submissio
         const { error: payErr } = await supabase.from("payments").insert({
           order_id: sub.order_id,
           amount: sub.amount ?? 0,
-          method: methodForChannelKind(sub.channel_kind),
+          method: sub.channel_kind === "bank" ? "bank_transfer" : (sub.channel_kind ?? "mpesa"),
           status: "paid",
           reference: sub.mpesa_code ?? sub.reference,
           mpesa_receipt: sub.mpesa_code,
