@@ -5,10 +5,18 @@ import { supabase } from "@/lib/supabase";
 import {
   Loader2, Plus, Pencil, Trash2, X, AlertCircle, GripVertical, Check,
   ChevronDown, Search,
+  Shirt, Footprints, HardHat, Watch, Glasses, Umbrella,
+  Printer, FileText, BookOpen, Newspaper, StickyNote, Files,
+  Stamp, Mail, Megaphone, Flag, PanelTop, Presentation,
+  Frame, Tv, Lightbulb, Coffee, CupSoda, Wine,
+  Gift, Award, Trophy, Medal, Cake, ShoppingBag,
+  Package, Box, Briefcase, Backpack, Luggage, Archive,
+  MonitorSmartphone, Laptop, Headphones, Keyboard, Mouse, BatteryCharging,
+  Usb, Calculator, Palette, PenTool, Paintbrush, Scissors,
+  Ruler, Hammer, Wrench, Sparkles, Car, Truck,
+  Bike, Tent, TreePine, Sun, Building2, Store,
+  Factory, Users, Handshake, BadgeCheck, Percent, Tag,
 } from "lucide-react";
-// The picker renders whichever glyph a category is set to, so the whole
-// set has to be available by name rather than imported one by one.
-import * as LucideIcons from "lucide-react";
 
 export const Route = createFileRoute("/admin/categories")({
   component: CategoriesPage,
@@ -28,6 +36,75 @@ type Category = {
 /* Grouped so picking one is quick. Every name here must also exist in the
    CATEGORY_ICONS map in shop.tsx, otherwise the shop falls back to a
    generic box and the choice silently does nothing. */
+const ICON_REGISTRY: Record<string, ComponentType<{ className?: string; strokeWidth?: number }>> = {
+  Shirt,
+  Footprints,
+  HardHat,
+  Watch,
+  Glasses,
+  Umbrella,
+  Printer,
+  FileText,
+  BookOpen,
+  Newspaper,
+  StickyNote,
+  Files,
+  Stamp,
+  Mail,
+  Megaphone,
+  Flag,
+  PanelTop,
+  Presentation,
+  Frame,
+  Tv,
+  Lightbulb,
+  Coffee,
+  CupSoda,
+  Wine,
+  Gift,
+  Award,
+  Trophy,
+  Medal,
+  Cake,
+  ShoppingBag,
+  Package,
+  Box,
+  Briefcase,
+  Backpack,
+  Luggage,
+  Archive,
+  MonitorSmartphone,
+  Laptop,
+  Headphones,
+  Keyboard,
+  Mouse,
+  BatteryCharging,
+  Usb,
+  Calculator,
+  Palette,
+  PenTool,
+  Paintbrush,
+  Scissors,
+  Ruler,
+  Hammer,
+  Wrench,
+  Sparkles,
+  Car,
+  Truck,
+  Bike,
+  Tent,
+  TreePine,
+  Sun,
+  Building2,
+  Store,
+  Factory,
+  Users,
+  Handshake,
+  BadgeCheck,
+  Percent,
+  Tag,
+};
+
 const ICON_GROUPS: { group: string; icons: string[] }[] = [
   {
     group: "Apparel",
@@ -578,11 +655,7 @@ function IconPicker({
       ]
     : ICON_GROUPS;
 
-  const Selected = value
-    ? ((LucideIcons as Record<string, unknown>)[value] as
-        | ComponentType<{ className?: string; strokeWidth?: number }>
-        | undefined)
-    : null;
+  const Selected = value ? ICON_REGISTRY[value] : null;
 
   return (
     <div>
@@ -652,9 +725,7 @@ function IconPicker({
                   </div>
                   <div className="grid grid-cols-4 gap-2 sm:grid-cols-5">
                     {g.icons.map((name) => {
-                      const Icon = (LucideIcons as Record<string, unknown>)[name] as
-                        | ComponentType<{ className?: string; strokeWidth?: number }>
-                        | undefined;
+                      const Icon = ICON_REGISTRY[name];
                       if (!Icon) return null;
                       const active = value === name;
                       return (
@@ -693,9 +764,7 @@ function IconPicker({
 /** Resolves a lucide name to its glyph. Used in the list so you can see
  *  at a glance what each category is set to. */
 function CategoryGlyph({ name }: { name: string }) {
-  const Icon = (LucideIcons as Record<string, unknown>)[name] as
-    | ComponentType<{ className?: string; strokeWidth?: number }>
-    | undefined;
+  const Icon = ICON_REGISTRY[name];
 
   if (!Icon) {
     return <span className="text-[9px] font-bold text-brand-navy/30">?</span>;

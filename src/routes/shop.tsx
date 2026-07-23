@@ -3,12 +3,21 @@ import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-r
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { SiteLayout, PageHeader } from "@/components/site/SiteLayout";
-import * as LucideIcons from "lucide-react";
 import {
   Filter, Shirt, Printer, MonitorSmartphone, Gift, Package, Palette,
   Star, ArrowRight, X, Truck, Layers, SearchX, AlertCircle,
   HelpCircle, CheckCircle2, ShoppingBag, Percent, Coins,
-  PenTool
+  PenTool,
+  Footprints, HardHat, Watch, Glasses, Umbrella, FileText,
+  BookOpen, Newspaper, StickyNote, Files, Stamp, Mail,
+  Megaphone, Flag, PanelTop, Presentation, Frame, Tv,
+  Lightbulb, Coffee, CupSoda, Wine, Award, Trophy,
+  Medal, Cake, Box, Briefcase, Backpack, Luggage,
+  Archive, Laptop, Headphones, Keyboard, Mouse, BatteryCharging,
+  Usb, Calculator, Paintbrush, Scissors, Ruler, Hammer,
+  Wrench, Sparkles, Car, Bike, Tent, TreePine,
+  Sun, Building2, Store, Factory, Users, Handshake,
+  BadgeCheck, Tag,
 } from "lucide-react";
 
 type ShopSearch = {
@@ -32,14 +41,81 @@ export const Route = createFileRoute("/shop")({
   component: ShopPage,
 });
 
-/** Categories can be set to any lucide icon in admin, so resolve by name
- *  rather than keeping a short hardcoded map that silently falls back. */
+
+/** Categories store a lucide name. Resolving through an explicit map keeps
+ *  bundling predictable and guarantees every option actually renders. */
+const CATEGORY_ICONS: Record<string, typeof Shirt> = {
+  Shirt,
+  Footprints,
+  HardHat,
+  Watch,
+  Glasses,
+  Umbrella,
+  Printer,
+  FileText,
+  BookOpen,
+  Newspaper,
+  StickyNote,
+  Files,
+  Stamp,
+  Mail,
+  Megaphone,
+  Flag,
+  PanelTop,
+  Presentation,
+  Frame,
+  Tv,
+  Lightbulb,
+  Coffee,
+  CupSoda,
+  Wine,
+  Gift,
+  Award,
+  Trophy,
+  Medal,
+  Cake,
+  ShoppingBag,
+  Package,
+  Box,
+  Briefcase,
+  Backpack,
+  Luggage,
+  Archive,
+  MonitorSmartphone,
+  Laptop,
+  Headphones,
+  Keyboard,
+  Mouse,
+  BatteryCharging,
+  Usb,
+  Calculator,
+  Palette,
+  PenTool,
+  Paintbrush,
+  Scissors,
+  Ruler,
+  Hammer,
+  Wrench,
+  Sparkles,
+  Car,
+  Truck,
+  Bike,
+  Tent,
+  TreePine,
+  Sun,
+  Building2,
+  Store,
+  Factory,
+  Users,
+  Handshake,
+  BadgeCheck,
+  Percent,
+  Tag,
+};
+
 function categoryIcon(name: string | null | undefined): typeof Shirt {
   if (!name) return Package;
-  // Lucide icons are forwardRef components, so they are objects at runtime
-  // rather than plain functions. Checking for a function rejects them all.
-  const found = (LucideIcons as Record<string, unknown>)[name];
-  return (found ? found : Package) as typeof Shirt;
+  return CATEGORY_ICONS[name] ?? Package;
 }
 
 type Category = {
