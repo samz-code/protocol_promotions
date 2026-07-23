@@ -426,7 +426,7 @@ function LogoMarquee() {
           {[...LOGOS, ...LOGOS].map((fileName, i) => (
             <div
               key={i}
-              className="flex h-16 w-36 shrink-0 items-center justify-center opacity-45 grayscale transition-all duration-500 hover:opacity-100 hover:grayscale-0 sm:h-20 sm:w-48"
+              className="flex h-16 w-36 shrink-0 items-center justify-center sm:h-20 sm:w-48"
             >
               <img
                 src={`/${fileName}`}
