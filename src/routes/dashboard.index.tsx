@@ -8,7 +8,7 @@ import { Loader2, ArrowRight, ShoppingBag, PlusCircle, CheckCircle2 } from "luci
 export const Route = createFileRoute("/dashboard/")({
   head: () => ({
     meta: [
-      { title: "Client Dashboard — Protocol Promotions" }, 
+      { title: "Client Dashboard | Protocol Promotions" }, 
       { name: "robots", content: "noindex" }
     ]
   }),
@@ -131,10 +131,10 @@ function DashboardIndex() {
   };
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-200">
+    <div className="space-y-6 animate-in fade-in duration-200 sm:space-y-8">
       
       {/* KPI Cards Grid */}
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4 lg:gap-6">
         <KpiCard 
           label="Active orders" 
           value={data.activeOrdersCount.toString()} 
@@ -158,12 +158,12 @@ function DashboardIndex() {
       </div>
 
       {/* Main Content Layout Block */}
-      <div className="grid lg:grid-cols-3 gap-6 items-start">
+      <div className="grid items-start gap-5 lg:grid-cols-3 lg:gap-6">
         
         {/* Recent Orders Table Area */}
-        <div className="lg:col-span-2 rounded-xl border-2 border-brand-navy bg-white p-6 shadow-[4px_4px_0_0_rgba(10,37,64,1)]">
+        <div className="order-2 rounded-xl border-2 border-brand-navy bg-white p-4 shadow-[4px_4px_0_0_rgba(10,37,64,1)] sm:p-6 lg:order-1 lg:col-span-2">
           <div className="flex items-center justify-between pb-4 border-b-2 border-brand-navy/10">
-            <h2 className="text-md font-black text-brand-navy uppercase tracking-wider">Recent Orders</h2>
+            <h2 className="text-sm font-black uppercase tracking-wider text-brand-navy sm:text-base">Recent Orders</h2>
             <Link 
               to="/dashboard/orders" 
               className="inline-flex items-center gap-1.5 text-xs font-black uppercase tracking-wider text-brand-orange hover:text-brand-navy transition-colors"
@@ -181,48 +181,81 @@ function DashboardIndex() {
               </Link>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full mt-4 text-sm text-left">
-                <thead>
-                  <tr className="text-left text-[10px] uppercase tracking-widest font-black text-brand-navy/40">
-                    <th className="py-2.5">Order Code</th>
-                    <th>Item Specification</th>
-                    <th>Status</th>
-                    <th className="text-right">Total Price</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-brand-navy/5">
-                  {data.recentOrders.map((order) => (
-                    <tr key={order.id} className="hover:bg-brand-surface/50 transition-colors">
-                      <td className="py-3.5 font-mono text-xs font-bold text-brand-navy/70">
-                        {order.id.slice(0, 8).toUpperCase()}
-                      </td>
-                      <td className="font-bold text-brand-navy">{order.item_name}</td>
-                      <td>
-                        <span className={`inline-block rounded-md border px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider ${getStatusStyle(order.status)}`}>
-                          {order.status}
-                        </span>
-                      </td>
-                      <td className="font-extrabold text-brand-navy text-right">
+            <>
+              {/* Cards on small screens. A four column table forces horizontal
+                  scrolling on a phone, which makes your own orders hard to read. */}
+              <ul className="mt-4 space-y-2.5 sm:hidden">
+                {data.recentOrders.map((order) => (
+                  <li
+                    key={order.id}
+                    className="rounded-lg border border-brand-navy/12 bg-brand-surface/40 p-3.5"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="truncate text-sm font-bold text-brand-navy">
+                          {order.item_name}
+                        </div>
+                        <div className="mt-0.5 font-mono text-[10px] font-bold text-brand-navy/50">
+                          {order.id.slice(0, 8).toUpperCase()}
+                        </div>
+                      </div>
+                      <div className="shrink-0 text-sm font-extrabold tabular-nums text-brand-navy">
                         {new Intl.NumberFormat("en-KE", { style: "currency", currency: "KES", maximumFractionDigits: 0 }).format(order.total)}
-                      </td>
+                      </div>
+                    </div>
+                    <div className="mt-2.5">
+                      <span className={`inline-block rounded-md border px-2 py-0.5 text-[10px] font-black uppercase tracking-wider ${getStatusStyle(order.status)}`}>
+                        {order.status}
+                      </span>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+
+              {/* Table from sm up, where there is room for four columns */}
+              <div className="hidden overflow-x-auto sm:block">
+                <table className="mt-4 w-full text-left text-sm">
+                  <thead>
+                    <tr className="text-left text-[10px] font-black uppercase tracking-widest text-brand-navy/40">
+                      <th className="py-2.5">Order Code</th>
+                      <th>Item Specification</th>
+                      <th>Status</th>
+                      <th className="text-right">Total Price</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody className="divide-y divide-brand-navy/5">
+                    {data.recentOrders.map((order) => (
+                      <tr key={order.id} className="transition-colors hover:bg-brand-surface/50">
+                        <td className="py-3.5 font-mono text-xs font-bold text-brand-navy/70">
+                          {order.id.slice(0, 8).toUpperCase()}
+                        </td>
+                        <td className="font-bold text-brand-navy">{order.item_name}</td>
+                        <td>
+                          <span className={`inline-block rounded-md border px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider ${getStatusStyle(order.status)}`}>
+                            {order.status}
+                          </span>
+                        </td>
+                        <td className="text-right font-extrabold tabular-nums text-brand-navy">
+                          {new Intl.NumberFormat("en-KE", { style: "currency", currency: "KES", maximumFractionDigits: 0 }).format(order.total)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
         </div>
 
         {/* Action Controls Side Card */}
-        <div className="rounded-xl border-2 border-brand-navy bg-white p-6 shadow-[4px_4px_0_0_rgba(10,37,64,1)]">
-          <h2 className="text-md font-black text-brand-navy uppercase tracking-wider pb-4 border-b-2 border-brand-navy/10">
+        <div className="order-1 rounded-xl border-2 border-brand-navy bg-white p-4 shadow-[4px_4px_0_0_rgba(10,37,64,1)] sm:p-6 lg:order-2">
+          <h2 className="border-b-2 border-brand-navy/10 pb-3.5 text-sm font-black uppercase tracking-wider text-brand-navy sm:pb-4 sm:text-base">
             Quick Actions
           </h2>
           <div className="mt-5 space-y-3">
             <Link 
               to="/request-quote" 
-              className="flex items-center justify-center gap-2 w-full rounded-lg bg-brand-orange text-white px-4 py-3.5 text-xs font-black uppercase tracking-wider transition-all border-2 border-brand-navy shadow-[2px_2px_0_0_rgba(10,37,64,1)] hover:-translate-y-0.5"
+              className="flex items-center justify-center gap-2 w-full rounded-lg bg-brand-orange text-white px-4 py-3 text-[11px] font-black uppercase tracking-wider sm:py-3.5 sm:text-xs transition-all border-2 border-brand-navy shadow-[2px_2px_0_0_rgba(10,37,64,1)] hover:-translate-y-0.5"
             >
               <PlusCircle className="h-4 w-4" />
               Request a Quote
@@ -230,7 +263,7 @@ function DashboardIndex() {
             
             <Link 
               to="/shop" 
-              className="flex items-center justify-center gap-2 w-full rounded-lg bg-brand-navy text-white px-4 py-3.5 text-xs font-black uppercase tracking-wider transition-all border-2 border-brand-navy shadow-[2px_2px_0_0_rgba(10,37,64,1)] hover:-translate-y-0.5 hover:brightness-110"
+              className="flex items-center justify-center gap-2 w-full rounded-lg bg-brand-navy text-white px-4 py-3 text-[11px] font-black uppercase tracking-wider sm:py-3.5 sm:text-xs transition-all border-2 border-brand-navy shadow-[2px_2px_0_0_rgba(10,37,64,1)] hover:-translate-y-0.5 hover:brightness-110"
             >
               <ShoppingBag className="h-4 w-4" />
               Shop Products
@@ -238,7 +271,7 @@ function DashboardIndex() {
             
             <Link 
               to="/dashboard/track-production" 
-              className="flex items-center justify-center gap-2 w-full rounded-lg bg-white border-2 border-brand-navy px-4 py-3.5 text-xs font-black uppercase tracking-wider text-brand-navy transition-all shadow-[2px_2px_0_0_rgba(10,37,64,1)] hover:-translate-y-0.5 hover:bg-brand-surface"
+              className="flex items-center justify-center gap-2 w-full rounded-lg bg-white border-2 border-brand-navy px-4 py-3 text-[11px] font-black uppercase tracking-wider sm:py-3.5 sm:text-xs text-brand-navy transition-all shadow-[2px_2px_0_0_rgba(10,37,64,1)] hover:-translate-y-0.5 hover:bg-brand-surface"
             >
               <CheckCircle2 className="h-4 w-4 text-brand-orange" />
               Track Production
