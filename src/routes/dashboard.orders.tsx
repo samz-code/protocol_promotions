@@ -1,9 +1,10 @@
 import { useState, useMemo } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Search, Loader2, Package, ChevronRight, X, AlertCircle,
   CheckCircle2, Clock, Truck, Paintbrush, CreditCard, ShoppingBag,
+  Ban, LifeBuoy, Send,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth";
@@ -201,6 +202,24 @@ async function fetchOrders(userId: string): Promise<OrderRow[]> {
   return (data ?? []) as OrderRow[];
 }
 
+
+/** Mirrors order_is_cancellable in the database. Shown as a button only
+ *  when cancelling will really work, so nobody hits a wall. */
+const CANCELLABLE_STATUSES = [
+  "pending",
+  "quotation_requested",
+  "quotation_approved",
+  "awaiting_payment",
+];
+
+function canCancel(order: OrderRow) {
+  const paid = (order.payment_status ?? "unpaid").toLowerCase();
+  return (
+    CANCELLABLE_STATUSES.includes(order.status?.toLowerCase()) &&
+    ["unpaid", "pending", "failed"].includes(paid)
+  );
+}
+
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-GB", {
     day: "numeric", month: "short", year: "numeric",
@@ -216,9 +235,11 @@ function formatKsh(num: number) {
 }
 
 function OrdersPage() {
-  const { session } = useAuth();
+  const { session, profile } = useAuth();
+  const qc = useQueryClient();
   const [filter, setFilter] = useState<Filter>("All");
   const [query, setQuery] = useState("");
+  const [cancelling, setCancelling] = useState<OrderRow | null>(null);
 
   const { data: orders, isLoading, error } = useQuery({
     queryKey: ["dashboard-orders", session?.user?.id],
@@ -343,9 +364,24 @@ function OrdersPage() {
       ) : (
         <ul className="space-y-3">
           {filtered.map((o) => (
-            <OrderCard key={o.id} order={o} />
+            <OrderCard key={o.id} order={o} onCancel={() => setCancelling(o)} />
           ))}
         </ul>
+      )}
+
+      {cancelling && (
+        <CancelDialog
+          order={cancelling}
+          userId={session?.user?.id ?? null}
+          customerName={profile?.full_name ?? null}
+          customerEmail={profile?.email ?? null}
+          onClose={() => setCancelling(null)}
+          onDone={() => {
+            qc.invalidateQueries({ queryKey: ["dashboard-orders"] });
+            qc.invalidateQueries({ queryKey: ["my-tickets"] });
+            setCancelling(null);
+          }}
+        />
       )}
 
       {/* Reorder, as a real action rather than a sentence */}
@@ -422,16 +458,18 @@ function ActiveOrderCard({ order }: { order: OrderRow }) {
   );
 }
 
-function OrderCard({ order }: { order: OrderRow }) {
+function OrderCard({ order, onCancel }: { order: OrderRow; onCancel: () => void }) {
   const info = statusInfo(order.status);
   const Icon = info.icon;
   const unpaid = order.payment_status === "unpaid" || order.payment_status === "pending";
+  const cancellable = canCancel(order);
+  const isCancelled = order.status?.toLowerCase() === "cancelled";
 
   return (
-    <li>
+    <li className="rounded-xl border border-border bg-white transition-all hover:border-brand-navy/30 hover:shadow-sm">
       <Link
         to="/dashboard/track-production"
-        className="block rounded-xl border border-border bg-white p-4 transition-all hover:border-brand-navy/30 hover:shadow-sm"
+        className="block p-4"
       >
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
@@ -469,6 +507,28 @@ function OrderCard({ order }: { order: OrderRow }) {
           </span>
         </div>
       </Link>
+
+      {/* Cancelling sits outside the link so tapping it does not navigate.
+          Only offered while nothing is committed. */}
+      {!isCancelled && (
+        <div className="border-t border-border px-4 py-2.5">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground transition-colors hover:text-red-600"
+          >
+            {cancellable ? (
+              <>
+                <Ban className="h-3.5 w-3.5" /> Cancel this order
+              </>
+            ) : (
+              <>
+                <LifeBuoy className="h-3.5 w-3.5" /> Need to change or cancel this?
+              </>
+            )}
+          </button>
+        </div>
+      )}
     </li>
   );
 }
@@ -503,6 +563,208 @@ function EmptyState({ hasOrders, onClear }: { hasOrders: boolean; onClear: () =>
           <ShoppingBag className="h-4 w-4" /> Browse the shop
         </Link>
       )}
+    </div>
+  );
+}
+
+/**
+ * Two paths in one dialog.
+ *
+ * Nothing committed yet, so cancel outright. Past that point it needs a
+ * person, so this raises a ticket instead of pretending it can be undone.
+ */
+function CancelDialog({
+  order, userId, customerName, customerEmail, onClose, onDone,
+}: {
+  order: OrderRow;
+  userId: string | null;
+  customerName: string | null;
+  customerEmail: string | null;
+  onClose: () => void;
+  onDone: () => void;
+}) {
+  const [reason, setReason] = useState("");
+  const [err, setErr] = useState<string | null>(null);
+  const [done, setDone] = useState<"cancelled" | "ticket" | null>(null);
+
+  const cancellable = canCancel(order);
+
+  const cancel = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.rpc("cancel_my_order", {
+        p_order_id: order.id,
+        p_reason: reason.trim() || null,
+      });
+      if (error) throw error;
+
+      const result = data as { ok: boolean; message?: string; needs_support?: boolean };
+      if (!result?.ok) {
+        throw new Error(result?.message ?? "We could not cancel that order.");
+      }
+    },
+    onSuccess: () => {
+      setDone("cancelled");
+      setTimeout(onDone, 1600);
+    },
+    onError: (e: Error) => setErr(e.message),
+  });
+
+  const raiseTicket = useMutation({
+    mutationFn: async () => {
+      if (!reason.trim()) {
+        throw new Error("Tell us what you need changed so we can help properly.");
+      }
+
+      const { error } = await supabase.from("support_tickets").insert({
+        user_id: userId,
+        order_id: order.id,
+        name: customerName,
+        email: customerEmail,
+        subject: `Cancellation request for ${order.order_number}`,
+        body: reason.trim(),
+        source: "order_issue",
+        status: "open",
+        priority: "high",
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      setDone("ticket");
+      setTimeout(onDone, 1900);
+    },
+    onError: (e: Error) => setErr(e.message),
+  });
+
+  const busy = cancel.isPending || raiseTicket.isPending;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-brand-navy/50 p-4 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div
+        className="my-auto w-full max-w-md overflow-hidden rounded-xl bg-white"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {done ? (
+          <div className="p-10 text-center">
+            <CheckCircle2 className="mx-auto h-11 w-11 text-emerald-500" />
+            <p className="mt-4 text-sm font-bold text-brand-navy">
+              {done === "cancelled" ? "Order cancelled" : "We have your request"}
+            </p>
+            <p className="mx-auto mt-1.5 max-w-xs text-xs leading-relaxed text-muted-foreground">
+              {done === "cancelled"
+                ? "Nothing further will happen with this order."
+                : "Our team will call or email you shortly to sort it out."}
+            </p>
+          </div>
+        ) : (
+          <>
+            <div className="flex items-start justify-between gap-4 border-b border-border p-5">
+              <div className="min-w-0">
+                <h2 className="text-sm font-bold text-brand-navy">
+                  {cancellable ? "Cancel this order" : "Change or cancel this order"}
+                </h2>
+                <p className="mt-0.5 truncate font-mono text-[11px] text-muted-foreground">
+                  {order.order_number}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={onClose}
+                className="grid h-8 w-8 shrink-0 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-brand-surface"
+                aria-label="Close"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="space-y-4 p-5">
+              {cancellable ? (
+                <p className="text-sm leading-relaxed text-brand-navy/70">
+                  Nothing has been paid or produced yet, so you can cancel this straight away. The
+                  order stays on your account marked as cancelled.
+                </p>
+              ) : (
+                <div className="rounded-lg border border-amber-200 bg-amber-50 p-3.5">
+                  <p className="text-xs leading-relaxed text-amber-800">
+                    This order has already moved forward, so we cannot cancel it automatically.
+                    Tell us what you need and our team will call you to work it out.
+                  </p>
+                </div>
+              )}
+
+              <div>
+                <label
+                  htmlFor="cancel-reason"
+                  className="mb-1.5 block text-[11px] font-bold uppercase tracking-wide text-muted-foreground"
+                >
+                  {cancellable ? "Reason (optional)" : "What do you need"}
+                </label>
+                <textarea
+                  id="cancel-reason"
+                  rows={3}
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
+                  placeholder={
+                    cancellable
+                      ? "Ordered the wrong size, changed my mind, anything really."
+                      : "Tell us what changed so we can help."
+                  }
+                  className="w-full rounded-md border border-border bg-white px-3 py-2.5 text-sm leading-relaxed text-brand-navy outline-none transition focus:border-brand-navy"
+                />
+              </div>
+
+              {err && (
+                <div className="flex items-start gap-2 rounded-md border border-red-200 bg-red-50 p-3">
+                  <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-600" />
+                  <span className="text-xs font-medium text-red-700">{err}</span>
+                </div>
+              )}
+
+              <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="rounded-md px-4 py-2.5 text-sm font-semibold text-muted-foreground transition-colors hover:text-brand-navy"
+                >
+                  Keep the order
+                </button>
+
+                {cancellable ? (
+                  <button
+                    type="button"
+                    onClick={() => { setErr(null); cancel.mutate(); }}
+                    disabled={busy}
+                    className="inline-flex items-center justify-center gap-2 rounded-md bg-red-600 px-5 py-2.5 text-sm font-bold text-white transition hover:brightness-110 disabled:opacity-50"
+                  >
+                    {cancel.isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Ban className="h-4 w-4" />
+                    )}
+                    Cancel order
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => { setErr(null); raiseTicket.mutate(); }}
+                    disabled={busy}
+                    className="inline-flex items-center justify-center gap-2 rounded-md bg-brand-navy px-5 py-2.5 text-sm font-bold text-white transition hover:brightness-110 disabled:opacity-50"
+                  >
+                    {raiseTicket.isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Send className="h-4 w-4" />
+                    )}
+                    Send request
+                  </button>
+                )}
+              </div>
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }

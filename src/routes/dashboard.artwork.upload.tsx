@@ -23,8 +23,22 @@ const MAX_BYTES = 25 * 1024 * 1024;
 
 type OrderOption = { id: string; order_number: string; status: string };
 
-function mediaKindFor(file: File): "image" | "document" {
-  return file.type.startsWith("image/") ? "image" : "document";
+/** The media.kind column is an enum: image, video, logo, pdf, artwork, other.
+ *  Sending anything outside that list makes the insert fail, which is why
+ *  PDF and AI uploads were vanishing while PNGs worked. */
+type MediaKind = "image" | "video" | "logo" | "pdf" | "artwork" | "other";
+
+function mediaKindFor(file: File): MediaKind {
+  const type = (file.type || "").toLowerCase();
+  const name = file.name.toLowerCase();
+
+  if (type.startsWith("image/")) return "image";
+  if (type === "application/pdf" || name.endsWith(".pdf")) return "pdf";
+
+  // Design source files are artwork rather than a generic document.
+  if (/\.(ai|eps|psd|indd|sketch|svg)$/.test(name)) return "artwork";
+
+  return "other";
 }
 
 function prettySize(bytes: number) {
@@ -90,7 +104,12 @@ async function uploadArtworkFiles({
     });
 
     if (insertError) {
-      throw new Error(`Saved the file but could not record it. ${insertError.message}`);
+      // Leaving the stored object behind would orphan it in the bucket.
+      await supabase.storage.from(BUCKET).remove([path]);
+      throw new Error(
+        `Could not save ${file.name}. ${insertError.message}` +
+          (insertError.details ? ` (${insertError.details})` : "")
+      );
     }
   }
 }
