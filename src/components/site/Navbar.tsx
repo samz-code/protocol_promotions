@@ -43,12 +43,14 @@ export function Navbar() {
       onMouseLeave={close}
     >
       {/* min-w-0 lets the flex children actually shrink instead of overflowing */}
-      <div className="container-page flex h-20 min-w-0 items-center gap-2 px-4 sm:gap-3 sm:px-6 md:h-24 xl:gap-5 2xl:gap-8">
+      <div className="container-page flex h-20 min-w-0 items-center gap-2 px-4 sm:gap-3 sm:px-6 md:h-24 lg:gap-5 2xl:gap-8">
         {/* Logo renders its own link and caps its own height per breakpoint */}
         <Logo className="shrink" imgClassName="h-10 md:h-14" priority />
 
-        {/* Desktop nav, only from xl up where there is real room for 7 items plus logo and icons */}
-        <nav className="hidden items-center gap-0 whitespace-nowrap text-[15px] font-bold tracking-[-0.01em] xl:flex 2xl:gap-0.5 2xl:text-[16.5px]">
+        {/* Desktop nav. Was gated behind xl (1280px), which pushed real laptop
+            viewports (zoom, devtools, non-maximized windows) into the mobile
+            layout. lg (1024px) is a safer floor for "laptop" screens. */}
+        <nav className="hidden items-center gap-0 whitespace-nowrap text-[15px] font-bold tracking-[-0.01em] lg:flex 2xl:gap-0.5 2xl:text-[16.5px]">
           <NavTrigger label="Shop" active={panel === "shop"} onEnter={() => setPanel("shop")} />
           <NavTrigger label="Services" active={panel === "services"} onEnter={() => setPanel("services")} />
           <NavTrigger label="Industries" active={panel === "industries"} onEnter={() => setPanel("industries")} />
@@ -58,7 +60,7 @@ export function Navbar() {
           <NavLink to="/contact" onEnter={close}>Contact</NavLink>
         </nav>
 
-        <div className="ml-auto flex shrink-0 items-center gap-0.5 sm:gap-1.5 md:gap-2 xl:gap-1.5 2xl:gap-2.5">
+        <div className="ml-auto flex shrink-0 items-center gap-0.5 sm:gap-1.5 md:gap-2 lg:gap-1.5 2xl:gap-2.5">
           <button
             type="button"
             onClick={() => setSearchOpen(true)}
@@ -82,7 +84,7 @@ export function Navbar() {
           </IconLink>
           <button
             type="button"
-            className="inline-flex h-11 w-11 items-center justify-center rounded-sm text-brand-navy hover:bg-brand-navy/6 xl:hidden"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-sm text-brand-navy hover:bg-brand-navy/6 lg:hidden"
             onClick={() => setMobileOpen(true)}
             aria-label="Open menu"
             aria-expanded={mobileOpen}
@@ -95,7 +97,7 @@ export function Navbar() {
       {/* Mega menu panels */}
       {panel && (
         <div
-          className="absolute inset-x-0 top-full hidden border-t-2 border-brand-navy bg-white shadow-lg xl:block"
+          className="absolute inset-x-0 top-full hidden border-t-2 border-brand-navy bg-white shadow-lg lg:block"
           onMouseEnter={() => setPanel(panel)}
         >
           <div className="container-page py-8">
@@ -378,7 +380,7 @@ function MobileDrawer({ onClose, onSearch }: { onClose: () => void; onSearch: ()
 
   return (
     <div
-      className="fixed inset-0 z-60 bg-brand-navy/40 xl:hidden"
+      className="fixed inset-0 z-60 bg-brand-navy/40 lg:hidden"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
