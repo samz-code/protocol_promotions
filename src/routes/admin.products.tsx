@@ -58,8 +58,8 @@ type Tier = { id?: string; min_qty: number; unit_price: number };
 type Category = { id: string; name: string };
 
 const PRINT_METHODS = ["Screen Print", "Digital", "Embroidery", "Laser Engraving", "Vinyl", "Sublimation"];
-const MATERIALS = ["Cotton", "Polyester", "PVC", "Paper", "Ceramic", "Vinyl", "Metal", "Wood", "Acrylic", "Glass"];
-const BADGES = ["Bestseller", "New", "Bulk favourite", "Limited"];
+const MATERIALS = ["Cotton", "Polyester", "PVC", "Paper", "Ceramic", "Vinyl", "Metal", "Wood", "Acrylic", "Glass", "PU Leather", "Canvas", "Kraft"];
+const BADGES = ["Bestseller", "New", "Popular", "Premium", "Eco", "Bulk favourite", "Best value", "Trending", "Limited", "Staff pick"];
 
 function slugify(s: string) {
   return s.toLowerCase().trim().replace(/[^a-z0-9\s-]/g, "").replace(/\s+/g, "-").replace(/-+/g, "-");
