@@ -86,7 +86,7 @@ const KSH = new Intl.NumberFormat("en-KE", {
 });
 
 function placeholder(seed: string) {
-  return `https://picsum.photos/seed/${encodeURIComponent(seed)}/800/800`;
+  return `https://picsum.photos/seed/${encodeURIComponent(seed)}/800/900`;
 }
 
 /* ================================================================
@@ -185,8 +185,8 @@ function MotionStyles() {
         100% { background-position: 28px 28px; }
       }
       @keyframes ppDotPulse {
-        0%, 100% { opacity: 0.18; }
-        50%      { opacity: 0.42; }
+        0%, 100% { opacity: 0.08; }
+        30%      { opacity: 0.16; }
       }
       @keyframes ppSweep {
         0%   { transform: translateX(-120%); }
@@ -202,7 +202,7 @@ function MotionStyles() {
       }
       @keyframes ppTicker {
         0%, 100% { opacity: 1; }
-        50%      { opacity: 0.35; }
+        30%      { opacity: 0.35; }
       }
 
       .pp-dots {
@@ -210,6 +210,7 @@ function MotionStyles() {
           radial-gradient(var(--color-brand-navy) 1.15px, transparent 1.15px);
         background-size: 28px 28px;
         background-position: 0 0;
+        opacity: 0.1;
         animation: ppDotDrift 22s linear infinite, ppDotPulse 9s ease-in-out infinite;
       }
       .pp-dots-light {
@@ -217,6 +218,7 @@ function MotionStyles() {
           radial-gradient(rgba(255,255,255,0.9) 1.2px, transparent 1.2px);
         background-size: 30px 30px;
         background-position: 0 0;
+        opacity: 0.12;
         animation: ppDotDrift 26s linear infinite reverse, ppDotPulse 11s ease-in-out infinite;
       }
       .pp-mask-fade {
@@ -322,7 +324,6 @@ function useReveal<T extends HTMLElement>(options?: { delay?: number }) {
 
   return ref;
 }
-
 function Reveal({
   children,
   delay = 0,

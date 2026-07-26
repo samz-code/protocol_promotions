@@ -43,12 +43,12 @@ export function Navbar() {
       onMouseLeave={close}
     >
       {/* min-w-0 lets the flex children actually shrink instead of overflowing */}
-      <div className="container-page flex h-16 min-w-0 items-center gap-2 px-4 sm:gap-3 sm:px-6 md:h-20 xl:gap-5 2xl:gap-8">
+      <div className="container-page flex h-20 min-w-0 items-center gap-2 px-4 sm:gap-3 sm:px-6 md:h-24 xl:gap-5 2xl:gap-8">
         {/* Logo renders its own link and caps its own height per breakpoint */}
-        <Logo className="shrink" priority />
+        <Logo className="shrink" imgClassName="h-10 md:h-14" priority />
 
-        {/* Desktop nav, only from xl up where there is real room for 7 items plus logo, CTA and icons */}
-        <nav className="hidden items-center gap-0 whitespace-nowrap text-[13.5px] font-semibold tracking-[-0.01em] xl:flex 2xl:gap-0.5 2xl:text-[15px]">
+        {/* Desktop nav, only from xl up where there is real room for 7 items plus logo and icons */}
+        <nav className="hidden items-center gap-0 whitespace-nowrap text-[15px] font-bold tracking-[-0.01em] xl:flex 2xl:gap-0.5 2xl:text-[16.5px]">
           <NavTrigger label="Shop" active={panel === "shop"} onEnter={() => setPanel("shop")} />
           <NavTrigger label="Services" active={panel === "services"} onEnter={() => setPanel("services")} />
           <NavTrigger label="Industries" active={panel === "industries"} onEnter={() => setPanel("industries")} />
@@ -59,12 +59,6 @@ export function Navbar() {
         </nav>
 
         <div className="ml-auto flex shrink-0 items-center gap-0.5 sm:gap-1.5 md:gap-2 xl:gap-1.5 2xl:gap-2.5">
-          <Link
-            to="/request-quote"
-            className="hidden items-center whitespace-nowrap rounded-sm bg-brand-orange px-3.5 py-2.5 text-[13px] font-bold text-white shadow-sm transition hover:brightness-95 xl:inline-flex 2xl:px-5 2xl:text-[15px]"
-          >
-            Request Quote
-          </Link>
           <button
             type="button"
             onClick={() => setSearchOpen(true)}
@@ -230,7 +224,7 @@ function NavTrigger({ label, active, onEnter }: { label: string; active: boolean
       }`}
     >
       {label}
-      <ChevronDown className={`h-3 w-3 transition-transform 2xl:h-3.5 2xl:w-3.5 ${active ? "rotate-180" : ""}`} />
+      <ChevronDown className={`h-3.5 w-3.5 transition-transform 2xl:h-4 2xl:w-4 ${active ? "rotate-180" : ""}`} />
       <span
         className={`absolute -bottom-px left-2.5 right-2.5 h-0.5 origin-left bg-brand-orange transition-transform 2xl:left-3.5 2xl:right-3.5 ${
           active ? "scale-x-100" : "scale-x-0"
@@ -375,7 +369,6 @@ function MobileDrawer({ onClose, onSearch }: { onClose: () => void; onSearch: ()
     { to: "/services", label: "Services" },
     { to: "/industries", label: "Industries" },
     { to: "/bulk-orders", label: "Bulk Orders" },
-    { to: "/request-quote", label: "Request Quote" },
     { to: "/track-order", label: "Track Order" },
     { to: "/about", label: "About" },
     { to: "/contact", label: "Contact" },
@@ -399,7 +392,7 @@ function MobileDrawer({ onClose, onSearch }: { onClose: () => void; onSearch: ()
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border p-4">
-          <Logo className="shrink" imgClassName="h-8" />
+          <Logo className="shrink" imgClassName="h-9" />
           <button
             onClick={onClose}
             className="grid h-11 w-11 shrink-0 place-items-center rounded-sm hover:bg-brand-navy/6"
@@ -414,7 +407,7 @@ function MobileDrawer({ onClose, onSearch }: { onClose: () => void; onSearch: ()
           <button
             type="button"
             onClick={onSearch}
-            className="flex w-full items-center gap-3 border-l-2 border-transparent px-4 py-3.5 text-[16px] font-semibold text-brand-navy transition-colors hover:border-brand-orange hover:bg-brand-navy/4"
+            className="flex w-full items-center gap-3 border-l-2 border-transparent px-4 py-3.5 text-[17px] font-bold text-brand-navy transition-colors hover:border-brand-orange hover:bg-brand-navy/4"
           >
             <Search className="h-5 w-5 text-brand-navy/50" /> Search products
           </button>
@@ -423,7 +416,7 @@ function MobileDrawer({ onClose, onSearch }: { onClose: () => void; onSearch: ()
               key={l.to}
               to={l.to}
               onClick={onClose}
-              className="block border-l-2 border-transparent px-4 py-3.5 text-[16px] font-semibold text-brand-navy transition-colors hover:border-brand-orange hover:bg-brand-navy/4"
+              className="block border-l-2 border-transparent px-4 py-3.5 text-[17px] font-bold text-brand-navy transition-colors hover:border-brand-orange hover:bg-brand-navy/4"
             >
               {l.label}
             </Link>
@@ -433,8 +426,8 @@ function MobileDrawer({ onClose, onSearch }: { onClose: () => void; onSearch: ()
             variant="default"
             className="mt-4 w-full rounded-sm bg-brand-orange py-6 font-bold text-white hover:bg-brand-orange/90"
           >
-            <Link to="/request-quote" onClick={onClose}>
-              Request a Quote
+            <Link to="/shop" onClick={onClose}>
+              Shop Now
             </Link>
           </Button>
         </nav>
