@@ -463,11 +463,7 @@ function LogoMarquee() {
    Hero
    ================================================================ */
 
-const HERO_STATS = [
-  { value: "1,200+", label: "Jobs delivered" },
-  { value: "48 hrs", label: "Fast-track runs" },
-  { value: "100%", label: "Proof before print" },
-];
+
 
 function Statement() {
   return (
