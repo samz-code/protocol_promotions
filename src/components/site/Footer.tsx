@@ -1,9 +1,13 @@
+import { useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { MapPin, Phone, Mail, Code2 } from "lucide-react";
+import { MapPin, Phone, Mail, Code2, ChevronDown, ArrowRight } from "lucide-react";
 import type { SVGProps } from "react";
 import { Logo } from "./Logo";
 
-// Custom SVG Icons
+/* ================================================================
+   Custom social SVG icons
+   ================================================================ */
+
 function FacebookIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
@@ -52,96 +56,176 @@ const SOCIALS = [
   { icon: YoutubeIcon, label: "YouTube", href: "#" },
 ];
 
+type FooterLink = { to: string; label: string };
+
+const SHOP_LINKS: FooterLink[] = [
+  { to: "/shop", label: "All Products" },
+  { to: "/shop", label: "Apparel" },
+  { to: "/shop", label: "Printing" },
+  { to: "/shop", label: "Signage" },
+  { to: "/shop", label: "Promotional Items" },
+  { to: "/shop", label: "Packaging" },
+];
+
+const COMPANY_LINKS: FooterLink[] = [
+  { to: "/about", label: "About Us" },
+  { to: "/services", label: "Services" },
+  { to: "/industries", label: "Industries" },
+  { to: "/testimonials", label: "Testimonials" },
+  { to: "/contact", label: "Contact" },
+];
+
+const SUPPORT_LINKS: FooterLink[] = [
+  { to: "/request-quote", label: "Request a Quote" },
+  { to: "/track-order", label: "Track Order" },
+  { to: "/bulk-orders", label: "Bulk Orders" },
+  { to: "/faqs", label: "FAQs" },
+  { to: "/policies", label: "Policies" },
+];
+
+const COLUMNS: { title: string; links: FooterLink[] }[] = [
+  { title: "Shop", links: SHOP_LINKS },
+  { title: "Company", links: COMPANY_LINKS },
+  { title: "Support", links: SUPPORT_LINKS },
+];
+
+/* ================================================================
+   Footer
+   ================================================================ */
+
 export function Footer() {
   return (
-    <footer className="mt-24 bg-brand-navy text-white/85">
-      <div className="container-page py-14 grid gap-10 md:grid-cols-2 lg:grid-cols-5">
+    <footer className="relative mt-24 overflow-hidden bg-brand-navy text-white/85">
+      <FooterStyles />
+
+      {/* Top accent hairline */}
+      <div className="h-0.5 w-full bg-brand-orange/70" />
+
+      {/* CTA banner — gives the mobile footer an immediate hook */}
+      <div className="border-b border-white/10">
+        <div className="container-page flex flex-col items-start gap-4 py-8 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h3 className="text-lg font-extrabold text-white sm:text-xl">
+              Ready to brand something?
+            </h3>
+            <p className="mt-1 text-sm text-white/60">
+              Send the brief. We come back with a real price and a real date.
+            </p>
+          </div>
+          <Link
+            to="/request-quote"
+            className="group inline-flex w-full items-center justify-center gap-2 bg-brand-orange px-6 py-3.5 text-sm font-bold uppercase tracking-wide text-white transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[5px_5px_0_0_rgba(255,255,255,0.25)] sm:w-auto"
+          >
+            Request a quote
+            <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
+          </Link>
+        </div>
+      </div>
+
+      {/* Main grid */}
+      <div className="container-page grid gap-8 py-12 md:grid-cols-2 md:gap-10 lg:grid-cols-5 lg:py-14">
+        {/* Brand + contact + socials */}
         <div className="lg:col-span-2">
-          <div className="bg-white inline-block rounded-md p-2">
+          <div className="inline-block rounded-md bg-white p-2">
             <Logo />
           </div>
-          <p className="mt-4 max-w-sm text-sm leading-relaxed">
-            Kenya's enterprise partner for branding, printing and promotional products. Real products, real production, real accountability — from artwork upload to delivery.
+          <p className="mt-4 max-w-sm text-sm leading-relaxed text-white/70">
+            Kenya's enterprise partner for branding, printing and promotional products. Real
+            products, real production, real accountability — from artwork upload to delivery.
           </p>
-          <div className="mt-5 space-y-2 text-sm">
-            <div className="flex items-center gap-2">
-              <MapPin className="h-4 w-4 text-brand-orange shrink-0" /> Nairobi, Kenya
+
+          {/* Contact — carded on mobile so it reads as a distinct block */}
+          <div className="mt-6 space-y-2.5 border-t border-white/10 pt-5 text-sm sm:border-0 sm:pt-0">
+            <div className="group flex items-center gap-3">
+              <span className="grid h-8 w-8 shrink-0 place-items-center border border-white/10 bg-white/5 transition-colors duration-300 group-hover:border-brand-orange group-hover:bg-brand-orange/10">
+                <MapPin className="h-4 w-4 text-brand-orange" />
+              </span>
+              <span className="text-white/80">Nairobi, Kenya</span>
             </div>
-            <a href="tel:+254762446077" className="flex items-center gap-2 hover:text-brand-orange transition-colors">
-              <Phone className="h-4 w-4 text-brand-orange shrink-0" /> +254 762 446 077
+            <a
+              href="tel:+254762446077"
+              className="group flex items-center gap-3 transition-colors hover:text-white"
+            >
+              <span className="grid h-8 w-8 shrink-0 place-items-center border border-white/10 bg-white/5 transition-colors duration-300 group-hover:border-brand-orange group-hover:bg-brand-orange/10">
+                <Phone className="h-4 w-4 text-brand-orange" />
+              </span>
+              <span className="text-white/80 group-hover:text-white">+254 762 446 077</span>
             </a>
-            <a href="mailto:protocolpromotions@gmail.com" className="flex items-center gap-2 hover:text-brand-orange transition-colors">
-              <Mail className="h-4 w-4 text-brand-orange shrink-0" /> protocolpromotions@gmail.com
+            <a
+              href="mailto:protocolpromotions@gmail.com"
+              className="group flex items-center gap-3 transition-colors hover:text-white"
+            >
+              <span className="grid h-8 w-8 shrink-0 place-items-center border border-white/10 bg-white/5 transition-colors duration-300 group-hover:border-brand-orange group-hover:bg-brand-orange/10">
+                <Mail className="h-4 w-4 text-brand-orange" />
+              </span>
+              <span className="break-all text-white/80 group-hover:text-white">
+                protocolpromotions@gmail.com
+              </span>
             </a>
           </div>
-          <div className="flex items-center gap-3 mt-5">
-            {SOCIALS.map((s, i) => (
-              <a 
-                key={i} 
-                href={s.href} 
-                target="_blank" 
-                rel="noopener noreferrer" 
-                className="h-9 w-9 grid place-items-center rounded-full bg-white/10 hover:bg-brand-orange transition-colors duration-300" 
-                aria-label={s.label}
-              >
-                <s.icon className="h-4.5 w-4.5" />
-              </a>
-            ))}
+
+          {/* Socials */}
+          <div className="mt-6">
+            <div className="mb-3 text-[11px] font-bold uppercase tracking-widest text-white/40">
+              Follow us
+            </div>
+            <div className="flex items-center gap-2.5">
+              {SOCIALS.map((s, i) => (
+                <a
+                  key={i}
+                  href={s.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="grid h-10 w-10 place-items-center rounded-full bg-white/10 text-white/80 transition-all duration-300 hover:-translate-y-0.5 hover:bg-brand-orange hover:text-white"
+                  aria-label={s.label}
+                >
+                  <s.icon className="h-4.5 w-4.5" />
+                </a>
+              ))}
+            </div>
           </div>
         </div>
 
-        <FooterCol title="Shop" links={[
-          { to: "/shop", label: "All Products" },
-          { to: "/shop", label: "Apparel" },
-          { to: "/shop", label: "Printing" },
-          { to: "/shop", label: "Signage" },
-          { to: "/shop", label: "Promotional Items" },
-          { to: "/shop", label: "Packaging" },
-        ]} />
-        <FooterCol title="Company" links={[
-          { to: "/about", label: "About Us" },
-          { to: "/services", label: "Services" },
-          { to: "/industries", label: "Industries" },
-          { to: "/testimonials", label: "Testimonials" },
-          { to: "/contact", label: "Contact" },
-        ]} />
-        <FooterCol title="Support" links={[
-          { to: "/request-quote", label: "Request a Quote" },
-          { to: "/track-order", label: "Track Order" },
-          { to: "/bulk-orders", label: "Bulk Orders" },
-          { to: "/faqs", label: "FAQs" },
-          { to: "/policies", label: "Policies" },
-        ]} />
+        {/* Desktop: three plain columns */}
+        <div className="hidden md:contents">
+          {COLUMNS.map((col) => (
+            <FooterCol key={col.title} title={col.title} links={col.links} />
+          ))}
+        </div>
+
+        {/* Mobile: collapsible accordion so the footer isn't a long flat list */}
+        <div className="md:hidden">
+          <div className="divide-y divide-white/10 border-y border-white/10">
+            {COLUMNS.map((col) => (
+              <FooterAccordion key={col.title} title={col.title} links={col.links} />
+            ))}
+          </div>
+        </div>
       </div>
 
-      {/* Dotted Animated Separator */}
+      {/* Dotted animated separator */}
       <div className="relative h-px w-full overflow-hidden bg-white/10">
-        <div 
-          className="absolute inset-0 h-full w-[200%] animate-slide-dots" 
-          style={{
-            backgroundImage: "radial-gradient(circle, rgba(249,115,22,0.4) 1px, transparent 1.5px)",
-            backgroundSize: "16px 1px",
-          }}
-        />
+        <div className="pp-slide-dots absolute inset-0 h-full w-[200%]" />
       </div>
 
+      {/* Bottom bar */}
       <div className="bg-brand-navy/40">
-        <div className="container-page py-6 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-white/60">
-          <div className="flex flex-wrap items-center justify-center md:justify-start gap-x-2 gap-y-1 text-center">
+        <div className="container-page flex flex-col items-center justify-between gap-4 py-6 text-xs text-white/60 md:flex-row">
+          <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-center md:justify-start">
             <span>© {new Date().getFullYear()} Protocol Promotions. All rights reserved.</span>
-            <span className="hidden md:inline text-white/20">|</span>
+            <span className="hidden text-white/20 md:inline">|</span>
             <span className="inline-flex items-center gap-1">
-              <Code2 className="h-3.5 w-3.5 text-brand-orange animate-pulse" />
+              <Code2 className="h-3.5 w-3.5 animate-pulse text-brand-orange" />
               Engineered by
               <a
                 href="https://www.emonisamuel.co.ke"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="font-bold text-white/80 hover:text-brand-orange transition-colors duration-300 relative group py-0.5 ml-0.5"
+                className="group relative ml-0.5 py-0.5 font-bold text-white/80 transition-colors duration-300 hover:text-brand-orange"
               >
                 Emoni Samuel
-                <span 
-                  className="absolute bottom-0 left-0 w-full h-[1.5px] opacity-40 group-hover:opacity-100 transition-opacity duration-300"
+                <span
+                  className="absolute bottom-0 left-0 h-[1.5px] w-full opacity-40 transition-opacity duration-300 group-hover:opacity-100"
                   style={{
                     backgroundImage: "radial-gradient(circle, #f97316 1px, transparent 1px)",
                     backgroundSize: "4px 100%",
@@ -151,10 +235,18 @@ export function Footer() {
             </span>
           </div>
           <div className="flex items-center gap-4">
-            <Link to="/policies" className="hover:text-white transition-colors">Terms</Link>
-            <Link to="/policies" className="hover:text-white transition-colors">Privacy</Link>
-            <Link to="/policies" className="hover:text-white transition-colors">Refunds</Link>
-            <Link to="/policies" className="hover:text-white transition-colors">Shipping</Link>
+            <Link to="/policies" className="transition-colors hover:text-white">
+              Terms
+            </Link>
+            <Link to="/policies" className="transition-colors hover:text-white">
+              Privacy
+            </Link>
+            <Link to="/policies" className="transition-colors hover:text-white">
+              Refunds
+            </Link>
+            <Link to="/policies" className="transition-colors hover:text-white">
+              Shipping
+            </Link>
           </div>
         </div>
       </div>
@@ -162,17 +254,102 @@ export function Footer() {
   );
 }
 
-function FooterCol({ title, links }: { title: string; links: { to: string; label: string }[] }) {
+/* ================================================================
+   Desktop link column
+   ================================================================ */
+
+function FooterCol({ title, links }: { title: string; links: FooterLink[] }) {
   return (
     <div>
-      <div className="text-sm font-semibold text-white mb-4">{title}</div>
+      <div className="mb-4 flex items-center gap-2 text-sm font-semibold text-white">
+        <span className="h-3 w-0.5 bg-brand-orange" />
+        {title}
+      </div>
       <ul className="space-y-2.5 text-sm">
         {links.map((l) => (
           <li key={l.label}>
-            <Link to={l.to} className="hover:text-white transition-colors duration-200">{l.label}</Link>
+            <Link
+              to={l.to}
+              className="group inline-flex items-center gap-1.5 text-white/70 transition-colors duration-200 hover:text-white"
+            >
+              <ArrowRight className="h-0 w-0 -translate-x-1 text-brand-orange opacity-0 transition-all duration-300 group-hover:h-3 group-hover:w-3 group-hover:translate-x-0 group-hover:opacity-100" />
+              {l.label}
+            </Link>
           </li>
         ))}
       </ul>
     </div>
+  );
+}
+
+/* ================================================================
+   Mobile accordion column
+   ================================================================ */
+
+function FooterAccordion({ title, links }: { title: string; links: FooterLink[] }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        className="flex w-full items-center justify-between py-4 text-left"
+      >
+        <span className="flex items-center gap-2 text-sm font-semibold text-white">
+          <span className={`h-3 w-0.5 transition-colors duration-300 ${open ? "bg-brand-orange" : "bg-white/30"}`} />
+          {title}
+        </span>
+        <ChevronDown
+          className={`h-4 w-4 text-brand-orange transition-transform duration-300 ${
+            open ? "rotate-180" : ""
+          }`}
+        />
+      </button>
+      <div
+        className="grid transition-all duration-300 ease-out"
+        style={{ gridTemplateRows: open ? "1fr" : "0fr" }}
+      >
+        <div className="overflow-hidden">
+          <ul className="space-y-1 pb-4 pl-4">
+            {links.map((l) => (
+              <li key={l.label}>
+                <Link
+                  to={l.to}
+                  className="group flex items-center gap-2 py-1.5 text-sm text-white/70 transition-colors hover:text-white"
+                >
+                  <span className="h-1 w-1 shrink-0 bg-brand-orange/60 transition-all duration-300 group-hover:w-3 group-hover:bg-brand-orange" />
+                  {l.label}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ================================================================
+   Self-contained styles for the animated separator
+   (works even if `animate-slide-dots` is not in the Tailwind config)
+   ================================================================ */
+
+function FooterStyles() {
+  return (
+    <style>{`
+      @keyframes ppSlideDots {
+        from { transform: translateX(0); }
+        to   { transform: translateX(-50%); }
+      }
+      .pp-slide-dots {
+        background-image: radial-gradient(circle, rgba(249,115,22,0.4) 1px, transparent 1.5px);
+        background-size: 16px 1px;
+        animation: ppSlideDots 6s linear infinite;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .pp-slide-dots { animation: none !important; }
+      }
+    `}</style>
   );
 }

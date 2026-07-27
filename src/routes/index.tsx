@@ -27,8 +27,6 @@ import {
   PackageCheck,
   ClipboardList,
   Loader2,
-  ChevronLeft,
-  ChevronRight,
 } from "lucide-react";
 import heroImg from "@/assets/hero.jpg";
 import { useQuery } from "@tanstack/react-query";
@@ -47,6 +45,8 @@ function Index() {
   // real photography to show the moment the page is revealed rather than
   // starting its fetch from cold.
   useNewestProducts(20);
+  // Warm the catalogue categories too, for the same reason.
+  useCatalogueLines();
 
   return (
     <>
@@ -78,6 +78,13 @@ function Index() {
 
 // Since files are in /public, we use the root path directly.
 const LOGOS = ["monawanka.png", "protocol.png", "kazilab.png", "safaricom.png", "Samsung.png"];
+
+// Hero stat strip. Static, brand-level figures shown under the CTAs.
+const HERO_STATS: { value: string; label: string }[] = [
+  { value: "12+", label: "Years running" },
+  { value: "500+", label: "Brands served" },
+  { value: "48h", label: "Typical turnaround" },
+];
 
 const KSH = new Intl.NumberFormat("en-KE", {
   style: "currency",
@@ -463,8 +470,6 @@ function LogoMarquee() {
    Hero
    ================================================================ */
 
-
-
 function Statement() {
   return (
     <section className="relative overflow-hidden border-b border-brand-navy bg-white">
@@ -554,6 +559,10 @@ function Statement() {
    Hero carousel
    Rotates through live product photography, falling back to the
    static hero image when the catalogue has none yet.
+
+   Simplified for calm: single framed image, one clean caption line,
+   and slim dot controls. No arrows, no double progress bar, no
+   competing chrome layered over the photo.
    ================================================================ */
 
 function HeroCarousel() {
@@ -593,7 +602,7 @@ function HeroCarousel() {
 
   useEffect(() => {
     if (paused || count <= 1) return;
-    const timer = setInterval(() => setIndex((i) => (i + 1) % count), 4500);
+    const timer = setInterval(() => setIndex((i) => (i + 1) % count), 5000);
     return () => clearInterval(timer);
   }, [paused, count]);
 
@@ -616,15 +625,15 @@ function HeroCarousel() {
       onFocus={() => setPaused(true)}
       onBlur={() => setPaused(false)}
     >
-      {/* Offset frame gives the image real depth without a drop shadow */}
+      {/* Single offset frame for depth, kept subtle */}
       <div
         aria-hidden="true"
-        className="absolute -bottom-3 -right-3 hidden h-full w-full border border-brand-navy/25 sm:block"
+        className="absolute -bottom-3 -right-3 hidden h-full w-full border border-brand-navy/20 sm:block"
       />
 
       <div
         className="relative overflow-hidden border border-brand-navy bg-brand-surface"
-        style={{ aspectRatio: "16 / 12" }}
+        style={{ aspectRatio: "4 / 3" }}
       >
         {slides.map((slide, i) => (
           <img
@@ -632,72 +641,32 @@ function HeroCarousel() {
             src={slide.src}
             alt={slide.alt}
             width={1600}
-            height={1100}
+            height={1200}
             loading={i === 0 ? "eager" : "lazy"}
-            className={`absolute inset-0 h-full w-full object-cover transition-all duration-900 ease-out ${
-              i === index ? "scale-100 opacity-100" : "scale-105 opacity-0"
+            className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ease-out ${
+              i === index ? "opacity-100" : "opacity-0"
             }`}
           />
         ))}
 
-        {count > 1 && (
-          <>
-            <button
-              type="button"
-              onClick={() => go(index - 1)}
-              aria-label="Previous image"
-              className="absolute left-3 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center border border-brand-navy bg-white/90 text-brand-navy backdrop-blur-sm transition-all duration-300 hover:bg-brand-navy hover:text-white sm:h-10 sm:w-10"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
-              onClick={() => go(index + 1)}
-              aria-label="Next image"
-              className="absolute right-3 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center border border-brand-navy bg-white/90 text-brand-navy backdrop-blur-sm transition-all duration-300 hover:bg-brand-navy hover:text-white sm:h-10 sm:w-10"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </button>
-          </>
-        )}
-
-        <div className="absolute inset-x-0 bottom-0 bg-brand-navy/90 px-4 pb-3.5 pt-3.5 backdrop-blur-sm sm:px-5 sm:pb-4 sm:pt-4">
-          <div className="flex items-end justify-between gap-3">
-            <span className="text-sm font-bold leading-tight text-white sm:text-base">
-              {active?.label ?? "Premium Quality"}
-            </span>
-            {active?.price != null && (
-              <span className="shrink-0 bg-brand-orange px-2.5 py-1 text-[11px] font-bold tabular-nums text-white">
-                {KSH.format(active.price)}
+        {/* One quiet caption line, only when there is a real label */}
+        {active?.label ? (
+          <div className="absolute inset-x-0 bottom-0 bg-linear-to-t from-brand-navy/85 to-transparent px-4 pb-4 pt-10 sm:px-5">
+            <div className="flex items-end justify-between gap-3">
+              <span className="text-sm font-bold leading-tight text-white sm:text-base">
+                {active.label}
               </span>
-            )}
-          </div>
-
-          {count > 1 && (
-            <div
-              key={index}
-              className="mt-3 h-0.5 w-full overflow-hidden bg-white/20"
-              aria-hidden="true"
-            >
-              <div
-                className="h-full bg-brand-orange"
-                style={{
-                  animation: paused ? "none" : "ppSweepBar 4.5s linear forwards",
-                  width: paused ? "100%" : undefined,
-                }}
-              />
+              {active.price != null && (
+                <span className="shrink-0 text-sm font-bold tabular-nums text-white/90">
+                  {KSH.format(active.price)}
+                </span>
+              )}
             </div>
-          )}
-        </div>
+          </div>
+        ) : null}
       </div>
 
-      <style>{`
-        @keyframes ppSweepBar { from { width: 0%; } to { width: 100%; } }
-        @media (prefers-reduced-motion: reduce) {
-          [style*="ppSweepBar"] { animation: none !important; width: 100% !important; }
-        }
-      `}</style>
-
+      {/* Slim dot controls, the only interactive chrome */}
       {count > 1 && (
         <div className="mt-4 flex justify-center gap-1.5">
           {slides.map((_, i) => (
@@ -720,6 +689,8 @@ function HeroCarousel() {
 
 /* ================================================================
    Catalogue
+   Categories are loaded from the same `categories` table the shop
+   uses, with a hardcoded fallback so the section never renders empty.
    ================================================================ */
 
 type Line = {
@@ -730,7 +701,8 @@ type Line = {
   min: string;
 };
 
-const LINES: Line[] = [
+// Fallback lines, shown while loading or if the categories table is empty.
+const FALLBACK_LINES: Line[] = [
   {
     name: "Apparel",
     slug: "apparel",
@@ -775,7 +747,54 @@ const LINES: Line[] = [
   },
 ];
 
+// Fill in copy/price/min for known slugs so DB-driven categories still
+// read well; anything unknown falls back to sensible defaults.
+const LINE_META: Record<string, { what: string; from: string; min: string }> = {
+  apparel: FALLBACK_LINES[0],
+  printing: FALLBACK_LINES[1],
+  signage: FALLBACK_LINES[2],
+  "promotional-items": FALLBACK_LINES[3],
+  packaging: FALLBACK_LINES[4],
+  "corporate-gifts": FALLBACK_LINES[5],
+};
+
+async function fetchCatalogueLines(): Promise<Line[]> {
+  const { data, error } = await supabase
+    .from("categories")
+    .select("id, name, slug, description, is_active, sort_order")
+    .eq("is_active", true)
+    .order("sort_order", { ascending: true })
+    .order("name", { ascending: true });
+
+  if (error) throw error;
+  const rows = data ?? [];
+  if (rows.length === 0) return FALLBACK_LINES;
+
+  return rows.map((c: any) => {
+    const meta = LINE_META[c.slug as string];
+    return {
+      name: c.name,
+      slug: c.slug,
+      what: c.description || meta?.what || "Custom-branded to your specification",
+      from: meta?.from || "On quote",
+      min: meta?.min || "1 unit",
+    };
+  });
+}
+
+function useCatalogueLines() {
+  return useQuery({
+    queryKey: ["home", "catalogue-lines"],
+    queryFn: fetchCatalogueLines,
+    staleTime: 10 * 60 * 1000,
+  });
+}
+
 function Catalogue() {
+  const { data, isLoading } = useCatalogueLines();
+  // Show fallback lines while loading so the section never flashes empty.
+  const lines = data ?? FALLBACK_LINES;
+
   return (
     <section className="relative overflow-hidden border-b border-brand-navy bg-white">
       <DotField className="pp-mask-fade-center opacity-25" />
@@ -797,6 +816,13 @@ function Catalogue() {
           />
         </Reveal>
 
+        {isLoading && !data ? (
+          <div className="mt-8 flex items-center gap-3 text-sm font-semibold text-brand-navy/50">
+            <Loader2 className="h-4 w-4 animate-spin text-brand-orange" />
+            Loading production lines…
+          </div>
+        ) : null}
+
         <div className="hidden lg:block">
           <div className="mt-2 w-full text-left">
             <div className="grid grid-cols-[22%_44%_13%_13%_8%] border-b border-brand-navy/20 px-6 py-4">
@@ -812,7 +838,7 @@ function Catalogue() {
             </div>
 
             <div className="divide-y divide-brand-navy/10">
-              {LINES.map((l, i) => (
+              {lines.map((l, i) => (
                 <Reveal key={l.slug} delay={i * 60}>
                   <div className="group relative grid grid-cols-[22%_44%_13%_13%_8%] items-center px-6 py-5 transition-colors duration-300 hover:bg-brand-navy hover:text-white">
                     <span
@@ -850,7 +876,7 @@ function Catalogue() {
         </div>
 
         <div className="lg:hidden">
-          {LINES.map((l, i) => (
+          {lines.map((l, i) => (
             <Reveal key={l.slug} delay={i * 50}>
               <Link
                 to="/shop"

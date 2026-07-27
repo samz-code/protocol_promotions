@@ -1,7 +1,10 @@
 import { Phone, Mail, Truck } from "lucide-react";
 import type { SVGProps } from "react";
 
-// Premium SVG Social Icons
+/* ================================================================
+   Premium SVG social icons
+   ================================================================ */
+
 function FacebookIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
@@ -50,32 +53,56 @@ const SOCIALS = [
   { icon: YoutubeIcon, label: "YouTube", href: "#" },
 ];
 
+/* ================================================================
+   Free-delivery threshold
+   ================================================================ */
+
+// Free-delivery threshold in KES.
+const FREE_DELIVERY_THRESHOLD = 10000;
+
+const KSH = new Intl.NumberFormat("en-KE", {
+  style: "currency",
+  currency: "KES",
+  maximumFractionDigits: 0,
+});
+
+/* ================================================================
+   TopBar
+   ================================================================ */
+
 export function TopBar() {
   return (
-    <div className="hidden md:block bg-brand-navy text-white text-sm border-b border-white/5">
+    <div className="relative z-60 hidden border-b border-white/5 bg-brand-navy text-sm text-white md:block">
       <div className="container-page flex h-12 items-center justify-between">
-        {/* Contact Info & Value Prop */}
-        <div className="flex items-center gap-7">
-          <span className="inline-flex items-center gap-2 font-medium text-white/90">
-            <Truck className="h-4 w-4 text-brand-orange" />
-            Free delivery on selected orders
+        {/* Left: free-delivery + contact */}
+        <div className="flex items-center gap-6">
+          <span className="group inline-flex items-center gap-2 font-medium text-white/90">
+            <Truck className="h-4 w-4 text-brand-orange transition-transform duration-300 group-hover:-translate-y-0.5" />
+            Free delivery over{" "}
+            <span className="font-bold text-brand-orange">{KSH.format(FREE_DELIVERY_THRESHOLD)}</span>
           </span>
-          <a 
-            href="tel:+254762446077" 
-            className="inline-flex items-center gap-2 font-medium text-white/80 hover:text-brand-orange transition-colors duration-200"
+
+          <span className="hidden h-4 w-px bg-white/10 lg:block" />
+
+          <a
+            href="tel:+254762446077"
+            className="hidden items-center gap-2 font-medium text-white/80 transition-colors duration-200 hover:text-brand-orange lg:inline-flex"
           >
             <Phone className="h-4 w-4 text-brand-orange/80" /> +254 762 446 077
           </a>
-          <a 
-            href="mailto:protocolpromotions@gmail.com" 
-            className="inline-flex items-center gap-2 font-medium text-white/80 hover:text-brand-orange transition-colors duration-200"
+          <a
+            href="mailto:protocolpromotions@gmail.com"
+            className="hidden items-center gap-2 font-medium text-white/80 transition-colors duration-200 hover:text-brand-orange xl:inline-flex"
           >
             <Mail className="h-4 w-4 text-brand-orange/80" /> protocolpromotions@gmail.com
           </a>
         </div>
 
-        {/* Social Navigation Links */}
-        <div className="flex items-center gap-4 text-white/80">
+        {/* Right: socials */}
+        <div className="flex items-center gap-1 text-white/80">
+          <span className="mr-2 hidden text-[11px] font-semibold uppercase tracking-widest text-white/35 lg:inline">
+            Follow
+          </span>
           {SOCIALS.map((s) => (
             <a
               key={s.label}
@@ -83,9 +110,9 @@ export function TopBar() {
               target="_blank"
               rel="noopener noreferrer"
               aria-label={s.label}
-              className="hover:text-brand-orange transition-colors duration-200"
+              className="grid h-8 w-8 place-items-center rounded-full text-white/75 transition-all duration-200 hover:-translate-y-0.5 hover:bg-white/10 hover:text-brand-orange"
             >
-              <s.icon className="h-5 w-5" />
+              <s.icon className="h-4.5 w-4.5" />
             </a>
           ))}
         </div>
