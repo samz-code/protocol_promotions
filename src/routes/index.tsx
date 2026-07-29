@@ -45,8 +45,6 @@ function Index() {
   // real photography to show the moment the page is revealed rather than
   // starting its fetch from cold.
   useNewestProducts(20);
-  // Warm the catalogue categories too, for the same reason.
-  useCatalogueLines();
 
   return (
     <>
@@ -57,7 +55,7 @@ function Index() {
           <MotionStyles />
           <Statement />
           <LogoMarquee />
-          <Catalogue />
+          <Showcase />
           <FeaturedProducts />
           <Bestsellers />
           <Techniques />
@@ -688,112 +686,28 @@ function HeroCarousel() {
 }
 
 /* ================================================================
-   Catalogue
-   Categories are loaded from the same `categories` table the shop
-   uses, with a hardcoded fallback so the section never renders empty.
+   Showcase
+   Displays real products from the database, grouped by category.
+   Falls back to newest products when categories can't be resolved.
    ================================================================ */
 
-type Line = {
-  name: string;
-  slug: string;
-  what: string;
-  from: string;
-  min: string;
-};
+function Showcase() {
+  const { data, isLoading, isError } = useNewestProducts(24);
+  const products = data ?? [];
 
-// Fallback lines, shown while loading or if the categories table is empty.
-const FALLBACK_LINES: Line[] = [
-  {
-    name: "Apparel",
-    slug: "apparel",
-    what: "Polos, tees, hoodies, caps, safety wear, staff uniforms",
-    from: "KSh 550",
-    min: "10 units",
-  },
-  {
-    name: "Printing",
-    slug: "printing",
-    what: "Cards, flyers, brochures, calendars, receipt books, posters",
-    from: "KSh 1,500",
-    min: "1 unit",
-  },
-  {
-    name: "Signage",
-    slug: "signage",
-    what: "Roll-ups, PVC boards, acrylic, shopfronts, vehicle wraps",
-    from: "KSh 3,200",
-    min: "1 unit",
-  },
-  {
-    name: "Promotional items",
-    slug: "promotional-items",
-    what: "Pens, mugs, bottles, lanyards, notebooks, gift sets",
-    from: "KSh 350",
-    min: "12 units",
-  },
-  {
-    name: "Packaging",
-    slug: "packaging",
-    what: "Boxes, shopping bags, paper bags, labels, stickers",
-    from: "KSh 40",
-    min: "50 units",
-  },
-  {
-    name: "Corporate gifts",
-    slug: "corporate-gifts",
-    what: "Engraved awards, executive sets, curated client gifting",
-    from: "KSh 950",
-    min: "10 units",
-  },
-];
-
-// Fill in copy/price/min for known slugs so DB-driven categories still
-// read well; anything unknown falls back to sensible defaults.
-const LINE_META: Record<string, { what: string; from: string; min: string }> = {
-  apparel: FALLBACK_LINES[0],
-  printing: FALLBACK_LINES[1],
-  signage: FALLBACK_LINES[2],
-  "promotional-items": FALLBACK_LINES[3],
-  packaging: FALLBACK_LINES[4],
-  "corporate-gifts": FALLBACK_LINES[5],
-};
-
-async function fetchCatalogueLines(): Promise<Line[]> {
-  const { data, error } = await supabase
-    .from("categories")
-    .select("id, name, slug, description, is_active, sort_order")
-    .eq("is_active", true)
-    .order("sort_order", { ascending: true })
-    .order("name", { ascending: true });
-
-  if (error) throw error;
-  const rows = data ?? [];
-  if (rows.length === 0) return FALLBACK_LINES;
-
-  return rows.map((c: any) => {
-    const meta = LINE_META[c.slug as string];
-    return {
-      name: c.name,
-      slug: c.slug,
-      what: c.description || meta?.what || "Custom-branded to your specification",
-      from: meta?.from || "On quote",
-      min: meta?.min || "1 unit",
-    };
-  });
-}
-
-function useCatalogueLines() {
-  return useQuery({
-    queryKey: ["home", "catalogue-lines"],
-    queryFn: fetchCatalogueLines,
-    staleTime: 10 * 60 * 1000,
-  });
-}
-
-function Catalogue() {
-  const { data, isLoading } = useCatalogueLines();
-  // Show fallback lines while loading so the section never flashes empty.
-  const lines = data ?? FALLBACK_LINES;
+  // Group products by their resolved category name, preserving first-seen order.
+  const groups = useMemo(() => {
+    const map = new Map<string, { name: string; slug: string | null; items: LiveProduct[] }>();
+    for (const p of products) {
+      const key = p.category || "Products";
+      if (!map.has(key)) {
+        map.set(key, { name: key, slug: p.categorySlug, items: [] });
+      }
+      map.get(key)!.items.push(p);
+    }
+    // Cap each group so no single category dominates the page.
+    return Array.from(map.values()).map((g) => ({ ...g, items: g.items.slice(0, 8) }));
+  }, [products]);
 
   return (
     <section className="relative overflow-hidden border-b border-brand-navy bg-white">
@@ -802,8 +716,8 @@ function Catalogue() {
       <div className="container-page relative px-5 py-14 sm:px-6 sm:py-16 md:py-24">
         <Reveal>
           <SectionHeading
-            eyebrow="Production lines"
-            title="What we make"
+            eyebrow="In the catalogue"
+            title="Products we have"
             action={
               <Link
                 to="/shop"
@@ -817,105 +731,53 @@ function Catalogue() {
         </Reveal>
 
         {isLoading && !data ? (
-          <div className="mt-8 flex items-center gap-3 text-sm font-semibold text-brand-navy/50">
-            <Loader2 className="h-4 w-4 animate-spin text-brand-orange" />
-            Loading production lines…
+          <div className="mt-8 grid grid-cols-1 gap-5 sm:mt-10 sm:grid-cols-2 sm:gap-6 lg:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <ProductSkeleton key={i} />
+            ))}
           </div>
-        ) : null}
-
-        <div className="hidden lg:block">
-          <div className="mt-2 w-full text-left">
-            <div className="grid grid-cols-[22%_44%_13%_13%_8%] border-b border-brand-navy/20 px-6 py-4">
-              {["Line", "Covers", "From", "Min order"].map((h) => (
-                <div
-                  key={h}
-                  className="text-[11px] font-bold uppercase tracking-widest text-brand-navy/45"
-                >
-                  {h}
-                </div>
-              ))}
-              <div />
-            </div>
-
-            <div className="divide-y divide-brand-navy/10">
-              {lines.map((l, i) => (
-                <Reveal key={l.slug} delay={i * 60}>
-                  <div className="group relative grid grid-cols-[22%_44%_13%_13%_8%] items-center px-6 py-5 transition-colors duration-300 hover:bg-brand-navy hover:text-white">
-                    <span
-                      aria-hidden="true"
-                      className="absolute left-0 top-0 h-full w-0.75 origin-top scale-y-0 bg-brand-orange transition-transform duration-300 group-hover:scale-y-100"
-                    />
-                    <div>
-                      <Link
-                        to="/shop"
-                        search={{ category: l.slug }}
-                        className="text-base font-extrabold text-brand-navy transition-colors duration-300 group-hover:text-white"
-                      >
-                        {l.name}
-                      </Link>
-                    </div>
-                    <div className="text-sm leading-relaxed text-brand-navy/70 transition-colors duration-300 group-hover:text-white/80">
-                      {l.what}
-                    </div>
-                    <div className="text-sm font-bold tabular-nums text-brand-navy transition-colors duration-300 group-hover:text-brand-orange">
-                      {l.from}
-                    </div>
-                    <div className="text-sm font-bold tabular-nums text-brand-navy transition-colors duration-300 group-hover:text-white">
-                      {l.min}
-                    </div>
-                    <div className="text-right">
-                      <Link to="/shop" search={{ category: l.slug }} aria-label={`Shop ${l.name}`}>
-                        <ArrowRight className="ml-auto h-4 w-4 text-brand-navy/30 transition-all duration-300 group-hover:translate-x-1 group-hover:text-brand-orange" />
-                      </Link>
-                    </div>
-                  </div>
-                </Reveal>
-              ))}
-            </div>
+        ) : isError ? (
+          <div className="mt-10 flex items-center gap-3 border border-brand-navy/15 bg-white p-5">
+            <Loader2 className="h-4 w-4 text-brand-orange" />
+            <p className="text-sm font-semibold text-brand-navy/70">
+              Products could not be loaded right now. Please refresh the page.
+            </p>
           </div>
-        </div>
-
-        <div className="lg:hidden">
-          {lines.map((l, i) => (
-            <Reveal key={l.slug} delay={i * 50}>
-              <Link
-                to="/shop"
-                search={{ category: l.slug }}
-                className="group relative block border-b border-brand-navy/15 py-6 transition-colors duration-300 hover:bg-brand-surface"
-              >
-                <span
-                  aria-hidden="true"
-                  className="absolute left-0 top-0 h-full w-0.75 origin-top scale-y-0 bg-brand-orange transition-transform duration-300 group-hover:scale-y-100"
-                />
-                <div className="flex items-start justify-between gap-4">
-                  <h3 className="text-lg font-extrabold text-brand-navy transition-colors group-hover:text-brand-orange">
-                    {l.name}
+        ) : products.length === 0 ? (
+          <p className="mt-10 text-sm font-semibold text-brand-navy/60">
+            No products published yet.
+          </p>
+        ) : (
+          <div className="mt-10 space-y-14 sm:space-y-16">
+            {groups.map((group, gi) => (
+              <div key={group.name}>
+                <div className="flex flex-wrap items-end justify-between gap-3 border-b border-brand-navy/12 pb-3">
+                  <h3 className="text-lg font-extrabold tracking-tight text-brand-navy sm:text-xl">
+                    {group.name}
                   </h3>
-                  <ArrowRight className="mt-1 h-4 w-4 shrink-0 text-brand-navy/30 transition-all duration-300 group-hover:translate-x-1 group-hover:text-brand-orange" />
+                  {group.slug ? (
+                    <Link
+                      to="/shop"
+                      search={{ category: group.slug }}
+                      className="group inline-flex items-center gap-1.5 text-[13px] font-bold text-brand-navy/60 transition-colors hover:text-brand-orange"
+                    >
+                      <span className="pp-underline">Shop {group.name}</span>
+                      <ArrowRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-1" />
+                    </Link>
+                  ) : null}
                 </div>
-                <p className="mt-2 text-sm leading-relaxed text-brand-navy/70">{l.what}</p>
-                <div className="mt-4 flex gap-8">
-                  <div>
-                    <div className="text-[10px] font-bold uppercase tracking-widest text-brand-navy/45">
-                      From
-                    </div>
-                    <div className="mt-0.5 text-sm font-bold tabular-nums text-brand-orange">
-                      {l.from}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-[10px] font-bold uppercase tracking-widest text-brand-navy/45">
-                      Min order
-                    </div>
-                    <div className="mt-0.5 text-sm font-bold tabular-nums text-brand-navy">
-                      {l.min}
-                    </div>
-                  </div>
+
+                <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-6 lg:grid-cols-4">
+                  {group.items.map((p, i) => (
+                    <Reveal key={p.id} delay={gi * 40 + i * 70}>
+                      <ProductCard p={p} />
+                    </Reveal>
+                  ))}
                 </div>
-              </Link>
-            </Reveal>
-          ))}
-        </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </section>
   );
