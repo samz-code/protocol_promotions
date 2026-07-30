@@ -991,7 +991,7 @@ function Bestsellers() {
   const { data } = useNewestProducts(12);
   const source = data ?? [];
   const tagged = source.filter((p) => p.tag);
-  const picks = (tagged.length > 0 ? tagged : source).slice(0, 8);
+  const picks = tagged.length > 0 ? tagged : source;
 
   if (picks.length === 0) return null;
 
@@ -1022,8 +1022,8 @@ function Bestsellers() {
         <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-12 bg-linear-to-l from-white to-transparent sm:w-24" />
 
         <div
-          className="pp-track flex w-max gap-5 px-5 sm:gap-6 sm:px-6"
-          style={{ ["--pp-speed" as string]: "48s" }}
+          className="pp-track flex w-max gap-5 px-5 hover:paused sm:gap-6 sm:px-6"
+          style={{ ["--pp-speed" as string]: `${picks.length * 2.5}s` }}
         >
           {loop.map((b, i) => (
             <Link
@@ -1038,8 +1038,8 @@ function Bestsellers() {
                 <img
                   src={b.image}
                   alt={b.name}
-                  width={600}
-                  height={600}
+                  width={800}
+                  height={900}
                   loading="lazy"
                   className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.07]"
                   style={{ aspectRatio: "1 / 1" }}
@@ -1070,7 +1070,6 @@ function Bestsellers() {
     </section>
   );
 }
-
 /* ================================================================
    Techniques
    ================================================================ */
@@ -1186,25 +1185,33 @@ const STEPS = [
     n: "01",
     icon: ClipboardList,
     title: "Send the brief",
-    body: "Item, quantity, deadline, artwork if you have it. A photo of what you want is enough to start.",
+    kicker: "Even a bad photo works",
+    body: "Item, quantity, deadline, artwork if you have it. A phone photo of a shirt you liked at someone else's event is a perfectly good starting point — we've built entire jobs off worse.",
+    detail: "Reply inside 2 working hours",
   },
   {
     n: "02",
     icon: FileSignature,
     title: "Approve the proof",
-    body: "A digital mockup with exact placement and colour. Nothing runs until you sign it off in writing.",
+    kicker: "The point of no return, deliberately",
+    body: "A digital mockup with exact placement, matched colour, and real material — not a stock photo standing in for your job. Until you type back 'approved', nothing moves. That word is the only green light we accept.",
+    detail: "Unlimited revisions before sign-off",
   },
   {
     n: "03",
     icon: PackageCheck,
     title: "We produce",
-    body: "Production happens directly on our floor, meaning no brokers, no third-party excuses, and no drifting completion dates.",
+    kicker: "On our floor, not someone else's",
+    body: "No broker in the middle marking up a job they didn't make. No subcontractor to blame when a date slips. If something's wrong, the person who can fix it is thirty feet from the machine.",
+    detail: "In-house press, embroidery, finishing",
   },
   {
     n: "04",
     icon: Truck,
     title: "Delivered",
-    body: "Nairobi same-day or next-day. Countrywide courier with tracking. Off-spec goods are reprinted at our cost.",
+    kicker: "Wrong is our bill, not yours",
+    body: "Nairobi same-day or next-day. Countrywide by tracked courier. If it lands and doesn't match the proof you signed, we reprint it at our cost — same day we hear about it, no argument required.",
+    detail: "Nairobi CBD & environs: same-day",
   },
 ];
 
@@ -1221,8 +1228,12 @@ function Process() {
               Order to delivery
             </p>
             <h2 className="mt-2.5 text-2xl font-extrabold tracking-tight text-brand-navy sm:text-3xl md:text-[2.6rem] md:leading-[1.08]">
-              How it runs
+              Four steps. No surprises.
             </h2>
+            <p className="mt-3 max-w-xl text-sm leading-relaxed text-brand-navy/60">
+              Everything that can go wrong on a print job goes wrong between steps — so we made
+              the steps hard to skip.
+            </p>
           </div>
         </Reveal>
 
@@ -1231,17 +1242,31 @@ function Process() {
             const Icon = s.icon;
             return (
               <Reveal key={s.n} delay={i * 90}>
-                <div className="group relative flex h-full flex-col gap-5 overflow-hidden bg-white p-7 transition-colors duration-300 hover:bg-brand-surface">
+                <div className="group relative flex h-full flex-col gap-4 overflow-hidden bg-white p-7 transition-colors duration-300 hover:bg-brand-surface">
                   <span
                     aria-hidden="true"
                     className="absolute inset-x-0 top-0 h-0.75 origin-left scale-x-0 bg-brand-orange transition-transform duration-500 group-hover:scale-x-100"
                   />
-                  <span className="text-4xl font-extrabold leading-none tabular-nums text-brand-navy/12 transition-colors duration-300 group-hover:text-brand-orange/45">
-                    {s.n}
-                  </span>
-                  <Icon className="h-6 w-6 text-brand-orange transition-transform duration-300 group-hover:scale-110" />
-                  <h3 className="text-lg font-extrabold text-brand-navy">{s.title}</h3>
+                  <span
+                    aria-hidden="true"
+                    className="pp-step-connector absolute -right-3 top-11 hidden h-px w-6 bg-brand-navy/15 lg:block"
+                  />
+                  <div className="flex items-start justify-between">
+                    <span className="text-4xl font-extrabold leading-none tabular-nums text-brand-navy/12 transition-colors duration-300 group-hover:text-brand-orange/45">
+                      {s.n}
+                    </span>
+                    <Icon className="h-6 w-6 text-brand-orange transition-transform duration-500 group-hover:rotate-6 group-hover:scale-110" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-extrabold text-brand-navy">{s.title}</h3>
+                    <p className="mt-0.5 text-[11px] font-bold uppercase tracking-wide text-brand-orange/80">
+                      {s.kicker}
+                    </p>
+                  </div>
                   <p className="text-sm leading-relaxed text-brand-navy/70">{s.body}</p>
+                  <p className="mt-auto border-t border-brand-navy/10 pt-3 text-[11px] font-bold uppercase tracking-wide text-brand-navy/50 transition-colors duration-300 group-hover:text-brand-orange">
+                    {s.detail}
+                  </p>
                 </div>
               </Reveal>
             );
@@ -1261,6 +1286,14 @@ function Argument() {
     <section className="relative overflow-hidden border-b border-brand-navy bg-brand-navy text-white">
       <DotField variant="light" className="pp-mask-fade opacity-30" />
 
+      {/* Oversized ghost mark — decorative, sits behind the copy */}
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute -right-10 top-1/2 hidden -translate-y-1/2 select-none text-[22rem] font-extrabold leading-none text-white/3 lg:block"
+      >
+        OK
+      </span>
+
       <div className="container-page relative px-5 py-14 sm:px-6 sm:py-16 md:py-24">
         <div className="grid gap-12 lg:grid-cols-[minmax(0,24rem)_1fr] lg:gap-20">
           <Reveal className="lg:sticky lg:top-24 lg:self-start">
@@ -1268,30 +1301,48 @@ function Argument() {
               Nothing enters production
               <span className="text-brand-orange"> without a proof you signed.</span>
             </h2>
+            <p className="mt-4 text-sm leading-relaxed text-white/50">
+              One word decides whether a machine turns on: <span className="text-white/80 font-semibold">approved</span>.
+              We take that seriously enough to build the whole workflow around it.
+            </p>
           </Reveal>
 
           <div className="space-y-6 text-base leading-relaxed text-white/70">
             <Reveal delay={80}>
               <p>
-                Every job goes out as a digital proof before a single unit is made. You approve it
-                in writing. If what arrives does not match what you approved, we reprint it at our
-                cost, without a negotiation and without an invoice for the second run.
+                Every job — a single embroidered polo or a 500-unit corporate rollout — goes out as
+                a digital proof before a blade cuts, a needle stitches, or a press touches paper.
+                Placement to the millimetre. Colour matched, not guessed at. The actual material,
+                not a placeholder. You approve it in writing. A verbal "looks good" doesn't count;
+                we've seen too many "looks good"s turn into "that's not what I meant" three days
+                later.
               </p>
             </Reveal>
             <Reveal delay={160}>
               <p>
-                That is not generosity. It is what the proofing stage is for. A supplier who will
-                not put that in writing is a supplier who expects to get it wrong and expects you to
-                pay for the correction.
+                If what arrives doesn't match what you signed off — wrong placement, wrong shade,
+                wrong finish — we reprint it at our cost. No negotiation, no second invoice, no
+                "let's meet in the middle." That only works because the proof exists in the first
+                place: it's the one moment a mistake costs one mockup instead of five hundred
+                finished units.
               </p>
             </Reveal>
             <Reveal delay={240}>
               <p className="border-l-2 border-brand-orange pl-5 font-semibold text-white">
-                Where your supplied artwork is the problem, we flag it before we run it, in writing,
-                and we tell you exactly what will go wrong if we proceed.
+                If your supplied artwork is the problem — low resolution, wrong colour mode, a logo
+                that will not survive being shrunk onto a pen — we say so before we run it, in
+                writing, with the exact failure mode spelled out. Not a vague "this might not work
+                great."
               </p>
             </Reveal>
-            <Reveal delay={320}>
+            <Reveal delay={300}>
+              <p>
+                A supplier who won't put a reprint guarantee in writing is one who's already budgeted
+                for getting it wrong — and budgeted for you paying the difference. We'd rather build
+                the correction into the process than negotiate it after the box is already open.
+              </p>
+            </Reveal>
+            <Reveal delay={380}>
               <Link
                 to="/services"
                 className="group inline-flex items-center gap-2 border-b-2 border-brand-orange pb-1 text-sm font-bold uppercase tracking-wide text-white transition-colors hover:text-brand-orange"
@@ -1312,18 +1363,18 @@ function Argument() {
    ================================================================ */
 
 const SECTORS = [
-  { name: "Corporate", icon: Building2 },
-  { name: "Schools", icon: GraduationCap },
-  { name: "Hospitals", icon: Stethoscope },
-  { name: "Churches", icon: Church },
-  { name: "NGOs", icon: Globe },
-  { name: "Government", icon: Building },
-  { name: "Hotels", icon: Hotel },
-  { name: "Restaurants", icon: Utensils },
-  { name: "Construction", icon: HardHat },
-  { name: "Manufacturing", icon: Factory },
-  { name: "Events", icon: CalendarDays },
-  { name: "Sports clubs", icon: Trophy },
+  { name: "Corporate", icon: Building2, note: "Branded merch, uniforms, signage rollouts" },
+  { name: "Schools", icon: GraduationCap, note: "Sportswear, ID cards, prospectus runs" },
+  { name: "Hospitals", icon: Stethoscope, note: "Scrubs, wayfinding, patient forms" },
+  { name: "Churches", icon: Church, note: "Event banners, choir robes, bulletins" },
+  { name: "NGOs", icon: Globe, note: "Field gear, donor reports, campaign kits" },
+  { name: "Government", icon: Building, note: "Compliance-grade signage & stationery" },
+  { name: "Hotels", icon: Hotel, note: "Staff uniforms, menus, in-room collateral" },
+  { name: "Restaurants", icon: Utensils, note: "Menus, staff apparel, packaging" },
+  { name: "Construction", icon: HardHat, note: "Site signage, hi-vis wear, hoarding" },
+  { name: "Manufacturing", icon: Factory, note: "Workwear, safety signage, labelling" },
+  { name: "Events", icon: CalendarDays, note: "Backdrops, lanyards, 48-hour turnarounds" },
+  { name: "Sports clubs", icon: Trophy, note: "Team kits, trophies, sponsor boards" },
 ];
 
 function Sectors() {
@@ -1335,13 +1386,16 @@ function Sectors() {
         <div className="grid gap-10 lg:grid-cols-[minmax(0,22rem)_1fr] lg:gap-16">
           <Reveal>
             <div>
-              <h2 className="text-3xl font-extrabold leading-tight tracking-tight text-brand-navy md:text-4xl">
+              <p className="text-[11px] font-bold uppercase tracking-[0.25em] text-brand-orange">
+                Twelve industries, zero copy-paste setups
+              </p>
+              <h2 className="mt-2.5 text-3xl font-extrabold leading-tight tracking-tight text-brand-navy md:text-4xl">
                 Who we print for
               </h2>
               <p className="mt-5 max-w-sm text-base leading-relaxed text-brand-navy/70">
-                Different industries demand specific standards, materials, and turnarounds. We have
-                managed corporate portfolios long enough to build production setups suited for every
-                sector framework.
+                A hospital's compliance signage and an event's 48-hour backdrop are not the same
+                job wearing different colours. We've run corporate accounts long enough to build a
+                dedicated setup per sector — not one generic process stretched thin across twelve.
               </p>
             </div>
           </Reveal>
@@ -1359,10 +1413,21 @@ function Sectors() {
                       aria-hidden="true"
                       className="absolute inset-x-0 bottom-0 h-0.75 origin-left scale-x-0 bg-brand-orange transition-transform duration-500 group-hover:scale-x-100"
                     />
-                    <IconComponent className="h-5 w-5 text-brand-orange transition-transform duration-300 group-hover:scale-110" />
-                    <span className="text-sm font-bold text-brand-navy transition-colors duration-300 group-hover:text-white">
-                      {s.name}
+                    <span
+                      aria-hidden="true"
+                      className="absolute -right-4 -top-4 text-6xl font-extrabold text-brand-navy/4 transition-colors duration-300 group-hover:text-white/[0.05]"
+                    >
+                      {String(i + 1).padStart(2, "0")}
                     </span>
+                    <IconComponent className="h-5 w-5 text-brand-orange transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:scale-110" />
+                    <div>
+                      <span className="block text-sm font-bold text-brand-navy transition-colors duration-300 group-hover:text-white">
+                        {s.name}
+                      </span>
+                      <span className="mt-1 block text-[11px] leading-snug text-brand-navy/45 transition-colors duration-300 group-hover:text-white/60">
+                        {s.note}
+                      </span>
+                    </div>
                   </Link>
                 </Reveal>
               );
@@ -1373,7 +1438,6 @@ function Sectors() {
     </section>
   );
 }
-
 /* ================================================================
    Reviews
    ================================================================ */
@@ -1444,8 +1508,164 @@ function GoogleIcon({ className }: { className?: string }) {
   );
 }
 
+/* ---- New: review submission form ---- */
+
+function StarPicker({ value, onChange }: { value: number; onChange: (n: number) => void }) {
+  return (
+    <div className="flex gap-1">
+      {Array.from({ length: 5 }).map((_, i) => {
+        const n = i + 1;
+        return (
+          <button
+            key={n}
+            type="button"
+            aria-label={`${n} star${n > 1 ? "s" : ""}`}
+            onClick={() => onChange(n)}
+            className="p-0.5"
+          >
+            <Star
+              className={`h-5 w-5 transition-colors ${
+                n <= value ? "fill-brand-orange text-brand-orange" : "fill-none text-brand-navy/25"
+              }`}
+            />
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function WriteReview({ onSubmit }: { onSubmit: (r: Review & { rating: number }) => void }) {
+  const [name, setName] = useState("");
+  const [body, setBody] = useState("");
+  const [rating, setRating] = useState(5);
+  const [submitted, setSubmitted] = useState(false);
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!name.trim() || !body.trim()) return;
+    onSubmit({ name: name.trim(), meta: "New review", body: body.trim(), rating });
+    setName("");
+    setBody("");
+    setRating(5);
+    setSubmitted(true);
+    setTimeout(() => setSubmitted(false), 3000);
+  }
+
+  return (
+    <form
+      onSubmit={handleSubmit}
+      className="border border-brand-navy/12 bg-white p-5 sm:p-6"
+    >
+      <h3 className="text-lg font-extrabold text-brand-navy">Write a review</h3>
+      <p className="mt-1 text-sm text-brand-navy/55">
+        Share your experience working with us.
+      </p>
+
+      <div className="mt-4 grid gap-4">
+        <div>
+          <label htmlFor="reviewer-name" className="mb-1 block text-xs font-bold uppercase tracking-wide text-brand-navy/60">
+            Your name
+          </label>
+          <input
+            id="reviewer-name"
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Jane Doe"
+            className="w-full border border-brand-navy/20 px-3 py-2 text-sm text-brand-navy outline-none focus:border-brand-navy"
+            required
+          />
+        </div>
+
+        <div>
+          <span className="mb-1 block text-xs font-bold uppercase tracking-wide text-brand-navy/60">
+            Rating
+          </span>
+          <StarPicker value={rating} onChange={setRating} />
+        </div>
+
+        <div>
+          <label htmlFor="reviewer-body" className="mb-1 block text-xs font-bold uppercase tracking-wide text-brand-navy/60">
+            Your review
+          </label>
+          <textarea
+            id="reviewer-body"
+            value={body}
+            onChange={(e) => setBody(e.target.value)}
+            placeholder="Tell us what you thought..."
+            rows={4}
+            className="w-full resize-none border border-brand-navy/20 px-3 py-2 text-sm text-brand-navy outline-none focus:border-brand-navy"
+            required
+          />
+        </div>
+
+        <button
+          type="submit"
+          className="inline-flex items-center justify-center gap-1.5 bg-brand-navy px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-brand-orange"
+        >
+          Submit review
+        </button>
+
+        {submitted && (
+          <p className="text-sm font-medium text-brand-orange">Thanks — your review was added below!</p>
+        )}
+      </div>
+    </form>
+  );
+}
+
+function SubmittedReviews({ reviews }: { reviews: (Review & { rating: number })[] }) {
+  if (reviews.length === 0) return null;
+
+  return (
+    <div>
+      <h3 className="text-lg font-extrabold text-brand-navy">Recently submitted</h3>
+      <div className="mt-4 grid gap-4 sm:grid-cols-2">
+        {reviews.map((r, i) => {
+          const initial = r.name.charAt(0);
+          return (
+            <figure
+              key={`${r.name}-${i}`}
+              className="border border-brand-navy/12 bg-white p-5"
+            >
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 items-center justify-center bg-brand-navy text-sm font-bold uppercase text-white">
+                  {initial}
+                </div>
+                <div>
+                  <figcaption className="text-sm font-bold text-brand-navy">{r.name}</figcaption>
+                  <div className="text-[11px] text-brand-navy/50">{r.meta}</div>
+                </div>
+              </div>
+
+              <div className="mt-3 flex gap-0.5 text-brand-orange">
+                {Array.from({ length: 5 }).map((_, s) => (
+                  <Star
+                    key={s}
+                    className={`h-3.5 w-3.5 ${s < r.rating ? "fill-current" : "fill-none text-brand-navy/25"}`}
+                  />
+                ))}
+              </div>
+
+              <blockquote className="mt-3 text-sm leading-relaxed text-brand-navy/75">
+                {r.body}
+              </blockquote>
+            </figure>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/* ---- Main section ---- */
+
 function Reviews() {
-  const loop = [...REVIEWS, ...REVIEWS];
+  const [userReviews, setUserReviews] = useState<(Review & { rating: number })[]>([]);
+
+  // New submissions ride along at the front of the marquee too
+  const loop = [...userReviews, ...REVIEWS, ...userReviews, ...REVIEWS];
 
   return (
     <section className="relative overflow-hidden border-b border-brand-navy bg-brand-surface">
@@ -1500,7 +1720,7 @@ function Reviews() {
             return (
               <figure
                 key={`${r.name}-${i}`}
-                aria-hidden={i >= REVIEWS.length}
+                aria-hidden={i >= REVIEWS.length + userReviews.length}
                 className="relative w-68 shrink-0 border border-brand-navy/12 bg-white p-5 transition-all duration-300 hover:-translate-y-1 hover:border-brand-navy hover:shadow-[8px_8px_0_0_var(--color-brand-navy)] sm:w-80 sm:p-6"
               >
                 <div className="absolute right-5 top-5 hidden h-4 w-4 opacity-30 sm:block">
@@ -1531,13 +1751,19 @@ function Reviews() {
           })}
         </div>
       </div>
+
+      {/* New: write + view submitted reviews */}
+      <div className="container-page relative px-5 pb-14 sm:px-6 sm:pb-16 md:pb-24">
+        <div className="grid gap-8 lg:grid-cols-2 lg:items-start">
+          <WriteReview onSubmit={(r) => setUserReviews((prev) => [r, ...prev])} />
+          <SubmittedReviews reviews={userReviews} />
+        </div>
+      </div>
     </section>
   );
 }
 
-/* ================================================================
-   Close
-   ================================================================ */
+
 
 function Close() {
   return (
@@ -1548,13 +1774,13 @@ function Close() {
       <div className="container-page relative px-5 py-14 sm:px-6 sm:py-20 md:py-28">
         <div className="grid gap-10 lg:grid-cols-2 lg:items-end">
           <Reveal>
-            <div>
+            <div className="text-center lg:text-left">
               <h2 className="text-4xl font-extrabold leading-[1.05] tracking-tight md:text-5xl">
                 Send the brief.
                 <br />
                 <span className="text-brand-orange">Get a real number.</span>
               </h2>
-              <p className="mt-6 max-w-md text-lg leading-relaxed text-white/70">
+              <p className="mx-auto mt-6 max-w-md text-lg leading-relaxed text-white/70 lg:mx-0">
                 No discovery call. No qualification form. Tell us what you need made and we come
                 back with a price and a date we intend to keep.
               </p>
@@ -1562,7 +1788,7 @@ function Close() {
           </Reveal>
 
           <Reveal delay={120}>
-            <div className="flex flex-wrap gap-4 lg:justify-end">
+            <div className="flex flex-wrap justify-center gap-4 lg:justify-end">
               <Link
                 to="/request-quote"
                 className="pp-sheen group inline-flex items-center gap-2 bg-brand-orange px-8 py-4 text-sm font-bold uppercase tracking-wide text-white transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[6px_6px_0_0_rgba(255,255,255,0.35)]"
