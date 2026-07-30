@@ -988,7 +988,7 @@ function FeaturedProducts() {
    ================================================================ */
 
 function Bestsellers() {
-  const { data } = useNewestProducts(12);
+  const { data } = useNewestProducts(25);
   const source = data ?? [];
   const tagged = source.filter((p) => p.tag);
   const picks = tagged.length > 0 ? tagged : source;
