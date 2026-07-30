@@ -1,5 +1,5 @@
-import { useState, useMemo } from "react";
-import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
+﻿import { useState, useMemo } from "react";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   UploadCloud, FileText, Image as ImageIcon, Download, Loader2, Search,
@@ -8,19 +8,15 @@ import {
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth";
 
-export const Route = createFileRoute("/dashboard/artwork")({
+export const Route = createFileRoute("/dashboard/artwork/")({
   head: () => ({
     meta: [
       { title: "Saved Artwork | Client Dashboard" },
       { name: "robots", content: "noindex" },
     ],
   }),
-  component: ArtworkLayout,
+  component: ArtworkPage,
 });
-
-function ArtworkLayout() {
-  return <Outlet />;
-}
 
 type Artwork = {
   id: string;
@@ -51,8 +47,6 @@ async function fetchArtwork(userId: string): Promise<Artwork[]> {
   if (error) throw error;
   const rows = (data ?? []) as Omit<Artwork, "orders">[];
 
-  // Look the order numbers up separately rather than relying on an
-  // embedded join, which needs a foreign key PostgREST can resolve.
   const orderIds = Array.from(
     new Set(rows.map((r) => r.order_id).filter((id): id is string => Boolean(id)))
   );
@@ -109,7 +103,6 @@ function ArtworkPage() {
 
   const del = useMutation({
     mutationFn: async (a: Artwork) => {
-      // Remove the stored object first, then the record.
       const { error: storageError } = await supabase.storage.from(a.bucket).remove([a.path]);
       if (storageError) throw storageError;
 
@@ -241,7 +234,6 @@ function ArtworkPage() {
               key={a.id}
               className="group flex flex-col overflow-hidden rounded-xl border border-brand-navy/12 bg-white transition-all hover:border-brand-navy/30 hover:shadow-[0_10px_28px_-14px_rgba(30,41,89,0.25)]"
             >
-              {/* Thumbnail */}
               <button
                 type="button"
                 onClick={() => setPreview(a)}
@@ -263,30 +255,25 @@ function ArtworkPage() {
                   </span>
                 </span>
               </button>
-
               <div className="flex flex-1 flex-col p-4">
                 <h3 className="truncate text-sm font-bold text-brand-navy" title={a.filename}>
                   {a.filename}
                 </h3>
-
                 <div className="mt-1 flex flex-wrap items-center gap-x-2 text-[11px] text-brand-navy/45">
                   <span>{when(a.created_at)}</span>
                   {a.size_bytes ? <span>· {prettySize(a.size_bytes)}</span> : null}
                 </div>
-
                 {a.orders && (
                   <div className="mt-2 inline-flex w-fit items-center gap-1.5 rounded border border-brand-navy/15 bg-brand-surface px-2 py-1 text-[10px] font-bold text-brand-navy/70">
                     <Package className="h-3 w-3" />
                     {a.orders.order_number}
                   </div>
                 )}
-
                 {(a.notes ?? a.alt_text) && (
                   <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-brand-navy/55">
                     {a.notes ?? a.alt_text}
                   </p>
                 )}
-
                 <div className="mt-auto flex items-center gap-1.5 border-t border-brand-navy/8 pt-3">
                   <a
                     href={a.url}
@@ -317,7 +304,6 @@ function ArtworkPage() {
         </div>
       )}
 
-      {/* Preview */}
       {preview && (
         <div
           className="fixed inset-0 z-50 grid place-items-center bg-brand-navy/60 p-4 backdrop-blur-sm"
@@ -352,7 +338,6 @@ function ArtworkPage() {
                 </button>
               </div>
             </div>
-
             <div className="grid flex-1 place-items-center overflow-auto bg-brand-surface p-4">
               {isPreviewable(preview) ? (
                 <img
@@ -383,7 +368,6 @@ function ArtworkPage() {
                 </div>
               )}
             </div>
-
             {(preview.notes ?? preview.alt_text) && (
               <div className="shrink-0 border-t border-brand-navy/10 px-5 py-3">
                 <p className="text-xs leading-relaxed text-brand-navy/60">
@@ -395,7 +379,6 @@ function ArtworkPage() {
         </div>
       )}
 
-      {/* Delete confirmation */}
       {confirmDelete && (
         <div
           className="fixed inset-0 z-50 grid place-items-center bg-brand-navy/50 p-4 backdrop-blur-sm"
@@ -417,7 +400,6 @@ function ArtworkPage() {
                 </p>
               </div>
             </div>
-
             <div className="mt-6 flex justify-end gap-3">
               <button
                 type="button"

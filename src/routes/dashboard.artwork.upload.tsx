@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -11,7 +11,7 @@ import { useAuth } from "@/lib/auth";
 export const Route = createFileRoute("/dashboard/artwork/upload")({
   head: () => ({
     meta: [
-      { title: "Upload Artwork | Client Dashboard" },
+      { title: "Saved Artwork | Client Dashboard" },
       { name: "robots", content: "noindex" },
     ],
   }),
@@ -24,20 +24,15 @@ const MAX_BYTES = 25 * 1024 * 1024;
 type OrderOption = { id: string; order_number: string; status: string };
 
 /** The media.kind column is an enum: image, video, logo, pdf, artwork, other.
- *  Sending anything outside that list makes the insert fail, which is why
- *  PDF and AI uploads were vanishing while PNGs worked. */
+ *  Sending anything outside that list makes the insert fail. */
 type MediaKind = "image" | "video" | "logo" | "pdf" | "artwork" | "other";
 
 function mediaKindFor(file: File): MediaKind {
   const type = (file.type || "").toLowerCase();
   const name = file.name.toLowerCase();
-
   if (type.startsWith("image/")) return "image";
   if (type === "application/pdf" || name.endsWith(".pdf")) return "pdf";
-
-  // Design source files are artwork rather than a generic document.
   if (/\.(ai|eps|psd|indd|sketch|svg)$/.test(name)) return "artwork";
-
   return "other";
 }
 
@@ -54,63 +49,78 @@ async function fetchMyOrders(userId: string): Promise<OrderOption[]> {
     .eq("user_id", userId)
     .order("created_at", { ascending: false })
     .limit(50);
-  if (error) return [];
+  if (error) {
+    console.error("[upload] fetchMyOrders failed:", error);
+    return [];
+  }
   return (data ?? []) as OrderOption[];
 }
 
-async function uploadArtworkFiles({
-  files, userId, notes, orderId,
+/** Each stage is wrapped separately so a failure tells you exactly which
+ *  step broke: auth, storage upload, public URL, or the DB insert. */
+async function uploadOneFile({
+  file, userId, notes, orderId,
 }: {
-  files: File[];
+  file: File;
   userId: string;
   notes: string;
   orderId: string;
 }) {
-  for (const file of files) {
-    if (file.size > MAX_BYTES) {
-      throw new Error(`${file.name} is larger than 25MB. Please compress it and try again.`);
-    }
+  if (file.size > MAX_BYTES) {
+    throw new Error(`${file.name} is larger than 25MB. Please compress it and try again.`);
+  }
 
-    const cleanFileName = file.name.replace(/[^a-zA-Z0-9.]/g, "_");
-    const path = `${userId}/${Date.now()}-${cleanFileName}`;
+  const cleanFileName = file.name.replace(/[^a-zA-Z0-9.]/g, "_");
+  const path = `${userId}/${Date.now()}-${cleanFileName}`;
 
-    const { error: uploadError } = await supabase.storage
-      .from(BUCKET)
-      .upload(path, file, { upsert: false, cacheControl: "3600" });
+  // --- Stage 1: storage upload ---
+  const { error: uploadError } = await supabase.storage
+    .from(BUCKET)
+    .upload(path, file, { upsert: false, cacheControl: "3600" });
 
-    if (uploadError) {
-      throw new Error(`Could not upload ${file.name}. ${uploadError.message}`);
-    }
+  if (uploadError) {
+    console.error("[upload] storage upload failed:", uploadError);
+    // Most common real-world cause here: no INSERT policy on
+    // storage.objects for the "artworks" bucket for authenticated users.
+    throw new Error(
+      `Could not upload ${file.name} to storage. ${uploadError.message}`
+    );
+  }
 
-    const { data: publicUrlData } = supabase.storage.from(BUCKET).getPublicUrl(path);
-    if (!publicUrlData?.publicUrl) {
-      throw new Error("Could not resolve the file URL after upload.");
-    }
+  // --- Stage 2: resolve a usable URL ---
+  const { data: publicUrlData } = supabase.storage.from(BUCKET).getPublicUrl(path);
+  if (!publicUrlData?.publicUrl) {
+    await supabase.storage.from(BUCKET).remove([path]);
+    throw new Error(`Uploaded ${file.name} but could not resolve its URL.`);
+  }
 
-    // order_id is a real relation now, so staff see this against the job.
-    const { error: insertError } = await supabase.from("media").insert({
-      bucket: BUCKET,
-      path,
-      url: publicUrlData.publicUrl,
-      filename: file.name,
-      kind: mediaKindFor(file),
-      mime_type: file.type || "application/octet-stream",
-      size_bytes: file.size,
-      folder: "client-artwork",
-      notes: notes || null,
-      alt_text: notes || null,
-      order_id: orderId || null,
-      uploaded_by: userId,
-    });
+  // --- Stage 3: DB insert ---
+  const { error: insertError } = await supabase.from("media").insert({
+    bucket: BUCKET,
+    path,
+    url: publicUrlData.publicUrl,
+    filename: file.name,
+    kind: mediaKindFor(file),
+    mime_type: file.type || "application/octet-stream",
+    size_bytes: file.size,
+    folder: "client-artwork",
+    notes: notes || null,
+    alt_text: notes || null,
+    order_id: orderId || null,
+    uploaded_by: userId,
+  });
 
-    if (insertError) {
-      // Leaving the stored object behind would orphan it in the bucket.
-      await supabase.storage.from(BUCKET).remove([path]);
-      throw new Error(
-        `Could not save ${file.name}. ${insertError.message}` +
-          (insertError.details ? ` (${insertError.details})` : "")
-      );
-    }
+  if (insertError) {
+    console.error("[upload] media insert failed:", insertError);
+    // File uploaded but the row failed — most likely an RLS policy
+    // blocking INSERT on media for the authenticated role, or an enum
+    // mismatch on "kind". Clean up the orphaned object either way.
+    await supabase.storage.from(BUCKET).remove([path]);
+    throw new Error(
+      `Uploaded ${file.name} but could not save its record. ${insertError.message}` +
+        (insertError.details ? ` (${insertError.details})` : "") +
+        (insertError.hint ? ` Hint: ${insertError.hint}` : "")
+    );
   }
 }
 
@@ -120,6 +130,7 @@ function UploadArtworkPage() {
   const navigate = useNavigate();
   const userId = session?.user?.id;
 
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [files, setFiles] = useState<File[]>([]);
   const [dragOver, setDragOver] = useState(false);
   const [orderId, setOrderId] = useState("");
@@ -132,25 +143,53 @@ function UploadArtworkPage() {
   });
 
   const upload = useMutation({
-    mutationFn: () => {
-      if (!userId) throw new Error("Please sign in again to upload artwork.");
-      if (files.length === 0) throw new Error("Choose at least one file.");
-      return uploadArtworkFiles({ files, userId, notes, orderId });
+    mutationFn: async () => {
+      // Re-check the session live, rather than trusting the value that
+      // was true when the component first mounted. An expired/rotated
+      // token here is a common reason for a mutation to fail instantly
+      // and silently before any network call is even made.
+      const { data: liveSession, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !liveSession?.session?.user?.id) {
+        throw new Error("Your session has expired. Please sign in again and retry the upload.");
+      }
+      const liveUserId = liveSession.session.user.id;
+
+      if (files.length === 0) {
+        throw new Error("Choose at least one file first.");
+      }
+
+      for (const file of files) {
+        await uploadOneFile({ file, userId: liveUserId, notes, orderId });
+      }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["dashboard-artwork"] });
       qc.invalidateQueries({ queryKey: ["client-dashboard-metrics"] });
     },
+    onError: (e) => {
+      console.error("[upload] mutation failed:", e);
+    },
   });
 
   const addFiles = (list: FileList | null) => {
-    if (!list) return;
+    if (!list || list.length === 0) return;
     setFiles((prev) => [...prev, ...Array.from(list)]);
+    // Reset the input value so selecting the exact same file again
+    // still fires onChange (browsers otherwise no-op on identical value).
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const chosenOrder = (orders.data ?? []).find((o) => o.id === orderId);
   const totalSize = files.reduce((s, f) => s + f.size, 0);
   const oversize = files.some((f) => f.size > MAX_BYTES);
+
+  const disabledReason = !userId
+    ? "Sign in to upload artwork."
+    : files.length === 0
+    ? "Choose at least one file to enable this."
+    : oversize
+    ? "Remove or compress the oversized file(s) first."
+    : null;
 
   if (upload.isSuccess) {
     return (
@@ -230,6 +269,7 @@ function UploadArtworkPage() {
             <label className="cursor-pointer text-brand-orange hover:underline">
               browse
               <input
+                ref={fileInputRef}
                 type="file"
                 multiple
                 accept=".ai,.eps,.pdf,.png,.jpg,.jpeg,.svg,.psd"
@@ -292,7 +332,7 @@ function UploadArtworkPage() {
           </div>
         )}
 
-        {/* Order picker, real orders rather than typed text */}
+        {/* Order picker */}
         <div>
           <label htmlFor="art-order" className="mb-1.5 block text-sm font-semibold text-brand-navy">
             Which order is this for
@@ -353,21 +393,28 @@ function UploadArtworkPage() {
           </div>
         )}
 
-        <button
-          type="submit"
-          disabled={files.length === 0 || oversize || upload.isPending}
-          className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-brand-navy px-4 py-3.5 text-sm font-bold text-white transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          {upload.isPending ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" /> Uploading
-            </>
-          ) : (
-            <>
-              <UploadCloud className="h-4 w-4" /> Send artwork
-            </>
+        <div>
+          <button
+            type="submit"
+            disabled={!!disabledReason || upload.isPending}
+            className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-brand-navy px-4 py-3.5 text-sm font-bold text-white transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {upload.isPending ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" /> Uploading
+              </>
+            ) : (
+              <>
+                <UploadCloud className="h-4 w-4" /> Send artwork
+              </>
+            )}
+          </button>
+          {disabledReason && !upload.isPending && (
+            <p className="mt-2 text-center text-[11px] font-semibold text-brand-navy/50">
+              {disabledReason}
+            </p>
           )}
-        </button>
+        </div>
 
         <p className="text-center text-[11px] text-brand-navy/45">
           Nothing is printed until you approve a proof.

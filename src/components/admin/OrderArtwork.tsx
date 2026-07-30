@@ -76,6 +76,25 @@ export async function fetchOrderArtwork(orderId: string): Promise<OrderArtworkFi
   return [...fromCheckout, ...fromPortal];
 }
 
+async function downloadArtworkFile(url: string, filename: string) {
+  try {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error("Unable to download file");
+    const blob = await response.blob();
+    const objectUrl = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = objectUrl;
+    anchor.download = filename;
+    anchor.style.display = "none";
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(objectUrl);
+  } catch {
+    window.open(url, "_blank", "noopener,noreferrer");
+  }
+}
+
 export function useOrderArtwork(orderId: string | null | undefined) {
   return useQuery({
     queryKey: ["order-artwork", orderId],
@@ -188,13 +207,13 @@ export function OrderArtworkPanel({
                   </p>
                 )}
 
-                <a
-                  href={f.url}
-                  download={f.filename}
+                <button
+                  type="button"
+                  onClick={() => downloadArtworkFile(f.url, f.filename)}
                   className="mt-auto inline-flex items-center justify-center gap-1.5 border-2 border-brand-navy/15 px-2 py-1.5 text-[10px] font-black uppercase tracking-wide text-brand-navy transition-colors hover:border-brand-navy"
                 >
                   <Download className="h-3 w-3" /> Download
-                </a>
+                </button>
               </div>
             </article>
           )
@@ -220,13 +239,13 @@ export function OrderArtworkPanel({
                 )}
               </div>
               <div className="flex shrink-0 items-center gap-2">
-                <a
-                  href={preview.url}
-                  download={preview.filename}
+                <button
+                  type="button"
+                  onClick={() => downloadArtworkFile(preview.url, preview.filename)}
                   className="inline-flex items-center gap-1.5 bg-brand-navy px-3 py-1.5 text-[11px] font-black uppercase tracking-wide text-white transition hover:brightness-110"
                 >
                   <Download className="h-3.5 w-3.5" /> Download
-                </a>
+                </button>
                 <button
                   type="button"
                   onClick={() => setPreview(null)}

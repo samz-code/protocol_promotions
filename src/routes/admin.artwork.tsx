@@ -77,6 +77,25 @@ function fileExt(filename: string) {
   return filename.split(".").pop()?.toUpperCase() ?? "FILE";
 }
 
+async function downloadFile(url: string, filename: string) {
+  try {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error("Unable to download file");
+    const blob = await response.blob();
+    const objectUrl = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = objectUrl;
+    anchor.download = filename;
+    anchor.style.display = "none";
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(objectUrl);
+  } catch {
+    window.open(url, "_blank", "noopener,noreferrer");
+  }
+}
+
 function StatusBadge({ status }: { status: Status }) {
   return (
     <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${STATUS_STYLES[status]}`}>
@@ -248,16 +267,14 @@ function AdminArtworkPage() {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-1.5">
-                      <a
-                        href={row.url}
-                        download={row.filename}
-                        target="_blank"
-                        rel="noreferrer"
+                      <button
+                        type="button"
+                        onClick={() => downloadFile(row.url, row.filename)}
                         className="inline-flex items-center justify-center rounded-md border border-border p-1.5 text-brand-navy hover:bg-muted"
                         title="Download"
                       >
                         <Download className="h-3.5 w-3.5" />
-                      </a>
+                      </button>
                       {row.status !== "approved" && (
                         <button
                           onClick={() => reviewMutation.mutate({ id: row.id, status: "approved" })}

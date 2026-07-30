@@ -61,6 +61,7 @@ import { Route as AdminCmsRouteImport } from './routes/admin.cms'
 import { Route as AdminCategoriesRouteImport } from './routes/admin.categories'
 import { Route as AdminArtworkRouteImport } from './routes/admin.artwork'
 import { Route as AdminAnalyticsRouteImport } from './routes/admin.analytics'
+import { Route as DashboardArtworkIndexRouteImport } from './routes/dashboard.artwork.index'
 import { Route as DashboardArtworkUploadRouteImport } from './routes/dashboard.artwork.upload'
 
 const TrackOrderRoute = TrackOrderRouteImport.update({
@@ -324,6 +325,11 @@ const AdminAnalyticsRoute = AdminAnalyticsRouteImport.update({
   path: '/analytics',
   getParentRoute: () => AdminRoute,
 } as any)
+const DashboardArtworkIndexRoute = DashboardArtworkIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => DashboardArtworkRoute,
+} as any)
 const DashboardArtworkUploadRoute = DashboardArtworkUploadRouteImport.update({
   id: '/upload',
   path: '/upload',
@@ -384,6 +390,7 @@ export interface FileRoutesByFullPath {
   '/admin/': typeof AdminIndexRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/dashboard/artwork/upload': typeof DashboardArtworkUploadRoute
+  '/dashboard/artwork/': typeof DashboardArtworkIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -423,7 +430,6 @@ export interface FileRoutesByTo {
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/support': typeof AdminSupportRoute
   '/dashboard/addresses': typeof DashboardAddressesRoute
-  '/dashboard/artwork': typeof DashboardArtworkRouteWithChildren
   '/dashboard/invoices': typeof DashboardInvoicesRoute
   '/dashboard/notifications': typeof DashboardNotificationsRoute
   '/dashboard/orders': typeof DashboardOrdersRoute
@@ -437,6 +443,7 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminIndexRoute
   '/dashboard': typeof DashboardIndexRoute
   '/dashboard/artwork/upload': typeof DashboardArtworkUploadRoute
+  '/dashboard/artwork': typeof DashboardArtworkIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -493,6 +500,7 @@ export interface FileRoutesById {
   '/admin/': typeof AdminIndexRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/dashboard/artwork/upload': typeof DashboardArtworkUploadRoute
+  '/dashboard/artwork/': typeof DashboardArtworkIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -550,6 +558,7 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/dashboard/'
     | '/dashboard/artwork/upload'
+    | '/dashboard/artwork/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -589,7 +598,6 @@ export interface FileRouteTypes {
     | '/admin/settings'
     | '/admin/support'
     | '/dashboard/addresses'
-    | '/dashboard/artwork'
     | '/dashboard/invoices'
     | '/dashboard/notifications'
     | '/dashboard/orders'
@@ -603,6 +611,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/dashboard'
     | '/dashboard/artwork/upload'
+    | '/dashboard/artwork'
   id:
     | '__root__'
     | '/'
@@ -658,6 +667,7 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/dashboard/'
     | '/dashboard/artwork/upload'
+    | '/dashboard/artwork/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -1050,6 +1060,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAnalyticsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/dashboard/artwork/': {
+      id: '/dashboard/artwork/'
+      path: '/'
+      fullPath: '/dashboard/artwork/'
+      preLoaderRoute: typeof DashboardArtworkIndexRouteImport
+      parentRoute: typeof DashboardArtworkRoute
+    }
     '/dashboard/artwork/upload': {
       id: '/dashboard/artwork/upload'
       path: '/upload'
@@ -1108,10 +1125,12 @@ const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
 interface DashboardArtworkRouteChildren {
   DashboardArtworkUploadRoute: typeof DashboardArtworkUploadRoute
+  DashboardArtworkIndexRoute: typeof DashboardArtworkIndexRoute
 }
 
 const DashboardArtworkRouteChildren: DashboardArtworkRouteChildren = {
   DashboardArtworkUploadRoute: DashboardArtworkUploadRoute,
+  DashboardArtworkIndexRoute: DashboardArtworkIndexRoute,
 }
 
 const DashboardArtworkRouteWithChildren =

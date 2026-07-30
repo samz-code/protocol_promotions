@@ -296,7 +296,7 @@ function ShopPage() {
   return (
     <SiteLayout>
       <PageHeader
-        eyebrow="Bespoke Branding Catalog"
+        eyebrow="Our Branding Catalog"
         title={activeCategory ? activeCategory.name : "All Promotional Products"}
         description="Configure your chosen items with dynamic vector layouts, precise size adjustments, brand colors, and your choice of elite printing methods. Volume discounts apply instantly at checkout."
       />
