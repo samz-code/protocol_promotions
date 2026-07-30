@@ -78,11 +78,7 @@ function Index() {
 const LOGOS = ["monawanka.png", "protocol.png", "kazilab.png", "safaricom.png", "Samsung.png"];
 
 // Hero stat strip. Static, brand-level figures shown under the CTAs.
-const HERO_STATS: { value: string; label: string }[] = [
-  { value: "12+", label: "Years running" },
-  { value: "500+", label: "Brands served" },
-  { value: "48h", label: "Typical turnaround" },
-];
+const HERO_STATS: { value: string; label: string }[] = [];
 
 const KSH = new Intl.NumberFormat("en-KE", {
   style: "currency",
