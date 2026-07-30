@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { SiteLayout } from "@/components/site/SiteLayout";
 import { Preloader, shouldSplash } from "@/components/site/Preloader";
+import { useCmsBlocks, getCmsString } from "@/lib/cms";
 import {
   ArrowRight,
   Star,
@@ -465,6 +466,32 @@ function LogoMarquee() {
    ================================================================ */
 
 function Statement() {
+  const { data: blocks } = useCmsBlocks([
+    "home.hero_badge",
+    "home.hero_title",
+    "home.hero_description",
+    "home.hero_cta_primary",
+    "home.hero_cta_secondary",
+    "home.section_catalogue_eyebrow",
+    "home.section_catalogue_title",
+  ]);
+
+  const heroBadge = getCmsString(blocks, "home.hero_badge", "Nairobi, Kenya");
+  const heroTitle = getCmsString(
+    blocks,
+    "home.hero_title",
+    "Premium printing & merchandise, made real."
+  );
+  const heroDescription = getCmsString(
+    blocks,
+    "home.hero_description",
+    "Get high-quality branding, custom apparel, and corporate merchandise delivered across East Africa. We run production on our own advanced equipment to guarantee sharp finishes, clear timelines, and flawless execution."
+  );
+  const heroPrimary = getCmsString(blocks, "home.hero_cta_primary", "Browse products");
+  const heroSecondary = getCmsString(blocks, "home.hero_cta_secondary", "Request a quote");
+  const catalogueEyebrow = getCmsString(blocks, "home.section_catalogue_eyebrow", "In the catalogue");
+  const catalogueTitle = getCmsString(blocks, "home.section_catalogue_title", "Products we have");
+
   return (
     <section className="relative overflow-hidden border-b border-brand-navy bg-white">
       {/* Animated dotted field, masked so it fades out toward the edges */}
@@ -475,33 +502,24 @@ function Statement() {
           <Reveal>
             <p className="inline-flex items-center gap-2 border border-brand-navy/15 bg-white/70 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.25em] text-brand-orange backdrop-blur-sm">
               <span className="pp-ticker-dot inline-block h-1.5 w-1.5 bg-brand-orange" />
-              Nairobi, Kenya
+              {heroBadge}
             </p>
           </Reveal>
 
           <Reveal delay={90}>
             <h1 className="mt-5 text-[2rem] font-extrabold leading-[1.1] tracking-tight text-brand-navy sm:mt-6 sm:text-5xl md:text-6xl lg:text-[4.25rem]">
-              Premium printing &amp;
-              <br />
-              merchandise,
-              <br />
-              <span className="relative inline-block text-brand-orange">
-                made real.
-                <span
-                  aria-hidden="true"
-                  className="absolute -bottom-1 left-0 h-0.75 w-full origin-left bg-brand-orange/30"
-                />
-              </span>
+              {heroTitle.split("\n").map((line, index) => (
+                <span key={index}>
+                  {line}
+                  {index < heroTitle.split("\n").length - 1 ? <br /> : null}
+                </span>
+              ))}
             </h1>
           </Reveal>
 
           <Reveal delay={170}>
             <div className="mt-6 max-w-xl space-y-4 text-base leading-relaxed text-brand-navy/75 sm:mt-9 sm:text-lg">
-              <p>
-                Get high-quality branding, custom apparel, and corporate merchandise delivered
-                across East Africa. We run production on our own advanced equipment to guarantee
-                sharp finishes, clear timelines, and flawless execution.
-              </p>
+              <p>{heroDescription}</p>
             </div>
           </Reveal>
 
@@ -511,14 +529,14 @@ function Statement() {
                 to="/shop"
                 className="pp-sheen group inline-flex w-full items-center justify-center gap-2 bg-brand-navy px-8 py-4 text-sm font-bold uppercase tracking-wide text-white transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[6px_6px_0_0_var(--color-brand-orange)] sm:w-auto"
               >
-                Browse products
+                {heroPrimary}
                 <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
               </Link>
               <Link
                 to="/request-quote"
                 className="group inline-flex w-full items-center justify-center gap-2 border border-brand-navy px-8 py-4 text-sm font-bold uppercase tracking-wide text-brand-navy transition-all duration-300 hover:-translate-y-0.5 hover:border-brand-orange hover:text-brand-orange sm:w-auto"
               >
-                Request a quote
+                {heroSecondary}
                 <ArrowRight className="h-4 w-4 opacity-0 transition-all duration-300 group-hover:translate-x-1 group-hover:opacity-100" />
               </Link>
             </div>
@@ -689,7 +707,14 @@ function HeroCarousel() {
 
 function Showcase() {
   const { data, isLoading, isError } = useNewestProducts(24);
+  const { data: blocks } = useCmsBlocks([
+    "home.section_catalogue_eyebrow",
+    "home.section_catalogue_title",
+  ]);
   const products = data ?? [];
+
+  const catalogueEyebrow = getCmsString(blocks, "home.section_catalogue_eyebrow", "In the catalogue");
+  const catalogueTitle = getCmsString(blocks, "home.section_catalogue_title", "Products we have");
 
   // Group products by their resolved category name, preserving first-seen order.
   const groups = useMemo(() => {
@@ -712,14 +737,14 @@ function Showcase() {
       <div className="container-page relative px-5 py-14 sm:px-6 sm:py-16 md:py-24">
         <Reveal>
           <SectionHeading
-            eyebrow="In the catalogue"
-            title="Products we have"
+            eyebrow={catalogueEyebrow}
+            title={catalogueTitle}
             action={
               <Link
                 to="/shop"
                 className="group inline-flex items-center gap-1.5 text-sm font-bold text-brand-navy transition-colors hover:text-brand-orange"
               >
-                <span className="pp-underline">Full catalogue</span>
+                <span className="pp-underline">{catalogueTitle}</span>
                 <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
               </Link>
             }

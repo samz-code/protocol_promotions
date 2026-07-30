@@ -237,7 +237,7 @@ function AdminArtworkPage() {
               {filteredRows.map((row) => (
                 <tr key={row.id} className="border-b border-border last:border-0 hover:bg-muted/20">
                   <td className="px-4 py-3">
-                    <div className="flex items-center gap-2 min-w-[10rem]">
+                    <div className="flex items-center gap-2 min-w-40">
                       {row.kind === "image" ? (
                         <img src={row.url} alt={row.filename} className="h-9 w-9 rounded object-cover border border-border shrink-0" />
                       ) : (
@@ -246,7 +246,7 @@ function AdminArtworkPage() {
                         </div>
                       )}
                       <div className="min-w-0">
-                        <div className="font-semibold text-brand-navy truncate max-w-[14rem]" title={row.filename}>
+                        <div className="font-semibold text-brand-navy truncate max-w-56" title={row.filename}>
                           {row.filename}
                         </div>
                         <div className="text-[10px] text-muted-foreground font-mono">{fileExt(row.filename)}</div>

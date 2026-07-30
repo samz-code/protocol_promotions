@@ -51,7 +51,7 @@ export function AdminError({ message }: { message: string }) {
   return (
     <div className="border-2 border-brand-orange bg-brand-orange/8 p-4 flex items-start gap-2.5">
       <AlertCircle className="h-4 w-4 text-brand-orange shrink-0 mt-0.5" />
-      <p className="text-sm font-semibold text-brand-navy break-words">{message}</p>
+      <p className="text-sm font-semibold text-brand-navy wrap-break-word">{message}</p>
     </div>
   );
 }

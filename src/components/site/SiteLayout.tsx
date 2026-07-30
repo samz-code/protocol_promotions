@@ -1,6 +1,5 @@
 import { type ReactNode } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/lib/supabase";
+import { useCmsBlocks } from "@/lib/cms";
 import { TopBar } from "./TopBar";
 import { Navbar } from "./Navbar";
 import { Footer } from "./Footer";
@@ -24,40 +23,23 @@ interface GlobalLayoutSettings {
   whatsapp_float_config?: WhatsAppSettings;
 }
 
-/* ----------------------------------------------------------- fetch settings */
-
-async function fetchGlobalLayoutSettings(): Promise<GlobalLayoutSettings> {
-  const { data, error } = await supabase
-    .from("content_blocks")
-    .select("key, value")
-    .in("key", ["global_navigation_settings", "whatsapp_float_config"]);
-
-  if (error) throw error;
-
-  return (data ?? []).reduce<Record<string, any>>((acc, block) => {
-    acc[block.key] = block.value;
-    return acc;
-  }, {});
-}
-
 /* ------------------------------------------------------------- main layout */
 
 export function SiteLayout({ children }: { children: ReactNode }) {
-  const { data } = useQuery<GlobalLayoutSettings>({
-    queryKey: ["cms", "global-layout-settings"],
-    queryFn: fetchGlobalLayoutSettings,
-  });
+  const { data: blocks } = useCmsBlocks(["global_navigation_settings", "whatsapp_float_config"]);
 
-  const navSettings: NavigationSettings = data?.global_navigation_settings ?? {
-    show_top_bar: true,
-    show_navbar: true,
-  };
+  const navSettings: NavigationSettings =
+    (blocks?.find((block) => block.key === "global_navigation_settings")?.value as NavigationSettings) ?? {
+      show_top_bar: true,
+      show_navbar: true,
+    };
 
-  const whatsAppSettings: WhatsAppSettings = data?.whatsapp_float_config ?? {
-    enabled: true,
-    phone_number: "+254762446077",
-    default_message: "Hi Protocol Promotions! I would like to get a quote.",
-  };
+  const whatsAppSettings: WhatsAppSettings =
+    (blocks?.find((block) => block.key === "whatsapp_float_config")?.value as WhatsAppSettings) ?? {
+      enabled: true,
+      phone_number: "+254762446077",
+      default_message: "Hi Protocol Promotions! I would like to get a quote.",
+    };
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
