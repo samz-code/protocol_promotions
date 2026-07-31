@@ -100,7 +100,7 @@ export function Navbar() {
           className="absolute inset-x-0 top-full hidden border-t-2 border-brand-navy bg-white shadow-lg lg:block"
           onMouseEnter={() => setPanel(panel)}
         >
-          <div className="container-page py-8">
+          <div className="container-page max-h-[72vh] overflow-y-auto py-6">
             {panel === "shop" && <ShopPanel onSelect={close} />}
             {panel === "services" && <SimplePanel title="Services" items={services} basePath="/services" onSelect={close} />}
             {panel === "industries" && <SimplePanel title="Industries" items={industries} basePath="/industries" onSelect={close} />}
@@ -284,28 +284,33 @@ function RegistrationMark() {
 
 function ShopPanel({ onSelect }: { onSelect: () => void }) {
   return (
-    <div className="grid grid-cols-5 gap-8">
-      {shopMenu.map((col) => (
-        <div key={col.title}>
-          <div className="mb-3.5 flex items-center gap-2 text-[13px] font-bold text-brand-navy">
-            <RegistrationMark />
-            {col.title}
+    <div className="overflow-x-auto pb-1">
+      <div className="flex min-w-max gap-4">
+        {shopMenu.map((col) => (
+          <div
+            key={col.title}
+            className="w-62.5 shrink-0 rounded-4xl border border-brand-navy/12 bg-brand-surface/60 p-3.5 shadow-[0_10px_24px_rgba(8,28,78,0.04)] sm:w-67.5"
+          >
+            <div className="mb-3 flex items-center gap-2 text-[13px] font-bold text-brand-navy">
+              <RegistrationMark />
+              {col.title}
+            </div>
+            <ul className="space-y-1.5">
+              {col.items.map((it) => (
+                <li key={it.label}>
+                  <Link
+                    to={it.href}
+                    onClick={onSelect}
+                    className="block rounded-md px-2 py-1.5 text-[14.5px] font-medium text-brand-navy/80 transition-colors hover:bg-white hover:text-brand-orange"
+                  >
+                    {it.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
           </div>
-          <ul className="space-y-2.5">
-            {col.items.map((it) => (
-              <li key={it.label}>
-                <Link
-                  to={it.href}
-                  onClick={onSelect}
-                  className="text-[14.5px] font-medium text-brand-navy/80 transition-colors hover:text-brand-orange"
-                >
-                  {it.label}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
   );
 }

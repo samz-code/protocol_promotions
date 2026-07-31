@@ -28,8 +28,9 @@ import {
   PackageCheck,
   ClipboardList,
   Loader2,
+  ChevronUp,
+  ChevronDown,
 } from "lucide-react";
-import heroImg from "@/assets/hero.jpg";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 
@@ -45,7 +46,7 @@ function Index() {
   // Warm the product query while the splash is still up, so the hero has
   // real photography to show the moment the page is revealed rather than
   // starting its fetch from cold.
-  useNewestProducts(20);
+  useNewestProducts(48);
 
   return (
     <>
@@ -55,7 +56,6 @@ function Index() {
         <SiteLayout>
           <MotionStyles />
           <Statement />
-          <LogoMarquee />
           <Showcase />
           <FeaturedProducts />
           <Bestsellers />
@@ -64,6 +64,7 @@ function Index() {
           <Argument />
           <Sectors />
           <Reviews />
+          <LogoMarquee />
           <Close />
         </SiteLayout>
       ) : null}
@@ -465,6 +466,242 @@ function LogoMarquee() {
    Hero
    ================================================================ */
 
+/* ----------------------------------------------------------------
+   Offerings data — the left rail's content. Edit freely; the rail
+   auto-adapts to however many items you list.
+   ---------------------------------------------------------------- */
+
+const OFFERINGS = [
+  {
+    icon: Layers,
+    title: "Printing & Branding",
+    desc: "Business cards, banners and branded collateral, produced in-house.",
+  },
+  {
+    icon: Paintbrush,
+    title: "Design & Development",
+    desc: "Brand identity, layout and creative direction for every project.",
+  },
+  {
+    icon: Scissors,
+    title: "Apparel & Merchandise",
+    desc: "Embroidery, DTF and screen printing on tees, aprons and uniforms.",
+  },
+  {
+    icon: PackageCheck,
+    title: "Corporate Gifts",
+    desc: "Branded giveaways, journals and executive gift sets for events.",
+  },
+  {
+    icon: Building,
+    title: "Signage & Large Format",
+    desc: "Roll-up banners, event backdrops and outdoor signage.",
+  },
+  {
+    icon: ClipboardList,
+    title: "Packaging & Finishing",
+    desc: "Custom packaging, lamination and finishing for a polished result.",
+  },
+] as const;
+
+/* ----------------------------------------------------------------
+   Offer flip — simple rotating service card under the headline
+   ---------------------------------------------------------------- */
+
+function OfferingsFlip() {
+  const [active, setActive] = useState(0);
+
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      setActive((current) => (current + 1) % OFFERINGS.length);
+    }, 2600);
+
+    return () => window.clearInterval(id);
+  }, []);
+
+  return (
+    <div className="mt-8 max-w-xl">
+      <div className="relative h-28 overflow-hidden rounded-[28px] border border-brand-navy/12 bg-white/85 backdrop-blur-sm shadow-[0_12px_28px_rgba(8,28,78,0.06)]">
+        {OFFERINGS.map((offer, index) => {
+          const OfferIcon = offer.icon;
+          const isActive = index === active;
+
+          return (
+            <div
+              key={`${offer.title}-${index}`}
+              className={`absolute inset-0 flex items-center gap-4 p-4 transition-all duration-700 ease-out ${
+                isActive
+                  ? "translate-y-0 rotate-x-0 opacity-100"
+                  : "translate-y-4 rotate-x-90 opacity-0"
+              }`}
+              style={{ transformStyle: "preserve-3d" }}
+            >
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center border border-brand-navy/15 bg-brand-surface text-brand-navy">
+                <OfferIcon className="h-5 w-5" />
+              </span>
+              <div>
+                <h3 className="text-base font-extrabold tracking-tight text-brand-navy">
+                  {offer.title}
+                </h3>
+                <p className="mt-1 text-sm leading-snug text-brand-navy/65">{offer.desc}</p>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/* ----------------------------------------------------------------
+   Right rail — live products, clean vertical conveyor, bottom -> top
+   ---------------------------------------------------------------- */
+
+function ProductCardMini({ p }: { p: LiveProduct }) {
+  return (
+    <Link
+      to="/shop"
+      search={p.categorySlug ? { category: p.categorySlug } : undefined}
+      className="group block overflow-hidden rounded-[24px] border border-brand-navy/10 bg-white p-2.5 transition-colors hover:bg-brand-surface"
+    >
+      <div className="relative aspect-4/5 overflow-hidden rounded-[18px] bg-brand-surface">
+        <img
+          src={p.image}
+          alt={p.name}
+          loading="lazy"
+          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+        />
+        {p.tag ? (
+          <span className="absolute left-1.5 top-1.5 bg-brand-orange px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white">
+            {p.tag}
+          </span>
+        ) : null}
+      </div>
+      <div className="mt-2.5 min-w-0">
+        <p className="line-clamp-1 text-[13px] font-bold text-brand-navy">{p.name}</p>
+        <p className="mt-0.5 text-[12px] font-bold text-brand-orange">{KSH.format(p.price)}</p>
+      </div>
+    </Link>
+  );
+}
+
+function nudgeProductRail(el: HTMLDivElement | null, delta: number) {
+  if (!el) return;
+
+  const maxScroll = Math.max(el.scrollHeight - el.clientHeight, 0);
+  const next = Math.min(Math.max(el.scrollTop + delta, 0), maxScroll);
+
+  el.scrollTo({ top: next, behavior: "smooth" });
+}
+function ProductsRail() {
+  const { data, isLoading } = useNewestProducts(70);
+  const trackRef = useRef<HTMLDivElement>(null);
+  const pausedUntilRef = useRef(0);
+
+  const products = data ?? [];
+  const ready = products.length > 0;
+  const items = ready ? [...products, ...products] : [];
+
+  useEffect(() => {
+    const el = trackRef.current;
+    if (!el || !ready) return;
+
+    const half = el.scrollHeight / 2;
+    el.scrollTop = half;
+
+    const targetDuration = 160;
+    const speed = Math.max(12, half / targetDuration);
+
+    let raf = 0;
+    let last = performance.now();
+
+    const tick = (now: number) => {
+      const dt = (now - last) / 1000;
+      last = now;
+
+      if (half > 0 && now >= pausedUntilRef.current) {
+        el.scrollTop += speed * dt;
+        if (el.scrollTop >= half) {
+          el.scrollTop -= half;
+        }
+      }
+
+      raf = requestAnimationFrame(tick);
+    };
+
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [ready]);
+
+  function pauseAutoScroll(ms = 1800) {
+    pausedUntilRef.current = performance.now() + ms;
+  }
+
+  function handleNudge(delta: number) {
+    pauseAutoScroll();
+    nudgeProductRail(trackRef.current, delta);
+  }
+
+  return (
+    <div
+      className="relative overflow-hidden bg-white"
+      onWheel={(event) => {
+        event.preventDefault();
+        handleNudge(event.deltaY > 0 ? 160 : -160);
+      }}
+    >
+      <button
+        type="button"
+        onClick={() => handleNudge(-160)}
+        aria-label="Scroll products up"
+        className="absolute left-1/2 top-3 z-20 flex h-8 w-8 -translate-x-1/2 items-center justify-center rounded-full border border-brand-navy/15 bg-white text-brand-navy shadow-sm transition-all duration-200 hover:scale-110 hover:border-brand-orange hover:text-brand-orange hover:shadow-md active:scale-95"
+      >
+        <ChevronUp className="h-4 w-4" />
+      </button>
+
+      <button
+        type="button"
+        onClick={() => handleNudge(160)}
+        aria-label="Scroll products down"
+        className="absolute bottom-3 left-1/2 z-20 flex h-8 w-8 -translate-x-1/2 items-center justify-center rounded-full border border-brand-navy/15 bg-white text-brand-navy shadow-sm transition-all duration-200 hover:scale-110 hover:border-brand-orange hover:text-brand-orange hover:shadow-md active:scale-95"
+      >
+        <ChevronDown className="h-4 w-4" />
+      </button>
+
+      <div
+        ref={trackRef}
+        className="h-130 overflow-y-hidden sm:h-140 lg:h-155"
+        style={{ scrollBehavior: "auto" }}
+      >
+        {isLoading && !ready ? (
+          <div className="grid grid-cols-2 gap-3 p-3">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="h-24 animate-pulse bg-brand-surface" />
+            ))}
+          </div>
+        ) : !ready ? (
+          <p className="p-5 text-sm font-semibold text-brand-navy/60">
+            No products published yet.
+          </p>
+        ) : (
+          <div className="grid grid-cols-2 gap-3 p-3">
+            {items.map((p, i) => (
+              <ProductCardMini key={`${p.id}-${i}`} p={p} />
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ----------------------------------------------------------------
+   Statement — the hero section itself.
+   Top: CMS-driven badge, heading, description and CTAs (unchanged).
+   Below: the two-rail band — animated offerings on the left,
+   live catalogue products scrolling on the right.
+   ---------------------------------------------------------------- */
+
 function Statement() {
   const { data: blocks } = useCmsBlocks([
     "home.hero_badge",
@@ -472,8 +709,6 @@ function Statement() {
     "home.hero_description",
     "home.hero_cta_primary",
     "home.hero_cta_secondary",
-    "home.section_catalogue_eyebrow",
-    "home.section_catalogue_title",
   ]);
 
   const heroBadge = getCmsString(blocks, "home.hero_badge", "Nairobi, Kenya");
@@ -485,217 +720,94 @@ function Statement() {
   const heroDescription = getCmsString(
     blocks,
     "home.hero_description",
-    "Get high-quality branding, custom apparel, and corporate merchandise delivered across East Africa. We run production on our own advanced equipment to guarantee sharp finishes, clear timelines, and flawless execution."
+    "Premium printing & merchandise, made real. We deliver branding, custom apparel, and corporate merchandise across East Africa with sharp finishes, clear timelines, and reliable execution."
   );
   const heroPrimary = getCmsString(blocks, "home.hero_cta_primary", "Browse products");
   const heroSecondary = getCmsString(blocks, "home.hero_cta_secondary", "Request a quote");
-  const catalogueEyebrow = getCmsString(blocks, "home.section_catalogue_eyebrow", "In the catalogue");
-  const catalogueTitle = getCmsString(blocks, "home.section_catalogue_title", "Products we have");
 
   return (
     <section className="relative overflow-hidden border-b border-brand-navy bg-white">
       {/* Animated dotted field, masked so it fades out toward the edges */}
       <DotField className="pp-mask-fade opacity-70" />
 
-      <div className="container-page relative grid items-center gap-10 px-5 py-14 sm:px-6 sm:py-20 md:py-28 lg:grid-cols-[1.15fr_1fr] lg:gap-16">
-        <div>
-          <Reveal>
-            <p className="inline-flex items-center gap-2 border border-brand-navy/15 bg-white/70 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.25em] text-brand-orange backdrop-blur-sm">
-              <span className="pp-ticker-dot inline-block h-1.5 w-1.5 bg-brand-orange" />
-              {heroBadge}
-            </p>
-          </Reveal>
+      <div className="container-page relative px-5 py-8 sm:px-6 sm:py-10 md:py-14">
+        <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_minmax(360px,0.9fr)] xl:items-start xl:pt-1">
+          <div className="max-w-2xl">
+            <Reveal>
+              <p className="inline-flex items-center gap-2 border border-brand-navy/15 bg-white/70 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.25em] text-brand-orange backdrop-blur-sm">
+                <span className="pp-ticker-dot inline-block h-1.5 w-1.5 bg-brand-orange" />
+                {heroBadge}
+              </p>
+            </Reveal>
 
-          <Reveal delay={90}>
-            <h1 className="mt-5 text-[2rem] font-extrabold leading-[1.1] tracking-tight text-brand-navy sm:mt-6 sm:text-5xl md:text-6xl lg:text-[4.25rem]">
-              {heroTitle.split("\n").map((line, index) => (
-                <span key={index}>
-                  {line}
-                  {index < heroTitle.split("\n").length - 1 ? <br /> : null}
-                </span>
-              ))}
-            </h1>
-          </Reveal>
-
-          <Reveal delay={170}>
-            <div className="mt-6 max-w-xl space-y-4 text-base leading-relaxed text-brand-navy/75 sm:mt-9 sm:text-lg">
-              <p>{heroDescription}</p>
-            </div>
-          </Reveal>
-
-          <Reveal delay={250}>
-            <div className="mt-8 flex flex-col gap-3 sm:mt-10 sm:flex-row sm:flex-wrap sm:gap-4">
-              <Link
-                to="/shop"
-                className="pp-sheen group inline-flex w-full items-center justify-center gap-2 bg-brand-navy px-8 py-4 text-sm font-bold uppercase tracking-wide text-white transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[6px_6px_0_0_var(--color-brand-orange)] sm:w-auto"
-              >
-                {heroPrimary}
-                <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
-              </Link>
-              <Link
-                to="/request-quote"
-                className="group inline-flex w-full items-center justify-center gap-2 border border-brand-navy px-8 py-4 text-sm font-bold uppercase tracking-wide text-brand-navy transition-all duration-300 hover:-translate-y-0.5 hover:border-brand-orange hover:text-brand-orange sm:w-auto"
-              >
-                {heroSecondary}
-                <ArrowRight className="h-4 w-4 opacity-0 transition-all duration-300 group-hover:translate-x-1 group-hover:opacity-100" />
-              </Link>
-            </div>
-          </Reveal>
-
-          <Reveal delay={330}>
-            <dl className="mt-10 grid max-w-lg grid-cols-3 border-t border-brand-navy/12 pt-6 sm:mt-12">
-              {HERO_STATS.map((s) => (
-                <div key={s.label} className="pr-4">
-                  <dt className="sr-only">{s.label}</dt>
-                  <dd className="text-xl font-extrabold tabular-nums text-brand-navy sm:text-2xl">
-                    {s.value}
-                  </dd>
-                  <span className="mt-1 block text-[10px] font-bold uppercase tracking-widest text-brand-navy/45">
-                    {s.label}
+            <Reveal delay={90}>
+              <h1 className="mt-5 text-[2rem] font-extrabold leading-[1.1] tracking-tight text-brand-navy sm:mt-6 sm:text-5xl md:text-6xl lg:text-[4.25rem]">
+                {heroTitle.split("\n").map((line, index) => (
+                  <span key={index}>
+                    {line}
+                    {index < heroTitle.split("\n").length - 1 ? <br /> : null}
                   </span>
-                </div>
-              ))}
-            </dl>
-          </Reveal>
-        </div>
+                ))}
+              </h1>
+            </Reveal>
 
-        <Reveal delay={200}>
-          <HeroCarousel />
-        </Reveal>
+            <Reveal delay={170}>
+              <p className="mt-6 max-w-xl text-base leading-relaxed text-brand-navy/75 sm:mt-9 sm:text-lg">
+                {heroDescription}
+              </p>
+            </Reveal>
+
+            <Reveal delay={220}>
+              <OfferingsFlip />
+            </Reveal>
+
+            <Reveal delay={250}>
+              <div className="mt-8 flex flex-col gap-3 sm:mt-10 sm:flex-row sm:flex-wrap sm:gap-4">
+                <Link
+                  to="/shop"
+                  className="pp-sheen group inline-flex w-full items-center justify-center gap-2 bg-brand-navy px-8 py-4 text-sm font-bold uppercase tracking-wide text-white transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[6px_6px_0_0_var(--color-brand-orange)] sm:w-auto"
+                >
+                  {heroPrimary}
+                  <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
+                </Link>
+                <Link
+                  to="/request-quote"
+                  className="group inline-flex w-full items-center justify-center gap-2 border border-brand-navy px-8 py-4 text-sm font-bold uppercase tracking-wide text-brand-navy transition-all duration-300 hover:-translate-y-0.5 hover:border-brand-orange hover:text-brand-orange sm:w-auto"
+                >
+                  {heroSecondary}
+                  <ArrowRight className="h-4 w-4 opacity-0 transition-all duration-300 group-hover:translate-x-1 group-hover:opacity-100" />
+                </Link>
+              </div>
+            </Reveal>
+
+            {HERO_STATS.length > 0 && (
+              <Reveal delay={330}>
+                <dl className="mt-10 grid max-w-lg grid-cols-3 border-t border-brand-navy/12 pt-6 sm:mt-12">
+                  {HERO_STATS.map((s) => (
+                    <div key={s.label} className="pr-4">
+                      <dt className="sr-only">{s.label}</dt>
+                      <dd className="text-xl font-extrabold tabular-nums text-brand-navy sm:text-2xl">
+                        {s.value}
+                      </dd>
+                      <span className="mt-1 block text-[10px] font-bold uppercase tracking-widest text-brand-navy/45">
+                        {s.label}
+                      </span>
+                    </div>
+                  ))}
+                </dl>
+              </Reveal>
+            )}
+
+          </div>
+
+          <div className="xl:pt-2">
+            <Reveal delay={280}>
+              <ProductsRail />
+            </Reveal>
+          </div>
+        </div>
       </div>
     </section>
-  );
-}
-
-/* ================================================================
-   Hero carousel
-   Rotates through live product photography, falling back to the
-   static hero image when the catalogue has none yet.
-
-   Simplified for calm: single framed image, one clean caption line,
-   and slim dot controls. No arrows, no double progress bar, no
-   competing chrome layered over the photo.
-   ================================================================ */
-
-function HeroCarousel() {
-  const { data } = useNewestProducts(20);
-  const [index, setIndex] = useState(0);
-  const [paused, setPaused] = useState(false);
-
-  const slides = useMemo(() => {
-    const withPhotos = (data ?? []).filter(
-      (p) => p.image && !p.image.includes("picsum") && !p.image.includes("placeholder")
-    );
-
-    const featured = withPhotos.filter((p) => p.tag);
-    const rest = withPhotos.filter((p) => !p.tag);
-
-    const live = [...featured, ...rest].slice(0, 5).map((p) => ({
-      src: p.image,
-      alt: p.name,
-      label: p.name,
-      price: p.price as number | null,
-    }));
-
-    if (live.length === 0) {
-      return [
-        {
-          src: heroImg,
-          alt: "Custom-branded apparel, mugs, tote bags and promotional items produced by Protocol Promotions",
-          label: "Premium Quality",
-          price: null as number | null,
-        },
-      ];
-    }
-    return live;
-  }, [data]);
-
-  const count = slides.length;
-
-  useEffect(() => {
-    if (paused || count <= 1) return;
-    const timer = setInterval(() => setIndex((i) => (i + 1) % count), 5000);
-    return () => clearInterval(timer);
-  }, [paused, count]);
-
-  useEffect(() => {
-    if (index >= count) setIndex(0);
-  }, [index, count]);
-
-  const go = (next: number) => {
-    if (count <= 0) return;
-    setIndex(((next % count) + count) % count);
-  };
-
-  const active = slides[index] ?? slides[0];
-
-  return (
-    <div
-      className="relative"
-      onMouseEnter={() => setPaused(true)}
-      onMouseLeave={() => setPaused(false)}
-      onFocus={() => setPaused(true)}
-      onBlur={() => setPaused(false)}
-    >
-      {/* Single offset frame for depth, kept subtle */}
-      <div
-        aria-hidden="true"
-        className="absolute -bottom-3 -right-3 hidden h-full w-full border border-brand-navy/20 sm:block"
-      />
-
-      <div
-        className="relative overflow-hidden border border-brand-navy bg-brand-surface"
-        style={{ aspectRatio: "4 / 3" }}
-      >
-        {slides.map((slide, i) => (
-          <img
-            key={`${slide.src}-${i}`}
-            src={slide.src}
-            alt={slide.alt}
-            width={1600}
-            height={1200}
-            loading={i === 0 ? "eager" : "lazy"}
-            className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ease-out ${
-              i === index ? "opacity-100" : "opacity-0"
-            }`}
-          />
-        ))}
-
-        {/* One quiet caption line, only when there is a real label */}
-        {active?.label ? (
-          <div className="absolute inset-x-0 bottom-0 bg-linear-to-t from-brand-navy/85 to-transparent px-4 pb-4 pt-10 sm:px-5">
-            <div className="flex items-end justify-between gap-3">
-              <span className="text-sm font-bold leading-tight text-white sm:text-base">
-                {active.label}
-              </span>
-              {active.price != null && (
-                <span className="shrink-0 text-sm font-bold tabular-nums text-white/90">
-                  {KSH.format(active.price)}
-                </span>
-              )}
-            </div>
-          </div>
-        ) : null}
-      </div>
-
-      {/* Slim dot controls, the only interactive chrome */}
-      {count > 1 && (
-        <div className="mt-4 flex justify-center gap-1.5">
-          {slides.map((_, i) => (
-            <button
-              key={i}
-              type="button"
-              onClick={() => go(i)}
-              aria-label={`Go to image ${i + 1}`}
-              aria-current={i === index}
-              className={`h-1.5 transition-all duration-500 ${
-                i === index ? "w-8 bg-brand-orange" : "w-3 bg-brand-navy/20 hover:bg-brand-navy/45"
-              }`}
-            />
-          ))}
-        </div>
-      )}
-    </div>
   );
 }
 
@@ -706,7 +818,7 @@ function HeroCarousel() {
    ================================================================ */
 
 function Showcase() {
-  const { data, isLoading, isError } = useNewestProducts(24);
+  const { data, isLoading, isError } = useNewestProducts(120);
   const { data: blocks } = useCmsBlocks([
     "home.section_catalogue_eyebrow",
     "home.section_catalogue_title",
@@ -726,8 +838,7 @@ function Showcase() {
       }
       map.get(key)!.items.push(p);
     }
-    // Cap each group so no single category dominates the page.
-    return Array.from(map.values()).map((g) => ({ ...g, items: g.items.slice(0, 8) }));
+    return Array.from(map.values()).map((g) => ({ ...g, items: g.items }));
   }, [products]);
 
   return (
@@ -834,9 +945,9 @@ function ProductCard({ p }: { p: LiveProduct }) {
     <Link
       to="/shop/$slug"
       params={{ slug: p.slug }}
-      className="group relative flex flex-col border border-brand-navy/15 bg-white transition-all duration-300 hover:-translate-y-1 hover:border-brand-navy hover:shadow-[8px_8px_0_0_var(--color-brand-navy)]"
+      className="group relative flex flex-col overflow-hidden rounded-[22px] border border-brand-navy/15 bg-white transition-all duration-300 hover:-translate-y-1 hover:border-brand-navy hover:shadow-[8px_8px_0_0_var(--color-brand-navy)]"
     >
-      <div className="pp-sheen relative overflow-hidden border-b border-brand-navy/15 bg-brand-surface">
+      <div className="pp-sheen relative overflow-hidden bg-brand-surface">
         {p.tag ? <ProductTag label={p.tag} /> : null}
         {discount !== null ? (
           <span className="absolute right-0 top-0 z-10 bg-brand-navy px-2.5 py-1.5 text-[10px] font-bold tabular-nums text-white">
@@ -850,7 +961,7 @@ function ProductCard({ p }: { p: LiveProduct }) {
           height={800}
           loading="lazy"
           className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.07]"
-          style={{ aspectRatio: "1 / 1" }}
+          style={{ aspectRatio: "4 / 5" }}
         />
         <span className="pointer-events-none absolute inset-x-0 bottom-0 translate-y-full bg-brand-navy py-2.5 text-center text-[11px] font-bold uppercase tracking-widest text-white transition-transform duration-300 group-hover:translate-y-0">
           View product
@@ -1415,7 +1526,7 @@ function Sectors() {
                     />
                     <span
                       aria-hidden="true"
-                      className="absolute -right-4 -top-4 text-6xl font-extrabold text-brand-navy/4 transition-colors duration-300 group-hover:text-white/[0.05]"
+                      className="absolute -right-4 -top-4 text-6xl font-extrabold text-brand-navy/4 transition-colors duration-300 group-hover:text-white/5"
                     >
                       {String(i + 1).padStart(2, "0")}
                     </span>
@@ -1572,7 +1683,7 @@ function WriteReview({ onSubmit }: { onSubmit: (r: Review & { rating: number }) 
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Jane Doe"
+            placeholder="Emoni Samuel"
             className="w-full border border-brand-navy/20 px-3 py-2 text-sm text-brand-navy outline-none focus:border-brand-navy"
             required
           />

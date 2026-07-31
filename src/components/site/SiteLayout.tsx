@@ -76,7 +76,7 @@ export function PageHeader({
 }) {
   return (
     <section className="bg-brand-surface border-b border-border">
-      <div className="container-page py-14 md:py-20">
+      <div className="container-page py-8 md:py-12">
         {eyebrow && (
           <div className="text-[11px] tracking-[0.2em] uppercase font-bold text-brand-orange mb-3">
             {eyebrow}
