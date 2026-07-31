@@ -717,7 +717,7 @@ function ProductCard({ product }: { product: Product }) {
             </div>
           </div>
           <span className="inline-flex items-center gap-1.5 rounded-lg bg-brand-surface px-3 py-2 text-xs font-extrabold text-brand-navy transition-all group-hover:bg-brand-navy group-hover:text-white">
-            Configure <ArrowRight className="h-3.5 w-3.5" />
+            Shop Now <ArrowRight className="h-3.5 w-3.5" />
           </span>
         </div>
       </div>
