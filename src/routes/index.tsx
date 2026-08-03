@@ -809,7 +809,7 @@ function Statement() {
 
       <div className="container-page relative px-5 py-8 sm:px-6 sm:py-10 md:py-14">
         <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_minmax(360px,0.9fr)] xl:items-start xl:pt-1">
-          <div className="max-w-2xl">
+          <div className="order-2 max-w-2xl xl:order-1">
             <Reveal>
               <p className="inline-flex items-center gap-2 border border-brand-navy/15 bg-white/70 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.25em] text-brand-orange backdrop-blur-sm">
                 <span className="pp-ticker-dot inline-block h-1.5 w-1.5 bg-brand-orange" />
@@ -877,7 +877,7 @@ function Statement() {
 
           </div>
 
-          <div className="xl:pt-2">
+          <div className="order-1 xl:order-2 xl:pt-2">
             <Reveal delay={280}>
               <ProductsRail />
             </Reveal>
@@ -940,7 +940,7 @@ function Showcase() {
         </Reveal>
 
         {isLoading && !data ? (
-          <div className="mt-8 grid grid-cols-1 gap-5 sm:mt-10 sm:grid-cols-2 sm:gap-6 lg:grid-cols-4">
+          <div className="mt-8 grid grid-cols-2 gap-4 sm:mt-10 sm:grid-cols-2 sm:gap-6 lg:grid-cols-4">
             {Array.from({ length: 4 }).map((_, i) => (
               <ProductSkeleton key={i} />
             ))}
@@ -976,7 +976,7 @@ function Showcase() {
                   ) : null}
                 </div>
 
-                <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-6 lg:grid-cols-4">
+                <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-4">
                   {group.items.map((p, i) => (
                     <Reveal key={p.id} delay={gi * 40 + i * 70}>
                       <ProductCard p={p} />
@@ -1045,16 +1045,16 @@ function ProductCard({ p }: { p: LiveProduct }) {
         </span>
       </div>
 
-      <div className="flex flex-1 flex-col p-5">
+      <div className="flex flex-1 flex-col p-3 sm:p-5">
         <div className="text-[10px] font-bold uppercase tracking-widest text-brand-navy/45">
           {p.category}
         </div>
-        <h3 className="mt-1.5 text-base font-extrabold leading-snug text-brand-navy transition-colors group-hover:text-brand-orange">
+        <h3 className="mt-1.5 text-sm font-extrabold leading-snug text-brand-navy transition-colors group-hover:text-brand-orange sm:text-base">
           {p.name}
         </h3>
 
-        <div className="mt-4 flex items-baseline gap-2">
-          <span className="text-lg font-extrabold tabular-nums text-brand-navy">
+        <div className="mt-3 flex items-baseline gap-2 sm:mt-4">
+          <span className="text-base font-extrabold tabular-nums text-brand-navy sm:text-lg">
             {KSH.format(p.price)}
           </span>
           {p.compareAt ? (
@@ -1064,7 +1064,7 @@ function ProductCard({ p }: { p: LiveProduct }) {
           ) : null}
         </div>
 
-        <div className="mt-4 flex items-center justify-between border-t border-brand-navy/10 pt-3 text-[11px] font-semibold text-brand-navy/60">
+        <div className="mt-3 flex items-center justify-between border-t border-brand-navy/10 pt-3 text-[11px] font-semibold text-brand-navy/60 sm:mt-4">
           <span className="tabular-nums">MOQ {p.moq}</span>
           <span className="tabular-nums">{p.lead}</span>
         </div>
@@ -1120,7 +1120,7 @@ function FeaturedProducts() {
         </Reveal>
 
         {isLoading ? (
-          <div className="mt-8 grid grid-cols-1 gap-5 sm:mt-10 sm:grid-cols-2 sm:gap-6 lg:grid-cols-4">
+          <div className="mt-8 grid grid-cols-2 gap-4 sm:mt-10 sm:grid-cols-2 sm:gap-6 lg:grid-cols-4">
             {Array.from({ length: 4 }).map((_, i) => (
               <ProductSkeleton key={i} />
             ))}
@@ -1137,7 +1137,7 @@ function FeaturedProducts() {
             No products published yet.
           </p>
         ) : (
-          <div className="mt-8 grid grid-cols-1 gap-5 sm:mt-10 sm:grid-cols-2 sm:gap-6 lg:grid-cols-4">
+          <div className="mt-8 grid grid-cols-2 gap-4 sm:mt-10 sm:grid-cols-2 sm:gap-6 lg:grid-cols-4">
             {products.map((p, i) => (
               <Reveal key={p.id} delay={i * 70}>
                 <ProductCard p={p} />
