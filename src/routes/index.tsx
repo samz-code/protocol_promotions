@@ -797,7 +797,7 @@ function Statement() {
   const heroDescription = getCmsString(
     blocks,
     "home.hero_description",
-    "Premium printing & merchandise, made real. We deliver branding, custom apparel, and corporate merchandise across East Africa with sharp finishes, clear timelines, and reliable execution."
+    "We deliver branding, custom apparel, and corporate merchandise across East Africa with sharp finishes, clear timelines, and reliable execution."
   );
   const heroPrimary = getCmsString(blocks, "home.hero_cta_primary", "Browse products");
   const heroSecondary = getCmsString(blocks, "home.hero_cta_secondary", "Request a quote");
