@@ -10,8 +10,10 @@ import {
 import {
   Plus, Trash2, Pencil, X, Loader2, Check, User, Search, Wallet,
   Clock, Inbox, Settings2, Smartphone, Building2, FileText, GripVertical,
-  CheckCircle2, XCircle, CreditCard, Eye, EyeOff,
+  CheckCircle2, XCircle, CreditCard, Eye, EyeOff, Download,
 } from "lucide-react";
+import jsPDF from "jspdf";
+import logoUrl from "@/assets/logo.png";
 
 export const Route = createFileRoute("/admin/payments")({
   head: () => ({ meta: [{ title: "Payments | Admin" }] }),
@@ -135,6 +137,126 @@ function ChannelLogo({
   );
 }
 
+/* --------------------------------------------------------------- receipt */
+
+/**
+ * Loads a same-origin image and returns it as a base64 PNG data URL.
+ * jsPDF's addImage() needs a data URL (or Image/Canvas element), not a raw
+ * asset path, so we draw it to an off-screen canvas first.
+ */
+function loadImageAsDataUrl(src: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        reject(new Error("Canvas not supported"));
+        return;
+      }
+      ctx.drawImage(img, 0, 0);
+      resolve(canvas.toDataURL("image/png"));
+    };
+    img.onerror = () => reject(new Error("Could not load logo"));
+    img.src = src;
+  });
+}
+
+/** Builds and downloads a one-page PDF receipt for a paid payment. */
+async function downloadReceipt(payment: Payment) {
+  const doc = new jsPDF({ unit: "mm", format: "a5" });
+  const pageWidth = doc.internal.pageSize.getWidth();
+  let y = 16;
+
+  // Logo, best-effort — a missing or unreadable file should never block
+  // the receipt from generating.
+  try {
+    const logoData = await loadImageAsDataUrl(logoUrl);
+    doc.addImage(logoData, "PNG", 15, y, 22, 22);
+  } catch {
+    // no logo, continue without it
+  }
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(16);
+  doc.text("Payment Receipt", pageWidth - 15, y + 8, { align: "right" });
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  doc.setTextColor(90);
+  doc.text(
+    `Issued ${new Date().toLocaleDateString("en-KE", { day: "numeric", month: "long", year: "numeric" })}`,
+    pageWidth - 15,
+    y + 15,
+    { align: "right" }
+  );
+
+  y += 34;
+  doc.setDrawColor(210);
+  doc.line(15, y, pageWidth - 15, y);
+  y += 10;
+
+  doc.setTextColor(20);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(11);
+  doc.text("Customer", 15, y);
+  doc.setFont("helvetica", "normal");
+  doc.text(payment.orders?.customer_name ?? "Direct payment", 60, y);
+  y += 7;
+
+  doc.setFont("helvetica", "bold");
+  doc.text("Order", 15, y);
+  doc.setFont("helvetica", "normal");
+  doc.text(payment.orders?.order_number ?? "Not linked to an order", 60, y);
+  y += 7;
+
+  doc.setFont("helvetica", "bold");
+  doc.text("Method", 15, y);
+  doc.setFont("helvetica", "normal");
+  doc.text(payment.method.replace("_", " "), 60, y);
+  y += 7;
+
+  doc.setFont("helvetica", "bold");
+  doc.text("Reference", 15, y);
+  doc.setFont("helvetica", "normal");
+  doc.text(payment.mpesa_receipt ?? payment.reference ?? "—", 60, y);
+  y += 7;
+
+  doc.setFont("helvetica", "bold");
+  doc.text("Date paid", 15, y);
+  doc.setFont("helvetica", "normal");
+  doc.text(
+    payment.paid_at
+      ? new Date(payment.paid_at).toLocaleDateString("en-KE", { day: "numeric", month: "long", year: "numeric" })
+      : "—",
+    60,
+    y
+  );
+  y += 14;
+
+  doc.setDrawColor(210);
+  doc.line(15, y, pageWidth - 15, y);
+  y += 12;
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(13);
+  doc.text("Amount received", 15, y);
+  doc.setFontSize(18);
+  doc.text(kes(Number(payment.amount)), pageWidth - 15, y, { align: "right" });
+
+  y += 18;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.setTextColor(140);
+  doc.text("This receipt confirms payment received and is not a tax invoice.", 15, y);
+
+  const filename = `receipt-${payment.mpesa_receipt ?? payment.orders?.order_number ?? payment.id.slice(0, 8)}.pdf`;
+  doc.save(filename);
+}
+
 /* --------------------------------------------------------------- queries */
 
 async function fetchPayments(): Promise<Payment[]> {
@@ -245,6 +367,7 @@ function PaymentsTab() {
   const [deleteTarget, setDeleteTarget] = useState<Payment | null>(null);
   const [search, setSearch] = useState("");
   const [err, setErr] = useState<string | null>(null);
+  const [receiptBusyId, setReceiptBusyId] = useState<string | null>(null);
 
   const del = useMutation({
     mutationFn: async (id: string) => {
@@ -257,6 +380,18 @@ function PaymentsTab() {
     },
     onError: (e: Error) => setErr(e.message),
   });
+
+  async function handleDownloadReceipt(p: Payment) {
+    setErr(null);
+    setReceiptBusyId(p.id);
+    try {
+      await downloadReceipt(p);
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Could not generate the receipt.");
+    } finally {
+      setReceiptBusyId(null);
+    }
+  }
 
   const all = query.data ?? [];
 
@@ -352,6 +487,15 @@ function PaymentsTab() {
                     <StatusBadge label={p.status} tone={p.status === "paid" ? "good" : "warn"} />
                   </div>
                   <div className="flex gap-1">
+                    {p.status === "paid" && (
+                      <IconBtn
+                        onClick={() => handleDownloadReceipt(p)}
+                        label="Download receipt"
+                        busy={receiptBusyId === p.id}
+                      >
+                        <Download className="h-3.5 w-3.5" />
+                      </IconBtn>
+                    )}
                     <IconBtn onClick={() => { setEditing(p); setFormOpen(true); }} label="Edit">
                       <Pencil className="h-3.5 w-3.5" />
                     </IconBtn>
@@ -375,7 +519,7 @@ function PaymentsTab() {
                   <th className="px-4 py-3">Status</th>
                   <th className="px-4 py-3">Date</th>
                   <th className="px-4 py-3 text-right">Amount</th>
-                  <th className="w-24 px-4 py-3 text-center">Actions</th>
+                  <th className="w-32 px-4 py-3 text-center">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-brand-navy/10">
@@ -407,6 +551,15 @@ function PaymentsTab() {
                     </td>
                     <td className="px-4 py-3 text-center">
                       <div className="inline-flex gap-1">
+                        {p.status === "paid" && (
+                          <IconBtn
+                            onClick={() => handleDownloadReceipt(p)}
+                            label="Download receipt"
+                            busy={receiptBusyId === p.id}
+                          >
+                            <Download className="h-3.5 w-3.5" />
+                          </IconBtn>
+                        )}
                         <IconBtn onClick={() => { setEditing(p); setFormOpen(true); }} label="Edit">
                           <Pencil className="h-3.5 w-3.5" />
                         </IconBtn>
@@ -468,26 +621,28 @@ function MiniStat({ label, value, accent }: { label: string; value: string; acce
 }
 
 function IconBtn({
-  onClick, children, label, danger,
+  onClick, children, label, danger, busy,
 }: {
   onClick: () => void;
   children: React.ReactNode;
   label: string;
   danger?: boolean;
+  busy?: boolean;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
+      disabled={busy}
       title={label}
       aria-label={label}
-      className={`grid h-8 w-8 place-items-center border-2 border-transparent text-brand-navy/50 transition-colors ${
+      className={`grid h-8 w-8 place-items-center border-2 border-transparent text-brand-navy/50 transition-colors disabled:opacity-50 ${
         danger
           ? "hover:border-red-200 hover:bg-red-50 hover:text-red-600"
           : "hover:border-brand-navy/15 hover:bg-brand-surface hover:text-brand-navy"
       }`}
     >
-      {children}
+      {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : children}
     </button>
   );
 }

@@ -1,5 +1,5 @@
+import { createFileRoute } from '@tanstack/react-router'
 import { useState, useMemo } from "react";
-import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth";
@@ -9,12 +9,8 @@ import {
   Loader2, AlertCircle, Search, X, ArrowLeft, Printer, Check, Factory,
   CreditCard, User, MapPin, FileText, Clock, ChevronDown, ChevronRight,
   Package, Wallet, TrendingUp, Phone, Mail, Building2, AlertTriangle,
+  Plus, Trash2, ShoppingBag,
 } from "lucide-react";
-
-export const Route = createFileRoute("/admin/orders")({
-  head: () => ({ meta: [{ title: "Orders | Admin" }] }),
-  component: OrdersPage,
-});
 
 /* ------------------------------------------------------------------ types */
 
@@ -111,7 +107,6 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
   refunded: "Refunded",
 };
 
-/** Plain language guidance so staff know what the next action is. */
 const STATUS_ACTION: Record<OrderStatus, string> = {
   pending: "New order. Confirm the details and send it forward.",
   quotation_requested: "Price this and send the customer a quote.",
@@ -132,7 +127,6 @@ const STATUS_ACTION: Record<OrderStatus, string> = {
   refunded: "Refunded and closed.",
 };
 
-/** The happy path, in order. Cancel and refund sit outside it. */
 const FLOW: OrderStatus[] = [
   "pending",
   "quotation_requested",
@@ -190,6 +184,12 @@ function daysOld(iso: string) {
   return Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
 }
 
+function generateOrderNumber(): string {
+  const year = new Date().getFullYear();
+  const rand = Math.floor(1000 + Math.random() * 9000);
+  return `PP-${year}-${rand}`;
+}
+
 /* --------------------------------------------------------------- queries */
 
 async function fetchOrders(): Promise<OrderRow[]> {
@@ -234,18 +234,23 @@ async function fetchJobs(orderId: string): Promise<Job[]> {
 
 function OrdersPage() {
   const [openId, setOpenId] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
+
+  if (creating) {
+    return <CreateOrderForm onClose={() => setCreating(false)} onCreated={(id) => { setCreating(false); setOpenId(id); }} />;
+  }
 
   if (openId) {
     return <OrderDetailView orderId={openId} onClose={() => setOpenId(null)} />;
   }
-  return <OrderList onOpen={setOpenId} />;
+  return <OrderList onOpen={setOpenId} onCreate={() => setCreating(true)} />;
 }
 
 /* ------------------------------------------------------------------- list */
 
 type Filter = "all" | "open" | "production" | "unpaid" | "done";
 
-function OrderList({ onOpen }: { onOpen: (id: string) => void }) {
+function OrderList({ onOpen, onCreate }: { onOpen: (id: string) => void; onCreate: () => void }) {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
 
@@ -299,17 +304,26 @@ function OrderList({ onOpen }: { onOpen: (id: string) => void }) {
   ];
 
   return (
-    <div className="space-y-6">
-      <header className="border-b-2 border-brand-navy pb-5">
-        <h1 className="text-2xl font-extrabold tracking-tight text-brand-navy sm:text-3xl md:text-4xl">
-          Orders
-        </h1>
-        <p className="mt-2 text-sm text-brand-navy/60">
-          Every job placed, from first enquiry through to delivery.
-        </p>
+    <div className="min-w-0 space-y-6">
+      <header className="flex flex-col gap-4 border-b-2 border-brand-navy pb-5 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between sm:gap-6">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-extrabold tracking-tight text-brand-navy sm:text-3xl md:text-4xl">
+            Orders
+          </h1>
+          <p className="mt-2 text-sm text-brand-navy/60">
+            Every job placed, from first enquiry through to delivery.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onCreate}
+          className="inline-flex shrink-0 items-center justify-center gap-1.5 bg-brand-navy px-5 py-3 text-xs font-black uppercase tracking-wide text-white shadow-[3px_3px_0_0_var(--color-brand-orange)] transition-all hover:brightness-110"
+        >
+          <Plus className="h-3.5 w-3.5" />
+          New order
+        </button>
       </header>
 
-      {/* Money and workload at a glance */}
       <div className="grid gap-px border border-brand-navy/15 bg-brand-navy/15 sm:grid-cols-2 lg:grid-cols-4">
         <Stat icon={Package} label="Open orders" value={String(stats.openCount)} />
         <Stat
@@ -327,7 +341,6 @@ function OrderList({ onOpen }: { onOpen: (id: string) => void }) {
         <Stat icon={TrendingUp} label="Booked in total" value={kes(stats.bookedValue)} />
       </div>
 
-      {/* Filters and search */}
       <div className="space-y-3">
         <div className="relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-navy/40" />
@@ -377,14 +390,14 @@ function OrderList({ onOpen }: { onOpen: (id: string) => void }) {
       ) : query.isError ? (
         <ErrorBox message={(query.error as Error).message} />
       ) : filtered.length === 0 ? (
-        <div className="border-2 border-dashed border-brand-navy/20 p-14 text-center">
+        <div className="border-2 border-dashed border-brand-navy/20 p-10 text-center sm:p-14">
           <Package className="mx-auto h-8 w-8 text-brand-navy/25" />
           <p className="mt-4 text-sm font-semibold text-brand-navy/60">
             {search || filter !== "all"
               ? "No orders match those filters."
               : "No orders yet. They will appear here the moment one lands."}
           </p>
-          {(search || filter !== "all") && (
+          {(search || filter !== "all") ? (
             <button
               type="button"
               onClick={() => { setSearch(""); setFilter("all"); }}
@@ -392,11 +405,19 @@ function OrderList({ onOpen }: { onOpen: (id: string) => void }) {
             >
               Clear filters
             </button>
+          ) : (
+            <button
+              type="button"
+              onClick={onCreate}
+              className="mt-4 inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-brand-orange hover:text-brand-navy"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Create the first order
+            </button>
           )}
         </div>
       ) : (
         <>
-          {/* Cards below lg, table above */}
           <div className="space-y-2.5 lg:hidden">
             {filtered.map((o) => (
               <OrderCard key={o.id} order={o} onOpen={() => onOpen(o.id)} />
@@ -581,6 +602,468 @@ function ErrorBox({ message }: { message: string }) {
   );
 }
 
+/* ----------------------------------------------------------- create form */
+
+type DraftItem = {
+  key: string;
+  product_name: string;
+  quantity: number;
+  unit_price: number;
+  selected_color: string;
+  selected_size: string;
+  print_method: string;
+  notes: string;
+};
+
+function CreateOrderForm({
+  onClose, onCreated,
+}: {
+  onClose: () => void;
+  onCreated: (id: string) => void;
+}) {
+  const qc = useQueryClient();
+  const { profile } = useAuth();
+  const [error, setError] = useState<string | null>(null);
+
+  const [customerName, setCustomerName] = useState("");
+  const [customerEmail, setCustomerEmail] = useState("");
+  const [customerPhone, setCustomerPhone] = useState("");
+  const [company, setCompany] = useState("");
+  const [deliveryAddress, setDeliveryAddress] = useState("");
+  const [deliveryCity, setDeliveryCity] = useState("");
+  const [deliveryNotes, setDeliveryNotes] = useState("");
+  const [deliveryFee, setDeliveryFee] = useState(0);
+  const [status, setStatus] = useState<OrderStatus>("pending");
+  const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>("unpaid");
+  const [internalNotes, setInternalNotes] = useState("");
+  const [items, setItems] = useState<DraftItem[]>([
+    { key: crypto.randomUUID(), product_name: "", quantity: 1, unit_price: 0, selected_color: "", selected_size: "", print_method: "", notes: "" },
+  ]);
+
+  const subtotal = items.reduce((s, it) => s + (it.quantity * it.unit_price), 0);
+  const total = subtotal + deliveryFee;
+
+  function updateItem(key: string, patch: Partial<DraftItem>) {
+    setItems((prev) => prev.map((it) => (it.key === key ? { ...it, ...patch } : it)));
+  }
+
+  function addItem() {
+    setItems((prev) => [
+      ...prev,
+      { key: crypto.randomUUID(), product_name: "", quantity: 1, unit_price: 0, selected_color: "", selected_size: "", print_method: "", notes: "" },
+    ]);
+  }
+
+  function removeItem(key: string) {
+    setItems((prev) => prev.filter((it) => it.key !== key));
+  }
+
+  const create = useMutation({
+    mutationFn: async () => {
+      if (!customerName.trim()) throw new Error("The customer needs a name.");
+      if (!customerEmail.trim()) throw new Error("The customer needs an email.");
+
+      const validItems = items.filter((it) => it.product_name.trim());
+      if (validItems.length === 0) throw new Error("Add at least one line item.");
+
+      let orderNumber = generateOrderNumber();
+      let numberOk = false;
+      while (!numberOk) {
+        const { error: checkErr } = await supabase
+          .from("orders")
+          .select("id")
+          .eq("order_number", orderNumber)
+          .maybeSingle();
+        if (checkErr) throw checkErr;
+        if (!checkErr) {
+          numberOk = true;
+        } else {
+          orderNumber = generateOrderNumber();
+        }
+      }
+
+      const orderRow = {
+        order_number: orderNumber,
+        customer_name: customerName.trim(),
+        customer_email: customerEmail.trim(),
+        customer_phone: customerPhone.trim() || null,
+        company: company.trim() || null,
+        delivery_address: deliveryAddress.trim() || null,
+        delivery_city: deliveryCity.trim() || null,
+        delivery_notes: deliveryNotes.trim() || null,
+        delivery_fee: deliveryFee,
+        subtotal,
+        total,
+        currency: "KES",
+        status,
+        payment_status: paymentStatus,
+        internal_notes: internalNotes.trim() || null,
+      };
+
+      const { data: orderData, error: orderErr } = await supabase
+        .from("orders")
+        .insert(orderRow)
+        .select("id")
+        .single();
+
+      if (orderErr) throw orderErr;
+      const orderId = (orderData as { id: string }).id;
+
+      const itemRows = validItems.map((it) => ({
+        order_id: orderId,
+        product_name: it.product_name.trim(),
+        quantity: it.quantity,
+        unit_price: it.unit_price,
+        line_total: it.quantity * it.unit_price,
+        selected_color: it.selected_color || null,
+        selected_size: it.selected_size || null,
+        print_method: it.print_method || null,
+        notes: it.notes || null,
+      }));
+
+      const { error: itemsErr } = await supabase.from("order_items").insert(itemRows);
+      if (itemsErr) throw itemsErr;
+
+      await supabase.from("activity_log").insert({
+        actor_id: profile?.id ?? null,
+        actor_name: profile?.full_name ?? null,
+        action: "create",
+        entity: "order",
+        entity_id: orderId,
+        summary: `${orderNumber} created manually`,
+      });
+
+      return orderId;
+    },
+    onSuccess: (id) => {
+      qc.invalidateQueries({ queryKey: ["admin", "orders"] });
+      qc.invalidateQueries({ queryKey: ["admin", "metrics"] });
+      onCreated(id);
+    },
+    onError: (e: Error) => setError(e.message),
+  });
+
+  return (
+    <div className="min-w-0 space-y-6">
+      <header className="sticky top-0 z-20 border-b-2 border-brand-navy bg-white pb-4 pt-5">
+        <button
+          type="button"
+          onClick={onClose}
+          className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-brand-navy/60 transition-colors hover:text-brand-orange"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" />
+          All orders
+        </button>
+        <div className="mt-3 flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
+          <div className="min-w-0">
+            <h1 className="text-xl font-extrabold tracking-tight text-brand-navy sm:text-2xl md:text-3xl">
+              New order
+            </h1>
+            <p className="mt-1.5 text-sm text-brand-navy/55">
+              Create an order directly, then add items and payment as you go.
+            </p>
+          </div>
+          <div className="flex shrink-0 gap-2.5">
+            <button
+              type="button"
+              onClick={onClose}
+              className="border-2 border-brand-navy/20 px-5 py-2.5 text-xs font-black uppercase tracking-widest text-brand-navy transition-colors hover:border-brand-navy"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={() => create.mutate()}
+              disabled={create.isPending}
+              className="inline-flex items-center gap-2 bg-brand-navy px-6 py-2.5 text-xs font-black uppercase tracking-widest text-white shadow-[3px_3px_0_0_var(--color-brand-orange)] transition-all hover:brightness-110 disabled:opacity-50"
+            >
+              {create.isPending ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Check className="h-3.5 w-3.5" />
+              )}
+              Create order
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {error && <ErrorBox message={error} />}
+
+      <SectionCard title="Customer" description="Who is this order for?">
+        <div className="grid gap-6 md:grid-cols-2">
+          <AdminField id="new-name" label="Name" required>
+            <input
+              id="new-name"
+              value={customerName}
+              onChange={(e) => setCustomerName(e.target.value)}
+              className={inputCls}
+              placeholder="Jane Wanjiku"
+            />
+          </AdminField>
+          <AdminField id="new-email" label="Email" required>
+            <input
+              id="new-email"
+              type="email"
+              value={customerEmail}
+              onChange={(e) => setCustomerEmail(e.target.value)}
+              className={inputCls}
+              placeholder="jane@company.co.ke"
+            />
+          </AdminField>
+          <AdminField id="new-phone" label="Phone">
+            <input
+              id="new-phone"
+              value={customerPhone}
+              onChange={(e) => setCustomerPhone(e.target.value)}
+              className={`${inputCls} font-mono`}
+              placeholder="0712 345 678"
+            />
+          </AdminField>
+          <AdminField id="new-company" label="Company">
+            <input
+              id="new-company"
+              value={company}
+              onChange={(e) => setCompany(e.target.value)}
+              className={inputCls}
+              placeholder="Acme Ltd"
+            />
+          </AdminField>
+        </div>
+      </SectionCard>
+
+      <SectionCard title="Line items" description="What is being ordered. The total updates as you type.">
+        <ul className="space-y-3">
+          {items.map((it) => (
+            <li key={it.key} className="border-2 border-brand-navy/12 p-3 sm:p-4">
+              <div className="grid gap-3 sm:grid-cols-[2fr_1fr_1fr]">
+                <AdminField id={`item-name-${it.key}`} label="Product">
+                  <input
+                    id={`item-name-${it.key}`}
+                    value={it.product_name}
+                    onChange={(e) => updateItem(it.key, { product_name: e.target.value })}
+                    className={inputCls}
+                    placeholder="Embroidered Pique Polo"
+                  />
+                </AdminField>
+                <AdminField id={`item-qty-${it.key}`} label="Qty">
+                  <input
+                    id={`item-qty-${it.key}`}
+                    type="number"
+                    min={1}
+                    value={it.quantity}
+                    onChange={(e) => updateItem(it.key, { quantity: Math.max(1, Number(e.target.value)) })}
+                    className={`${inputCls} tabular-nums`}
+                  />
+                </AdminField>
+                <AdminField id={`item-price-${it.key}`} label="Unit price">
+                  <input
+                    id={`item-price-${it.key}`}
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    value={it.unit_price}
+                    onChange={(e) => updateItem(it.key, { unit_price: Number(e.target.value) })}
+                    className={`${inputCls} tabular-nums`}
+                  />
+                </AdminField>
+              </div>
+
+              <div className="mt-3 grid gap-3 sm:grid-cols-3">
+                <AdminField id={`item-color-${it.key}`} label="Colour">
+                  <input
+                    id={`item-color-${it.key}`}
+                    value={it.selected_color}
+                    onChange={(e) => updateItem(it.key, { selected_color: e.target.value })}
+                    className={inputCls}
+                    placeholder="Navy"
+                  />
+                </AdminField>
+                <AdminField id={`item-size-${it.key}`} label="Size">
+                  <input
+                    id={`item-size-${it.key}`}
+                    value={it.selected_size}
+                    onChange={(e) => updateItem(it.key, { selected_size: e.target.value })}
+                    className={inputCls}
+                    placeholder="XL"
+                  />
+                </AdminField>
+                <AdminField id={`item-print-${it.key}`} label="Print method">
+                  <input
+                    id={`item-print-${it.key}`}
+                    value={it.print_method}
+                    onChange={(e) => updateItem(it.key, { print_method: e.target.value })}
+                    className={inputCls}
+                    placeholder="Screen Print"
+                  />
+                </AdminField>
+              </div>
+
+              <div className="mt-3 flex items-start gap-2">
+                <textarea
+                  value={it.notes}
+                  onChange={(e) => updateItem(it.key, { notes: e.target.value })}
+                  className={`${inputCls} min-w-0 flex-1`}
+                  rows={2}
+                  placeholder="Notes for this line item (optional)"
+                />
+                <button
+                  type="button"
+                  onClick={() => removeItem(it.key)}
+                  disabled={items.length === 1}
+                  className="grid h-9 w-9 shrink-0 place-items-center text-brand-navy/50 transition-colors hover:bg-red-50 hover:text-red-600 disabled:opacity-25"
+                  aria-label="Remove item"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              </div>
+
+              <div className="mt-2 border-t border-brand-navy/8 pt-2 text-right text-sm font-black tabular-nums text-brand-navy">
+                {kes(it.quantity * it.unit_price)}
+              </div>
+            </li>
+          ))}
+        </ul>
+
+        <button
+          type="button"
+          onClick={addItem}
+          className="mt-3 inline-flex items-center gap-1.5 border-2 border-brand-navy px-3 py-2 text-[11px] font-black uppercase tracking-wide text-brand-navy transition-colors hover:bg-brand-navy hover:text-white"
+        >
+          <Plus className="h-3.5 w-3.5" />
+          Add line item
+        </button>
+      </SectionCard>
+
+      <SectionCard title="Delivery" description="Where should this order go?">
+        <div className="grid gap-6 md:grid-cols-2">
+          <div className="md:col-span-2">
+            <AdminField id="new-addr" label="Delivery address">
+              <input
+                id="new-addr"
+                value={deliveryAddress}
+                onChange={(e) => setDeliveryAddress(e.target.value)}
+                className={inputCls}
+                placeholder="123 Westlands Road"
+              />
+            </AdminField>
+          </div>
+          <AdminField id="new-city" label="City">
+            <input
+              id="new-city"
+              value={deliveryCity}
+              onChange={(e) => setDeliveryCity(e.target.value)}
+              className={inputCls}
+              placeholder="Nairobi"
+            />
+          </AdminField>
+          <AdminField id="new-fee" label="Delivery fee" hint="KES">
+            <input
+              id="new-fee"
+              type="number"
+              min={0}
+              value={deliveryFee}
+              onChange={(e) => setDeliveryFee(Number(e.target.value))}
+              className={`${inputCls} tabular-nums`}
+            />
+          </AdminField>
+          <div className="md:col-span-2">
+            <AdminField id="new-dnotes" label="Delivery notes">
+              <textarea
+                id="new-dnotes"
+                rows={2}
+                value={deliveryNotes}
+                onChange={(e) => setDeliveryNotes(e.target.value)}
+                className={inputCls}
+                placeholder="Call before delivery"
+              />
+            </AdminField>
+          </div>
+        </div>
+      </SectionCard>
+
+      <SectionCard title="Settings" description="Initial status and internal notes.">
+        <div className="grid gap-6 md:grid-cols-2">
+          <AdminField id="new-status" label="Order status">
+            <select
+              id="new-status"
+              value={status}
+              onChange={(e) => setStatus(e.target.value as OrderStatus)}
+              className={inputCls}
+            >
+              {(Object.keys(STATUS_LABEL) as OrderStatus[]).map((s) => (
+                <option key={s} value={s}>{STATUS_LABEL[s]}</option>
+              ))}
+            </select>
+          </AdminField>
+          <AdminField id="new-paystatus" label="Payment status">
+            <select
+              id="new-paystatus"
+              value={paymentStatus}
+              onChange={(e) => setPaymentStatus(e.target.value as PaymentStatus)}
+              className={inputCls}
+            >
+              {(Object.keys(PAYMENT_LABEL) as PaymentStatus[]).map((p) => (
+                <option key={p} value={p}>{PAYMENT_LABEL[p]}</option>
+              ))}
+            </select>
+          </AdminField>
+          <div className="md:col-span-2">
+            <AdminField id="new-inotes" label="Internal notes" hint="Staff only, customer never sees this">
+              <textarea
+                id="new-inotes"
+                rows={3}
+                value={internalNotes}
+                onChange={(e) => setInternalNotes(e.target.value)}
+                className={inputCls}
+                placeholder="VIP client, priority handling"
+              />
+            </AdminField>
+          </div>
+        </div>
+      </SectionCard>
+
+      <div className="sticky bottom-0 flex items-center justify-between border-t-2 border-brand-navy bg-white py-4">
+        <div>
+          <span className="text-[11px] font-bold uppercase tracking-widest text-brand-navy/50">Order total</span>
+          <div className="text-2xl font-black tabular-nums text-brand-navy">{kes(total)}</div>
+        </div>
+        <button
+          type="button"
+          onClick={() => create.mutate()}
+          disabled={create.isPending}
+          className="inline-flex items-center gap-2 bg-brand-navy px-6 py-3 text-xs font-black uppercase tracking-widest text-white shadow-[3px_3px_0_0_var(--color-brand-orange)] transition-all hover:brightness-110 disabled:opacity-50"
+        >
+          {create.isPending ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <Check className="h-3.5 w-3.5" />
+          )}
+          Create order
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function SectionCard({
+  title, description, children,
+}: {
+  title: string;
+  description?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="border-2 border-brand-navy/12 bg-white p-4 sm:p-6">
+      <div className="mb-5 border-b border-brand-navy/10 pb-3">
+        <h2 className="text-[11px] font-black uppercase tracking-widest text-brand-navy">{title}</h2>
+        {description && <p className="mt-1 text-xs text-brand-navy/50">{description}</p>}
+      </div>
+      {children}
+    </section>
+  );
+}
+
 /* ----------------------------------------------------------------- detail */
 
 function OrderDetailView({ orderId, onClose }: { orderId: string; onClose: () => void }) {
@@ -588,6 +1071,7 @@ function OrderDetailView({ orderId, onClose }: { orderId: string; onClose: () =>
   const { profile } = useAuth();
   const [error, setError] = useState<string | null>(null);
   const [confirmCancel, setConfirmCancel] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const order = useQuery({ queryKey: ["admin", "order", orderId], queryFn: () => fetchOrder(orderId) });
   const payments = useQuery({ queryKey: ["admin", "order-payments", orderId], queryFn: () => fetchPayments(orderId) });
@@ -672,6 +1156,19 @@ function OrderDetailView({ orderId, onClose }: { orderId: string; onClose: () =>
     onError: (e: Error) => setError(e.message),
   });
 
+  const deleteOrder = useMutation({
+    mutationFn: async () => {
+      const { error: e } = await supabase.from("orders").delete().eq("id", orderId);
+      if (e) throw e;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin", "orders"] });
+      qc.invalidateQueries({ queryKey: ["admin", "metrics"] });
+      onClose();
+    },
+    onError: (e: Error) => setError(e.message),
+  });
+
   if (order.isLoading) {
     return (
       <div className="grid place-items-center py-32">
@@ -707,9 +1204,8 @@ function OrderDetailView({ orderId, onClose }: { orderId: string; onClose: () =>
   const hasJob = (jobs.data ?? []).length > 0;
 
   return (
-    <div className="space-y-6">
-      {/* Sticky header keeps the primary action reachable on any screen */}
-      <header className="sticky top-0 z-20 -mx-6 border-b-2 border-brand-navy bg-white px-6 pb-4 pt-5 md:-mx-8 md:px-8">
+    <div className="min-w-0 space-y-6">
+      <header className="sticky top-0 z-20 border-b-2 border-brand-navy bg-white pb-4 pt-5">
         <button
           type="button"
           onClick={onClose}
@@ -719,7 +1215,7 @@ function OrderDetailView({ orderId, onClose }: { orderId: string; onClose: () =>
           All orders
         </button>
 
-        <div className="mt-3 flex flex-wrap items-start justify-between gap-4">
+        <div className="mt-3 flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
           <div className="min-w-0">
             <h1 className="font-mono text-xl font-extrabold tracking-tight text-brand-navy sm:text-2xl md:text-3xl">
               {o.order_number}
@@ -779,20 +1275,29 @@ function OrderDetailView({ orderId, onClose }: { orderId: string; onClose: () =>
               <button
                 type="button"
                 onClick={() => setConfirmCancel(true)}
-                className="grid h-10 w-10 place-items-center border-2 border-brand-navy/20 text-brand-navy/50 transition-colors hover:border-red-300 hover:bg-red-50 hover:text-red-600"
+                className="grid h-10 w-10 place-items-center border-2 border-brand-navy/20 text-brand-navy/50 transition-colors hover:border-brand-orange hover:bg-brand-orange/8 hover:text-brand-orange"
                 title="Cancel order"
                 aria-label="Cancel order"
               >
                 <X className="h-4 w-4" />
               </button>
             )}
+
+            <button
+              type="button"
+              onClick={() => setConfirmDelete(true)}
+              className="grid h-10 w-10 place-items-center border-2 border-brand-navy/20 text-brand-navy/50 transition-colors hover:border-red-300 hover:bg-red-50 hover:text-red-600"
+              title="Delete order"
+              aria-label="Delete order"
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
           </div>
         </div>
       </header>
 
       {error && <ErrorBox message={error} />}
 
-      {/* What to do now, in plain language */}
       <div className="flex items-start gap-3 border-2 border-brand-navy/12 bg-brand-surface p-4">
         <Clock className="mt-0.5 h-4 w-4 shrink-0 text-brand-orange" />
         <div>
@@ -803,7 +1308,6 @@ function OrderDetailView({ orderId, onClose }: { orderId: string; onClose: () =>
         </div>
       </div>
 
-      {/* Money summary, front and centre */}
       <div className="grid gap-px border border-brand-navy/15 bg-brand-navy/15 sm:grid-cols-3">
         <Stat icon={FileText} label="Order total" value={kes(o.total)} />
         <Stat icon={Check} label="Paid so far" value={kes(paid)} />
@@ -876,6 +1380,17 @@ function OrderDetailView({ orderId, onClose }: { orderId: string; onClose: () =>
           onConfirm={() => cancel.mutate()}
         />
       )}
+
+      {confirmDelete && (
+        <ConfirmDialog
+          title={`Delete ${o.order_number}?`}
+          body="This permanently removes the order and all its line items, payments, production jobs and artwork. This cannot be undone."
+          confirmLabel="Delete order"
+          isPending={deleteOrder.isPending}
+          onCancel={() => setConfirmDelete(false)}
+          onConfirm={() => deleteOrder.mutate()}
+        />
+      )}
     </div>
   );
 }
@@ -910,7 +1425,6 @@ function Timeline({ current }: { current: OrderStatus }) {
         </span>
       </div>
 
-      {/* A single bar reads instantly on any screen size */}
       <div className="mt-3 h-2 w-full bg-brand-navy/10">
         <div
           className="h-full bg-brand-orange transition-all duration-500"
@@ -927,7 +1441,6 @@ function Timeline({ current }: { current: OrderStatus }) {
         )}
       </div>
 
-      {/* Full step list, scrollable on narrow screens */}
       <div className="mt-4 overflow-x-auto border-t border-brand-navy/10 pt-4">
         <ol className="flex min-w-max gap-1">
           {FLOW.map((s, i) => {
@@ -1075,7 +1588,6 @@ function PaymentHistory({
       });
       if (error) throw error;
 
-      // If this settles the bill, flip the order to paid.
       if (amount >= balance) {
         await supabase
           .from("orders")
@@ -1152,12 +1664,12 @@ function PaymentHistory({
             </AdminField>
           </div>
 
-          <div className="mt-4 flex gap-2">
+          <div className="mt-4 flex flex-col-reverse gap-2 sm:flex-row">
             <button
               type="button"
               onClick={() => record.mutate()}
               disabled={record.isPending}
-              className="inline-flex items-center gap-2 bg-brand-navy px-5 py-2.5 text-xs font-black uppercase tracking-wide text-white transition-all hover:brightness-110 disabled:opacity-50"
+              className="inline-flex items-center justify-center gap-2 bg-brand-navy px-5 py-2.5 text-xs font-black uppercase tracking-wide text-white transition-all hover:brightness-110 disabled:opacity-50"
             >
               {record.isPending ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -1498,3 +2010,7 @@ function InternalNotes({
     </section>
   );
 }
+
+export const Route = createFileRoute("/admin/orders")({
+  component: OrdersPage,
+});

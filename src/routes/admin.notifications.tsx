@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
@@ -90,6 +90,51 @@ async function fetchNotifications(): Promise<Notification[]> {
   }));
 }
 
+/* ----------------------------------------------------------------- toast */
+
+type Toast = {
+  id: string;
+  title: string;
+  body: string | null;
+  kind: string;
+};
+
+function ToastStack({ toasts, onDismiss }: { toasts: Toast[]; onDismiss: (id: string) => void }) {
+  if (toasts.length === 0) return null;
+
+  return (
+    <div className="pointer-events-none fixed right-4 top-4 z-100 flex w-full max-w-sm flex-col gap-2">
+      {toasts.map((t) => {
+        const Icon = KIND_ICON[t.kind] ?? Megaphone;
+        return (
+          <div
+            key={t.id}
+            className="pointer-events-auto flex items-start gap-3 border-2 border-brand-navy bg-white p-3.5 shadow-[4px_4px_0_0_var(--color-brand-orange)] animate-in slide-in-from-right"
+          >
+            <div className="grid h-8 w-8 shrink-0 place-items-center border border-brand-navy/15 bg-brand-surface text-brand-navy">
+              <Icon className="h-4 w-4" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-bold leading-snug text-brand-navy">{t.title}</p>
+              {t.body && (
+                <p className="mt-0.5 line-clamp-2 text-xs leading-relaxed text-brand-navy/60">{t.body}</p>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => onDismiss(t.id)}
+              className="shrink-0 text-brand-navy/40 hover:text-brand-navy"
+              aria-label="Dismiss"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 type Scope = "staff" | "customer" | "all";
 
 function AdminNotificationsPage() {
@@ -104,6 +149,70 @@ function AdminNotificationsPage() {
   const [search, setSearch] = useState("");
   const [confirmClear, setConfirmClear] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [toasts, setToasts] = useState<Toast[]>([]);
+
+  function pushToast(n: { id: string; title: string; body: string | null; kind: string }) {
+    setToasts((prev) => [...prev, { id: n.id, title: n.title, body: n.body, kind: n.kind }]);
+    // auto-dismiss after 6s
+    window.setTimeout(() => {
+      setToasts((prev) => prev.filter((t) => t.id !== n.id));
+    }, 6000);
+  }
+
+  function dismissToast(id: string) {
+    setToasts((prev) => prev.filter((t) => t.id !== id));
+  }
+
+  // Live updates: the moment a new notification row lands, refresh the
+  // list and any unread badge, and surface a toast for staff-facing ones.
+  // Requires realtime to be enabled on the `notifications` table in
+  // Supabase (Database → Replication).
+  const notifiedIdsRef = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    const channel = supabase
+      .channel("admin-notifications-feed")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "notifications" },
+        (payload) => {
+          const row = payload.new as Notification;
+
+          qc.invalidateQueries({ queryKey: ["admin", "notifications"] });
+          qc.invalidateQueries({ queryKey: ["admin", "unread-notifications"] });
+
+          // Avoid double-toasting the same row if the realtime event and a
+          // manual refetch race each other.
+          if (notifiedIdsRef.current.has(row.id)) return;
+          notifiedIdsRef.current.add(row.id);
+
+          if (row.audience === "staff") {
+            pushToast({ id: row.id, title: row.title, body: row.body, kind: row.kind });
+
+            // Best-effort desktop notification when the tab is in the
+            // background. Silently does nothing if permission was never
+            // granted; never blocks or prompts on its own here.
+            if (document.hidden && "Notification" in window && Notification.permission === "granted") {
+              new Notification(row.title, { body: row.body ?? undefined });
+            }
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Ask once for desktop notification permission, without being pushy
+  // about it — only if the browser hasn't already been asked.
+  useEffect(() => {
+    if ("Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission();
+    }
+  }, []);
 
   const markRead = useMutation({
     mutationFn: async (id: string) => {
@@ -202,6 +311,8 @@ function AdminNotificationsPage() {
 
   return (
     <div className="space-y-6">
+      <ToastStack toasts={toasts} onDismiss={dismissToast} />
+
       <AdminHeader
         title="Notifications"
         subtitle="Alerts for your team, and a record of everything customers were told."
