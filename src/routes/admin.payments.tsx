@@ -192,16 +192,81 @@ async function generateQrDataUrl(text: string): Promise<string> {
  * Builds and downloads a thermal-style (80mm roll) PDF receipt for a paid
  * payment: monospace type, dashed dividers, and a QR code encoding the
  * reference so the receipt can be verified at a glance.
+ *
+ * Everything variable-height (logo, QR, wrapped footer text) is measured
+ * up front so the page can be created at its final size from the start —
+ * this deliberately avoids resizing a jsPDF page after the fact, which
+ * relies on private internals that don't behave consistently across
+ * jsPDF versions and can silently abort before `.save()` ever runs.
  */
 async function downloadReceipt(payment: Payment) {
   const PAGE_W = 80; // mm — standard 80mm thermal roll width
   const MARGIN = 5;
   const CONTENT_W = PAGE_W - MARGIN * 2;
   const center = PAGE_W / 2;
+  const ROW_H = 5.5;
+  const HR_H = 5;
 
-  // Created tall, then trimmed to the real content height right before
-  // saving — thermal receipts have no fixed page length.
-  const doc = new jsPDF({ unit: "mm", format: [PAGE_W, 400], compress: true });
+  // Logo — loaded first so its scaled footprint is known before the page
+  // is sized. Scale is capped at 1 and applied uniformly on both axes, so
+  // it's fit into the box, never stretched.
+  let logo: LoadedImage | null = null;
+  try {
+    logo = await loadImageAsDataUrl(logoUrl);
+  } catch {
+    logo = null;
+  }
+  const LOGO_MAX_W = 26;
+  const LOGO_MAX_H = 22;
+  let logoW = 0;
+  let logoH = 0;
+  if (logo) {
+    const scale = Math.min(LOGO_MAX_W / logo.width, LOGO_MAX_H / logo.height, 1);
+    logoW = logo.width * scale;
+    logoH = logo.height * scale;
+  }
+
+  // QR code — encodes the reference, amount, order and paid date.
+  const qrText = [
+    `Receipt: ${payment.mpesa_receipt ?? payment.reference ?? payment.id}`,
+    `Amount: ${kes(Number(payment.amount))}`,
+    `Order: ${payment.orders?.order_number ?? "-"}`,
+    `Paid: ${payment.paid_at ? new Date(payment.paid_at).toISOString().slice(0, 10) : "-"}`,
+  ].join("\n");
+  let qrDataUrl: string | null = null;
+  try {
+    qrDataUrl = await generateQrDataUrl(qrText);
+  } catch {
+    qrDataUrl = null;
+  }
+  const QR_SIZE = 24;
+
+  // A throwaway doc purely to measure how many lines the footer note
+  // wraps to at this font/width — splitTextToSize only needs font
+  // metrics, not the real page size.
+  const noteText = "This receipt confirms payment received and is not a tax invoice.";
+  const scratch = new jsPDF({ unit: "mm", format: [PAGE_W, 50] });
+  scratch.setFont("courier", "normal");
+  scratch.setFontSize(7.5);
+  const noteLines = scratch.splitTextToSize(noteText, CONTENT_W) as string[];
+
+  // Total content height, built from the same constants the drawing pass
+  // below uses, so the two can't drift apart.
+  let totalH = 8; // top margin
+  if (logo) totalH += logoH + 4;
+  totalH += 5; // "PAYMENT RECEIPT" heading
+  totalH += 7; // issued date line
+  totalH += HR_H;
+  totalH += ROW_H * 5; // customer / order / method / reference / date paid
+  totalH += HR_H;
+  totalH += 8 + 9; // "AMOUNT RECEIVED" label + value
+  totalH += HR_H;
+  if (qrDataUrl) totalH += QR_SIZE + 6;
+  totalH += noteLines.length * 3.6 + 5;
+  totalH += 8; // "Thank you"
+  totalH += 6; // bottom margin
+
+  const doc = new jsPDF({ unit: "mm", format: [PAGE_W, totalH] });
   let y = 8;
 
   const hr = () => {
@@ -210,7 +275,7 @@ async function downloadReceipt(payment: Payment) {
     doc.setTextColor(170);
     doc.text("-".repeat(46), center, y, { align: "center" });
     doc.setTextColor(20);
-    y += 5;
+    y += HR_H;
   };
 
   const row = (label: string, value: string) => {
@@ -221,22 +286,12 @@ async function downloadReceipt(payment: Payment) {
     doc.setFont("courier", "bold");
     doc.setTextColor(20);
     doc.text(value || "-", PAGE_W - MARGIN, y, { align: "right" });
-    y += 5.5;
+    y += ROW_H;
   };
 
-  // Logo — scaled to fit a fixed box, never stretched off its own
-  // aspect ratio.
-  try {
-    const logo = await loadImageAsDataUrl(logoUrl);
-    const maxW = 26;
-    const maxH = 22;
-    const scale = Math.min(maxW / logo.width, maxH / logo.height, 1);
-    const w = logo.width * scale;
-    const h = logo.height * scale;
-    doc.addImage(logo.dataUrl, "PNG", center - w / 2, y, w, h);
-    y += h + 4;
-  } catch {
-    // no logo, continue without it
+  if (logo) {
+    doc.addImage(logo.dataUrl, "PNG", center - logoW / 2, y, logoW, logoH);
+    y += logoH + 4;
   }
 
   doc.setFont("courier", "bold");
@@ -283,42 +338,21 @@ async function downloadReceipt(payment: Payment) {
 
   hr();
 
-  // QR code — encodes the reference and amount so the receipt can be
-  // scanned and cross-checked.
-  try {
-    const qrText = [
-      `Receipt: ${payment.mpesa_receipt ?? payment.reference ?? payment.id}`,
-      `Amount: ${kes(Number(payment.amount))}`,
-      `Order: ${payment.orders?.order_number ?? "-"}`,
-      `Paid: ${payment.paid_at ? new Date(payment.paid_at).toISOString().slice(0, 10) : "-"}`,
-    ].join("\n");
-    const qrData = await generateQrDataUrl(qrText);
-    const qrSize = 24;
-    doc.addImage(qrData, "PNG", center - qrSize / 2, y, qrSize, qrSize);
-    y += qrSize + 6;
-  } catch {
-    // no QR, continue without it
+  if (qrDataUrl) {
+    doc.addImage(qrDataUrl, "PNG", center - QR_SIZE / 2, y, QR_SIZE, QR_SIZE);
+    y += QR_SIZE + 6;
   }
 
   doc.setFont("courier", "normal");
   doc.setFontSize(7.5);
   doc.setTextColor(140);
-  const note = doc.splitTextToSize(
-    "This receipt confirms payment received and is not a tax invoice.",
-    CONTENT_W
-  );
-  doc.text(note, center, y, { align: "center" });
-  y += note.length * 3.6 + 5;
+  doc.text(noteLines, center, y, { align: "center" });
+  y += noteLines.length * 3.6 + 5;
 
   doc.setFont("courier", "bold");
   doc.setFontSize(8.5);
   doc.setTextColor(20);
   doc.text("Thank you", center, y, { align: "center" });
-  y += 8;
-
-  // Trim the page to the actual content height so the PDF isn't a long
-  // blank strip.
-  (doc.internal.pageSize as unknown as { setHeight: (h: number) => void }).setHeight(y);
 
   const filename = `receipt-${payment.mpesa_receipt ?? payment.orders?.order_number ?? payment.id.slice(0, 8)}.pdf`;
   doc.save(filename);
