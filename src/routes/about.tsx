@@ -19,7 +19,9 @@ import {
   Phone,
   Mail,
   CheckCircle2,
-  XCircle
+  XCircle,
+  Check,
+  X
 } from "lucide-react";
 
 export const Route = createFileRoute("/about")({
@@ -121,13 +123,13 @@ function HeroStatement() {
           <h1 className="mt-5 text-[2rem] leading-[1.08] font-extrabold tracking-tight text-brand-navy sm:text-5xl md:text-6xl lg:text-7xl sm:leading-[1.02] sm:mt-6">
             We turn your digital designs into
             <br />
-            <span className="text-brand-orange">real-world products.</span>
+            <span className="text-brand-blue">real-world products.</span>
           </h1>
           <div className="mt-7 max-w-2xl space-y-4 text-base leading-relaxed text-brand-navy/75 sm:mt-10 sm:space-y-5 sm:text-lg">
             <p>
               Protocol Promotions wasn't built to be just another print shop. We were founded to make it easy to turn great digital designs into high-quality physical items without the usual stress.
             </p>
-            <p className="font-semibold text-brand-navy">
+            <p className="font-semibold text-brand-blue">
               We combine the speed and ease of modern software with the hands-on care of traditional printing, packaging, and custom merchandise making.
             </p>
           </div>
@@ -144,7 +146,7 @@ function MissionVision() {
         
         {/* Mission */}
         <div className="group relative p-7 sm:p-12 lg:p-20 transition-colors hover:bg-brand-navy/5">
-          <div className="mb-6 flex h-14 w-14 items-center justify-center border-2 border-brand-navy text-brand-navy group-hover:border-brand-orange group-hover:text-brand-orange transition-colors">
+          <div className="mb-6 flex h-14 w-14 items-center justify-center border-2 border-brand-navy text-brand-navy group-hover:border-brand-blue group-hover:text-brand-blue transition-colors">
             <Target className="h-6 w-6" />
           </div>
           <h2 className="text-[10px] font-bold uppercase tracking-[0.2em] text-brand-navy/50">
@@ -157,7 +159,7 @@ function MissionVision() {
 
         {/* Vision */}
         <div className="group relative p-7 sm:p-12 lg:p-20 transition-colors hover:bg-brand-navy/5">
-          <div className="mb-6 flex h-14 w-14 items-center justify-center border-2 border-brand-navy text-brand-navy group-hover:border-brand-orange group-hover:text-brand-orange transition-colors">
+          <div className="mb-6 flex h-14 w-14 items-center justify-center border-2 border-brand-navy text-brand-navy group-hover:border-brand-blue group-hover:text-brand-blue transition-colors">
             <Eye className="h-6 w-6" />
           </div>
           <h2 className="text-[10px] font-bold uppercase tracking-[0.2em] text-brand-navy/50">
@@ -296,7 +298,7 @@ function ProcessPipeline() {
   ];
 
   return (
-    <section className="relative overflow-hidden border-b border-brand-navy bg-[#0A0F1A] text-white">
+    <section className="relative overflow-hidden border-b border-brand-navy bg-[#00a7a7] text-white">
       <div 
         className="absolute inset-0 opacity-20 pointer-events-none" 
         style={{
@@ -314,7 +316,7 @@ function ProcessPipeline() {
             </p>
           </div>
           <div className="hidden md:block">
-             <div className="h-px w-32 bg-brand-orange"></div>
+             <div className="h-px w-32 bg-brand-blue"></div>
           </div>
         </div>
 
@@ -327,12 +329,12 @@ function ProcessPipeline() {
             return (
               <div key={i} className="group relative z-10">
                 <div className="mb-6 flex items-center justify-between lg:justify-start lg:gap-4">
-                  <div className="flex h-16 w-16 items-center justify-center border-2 border-brand-orange bg-[#0A0F1A] text-brand-orange transition-transform group-hover:scale-110">
+                  <div className="flex h-16 w-16 items-center justify-center border-2 border-brand-white bg-[#783190] text-brand-white transition-transform group-hover:scale-110">
                     <span className="font-mono text-xl font-bold">{step.num}</span>
                   </div>
                   <Icon className="h-6 w-6 text-white/20 lg:hidden" />
                 </div>
-                <div className="border border-white/10 bg-white/5 p-6 backdrop-blur-sm transition-colors hover:border-brand-orange/50 hover:bg-white/10">
+                <div className="border border-white/10 bg-white/5 p-6 backdrop-blur-sm transition-colors hover:border-brand-blue/50 hover:bg-white/10">
                   <h3 className="text-lg font-bold text-white mb-3">
                     {step.title}
                   </h3>
@@ -401,82 +403,149 @@ function StatsSection() {
     </section>
   );
 }
+
 /**
  * What we run ourselves. This answers the unspoken question behind every
  * lead time promise: are you actually making this, or subcontracting it?
  */
-function InHouse() {
+export function InHouse() {
   const LINES = [
     {
       icon: Printer,
-      name: "Digital and large format print",
-      detail: "Business cards, flyers, posters, banners, pull up stands and vehicle graphics. Short runs are viable because there is no plate setup.",
+      name: "Digital & Large Format",
+      detail:
+        "Business cards, flyers, posters, banners, pull up stands and vehicle graphics. Short runs are viable because there is no plate setup.",
+      tag: "Zero Setup Fees",
+      color: "text-[#00a7a7]",
+      bg: "bg-[#00a7a7]/10",
+      border: "group-hover:border-[#00a7a7]",
     },
     {
       icon: Shirt,
-      name: "Apparel decoration",
-      detail: "Screen printing, embroidery, vinyl transfer and sublimation. Method chosen by quantity, garment and design, not by what is convenient for us.",
+      name: "Apparel Decoration",
+      detail:
+        "Screen printing, embroidery, vinyl transfer and sublimation. Method chosen by quantity, garment and design, not by what is convenient for us.",
+      tag: "Multi-Process",
+      color: "text-[#de166a]",
+      bg: "bg-[#de166a]/10",
+      border: "group-hover:border-[#de166a]",
     },
     {
       icon: Package,
-      name: "Packaging and finishing",
-      detail: "Stand up pouches, labels, boxes, laser engraving and pad printing on drinkware and executive gifts.",
+      name: "Packaging & Finishing",
+      detail:
+        "Stand up pouches, labels, boxes, laser engraving and pad printing on drinkware and executive gifts.",
+      tag: "Precision Detail",
+      color: "text-[#f78e1f]",
+      bg: "bg-[#f78e1f]/10",
+      border: "group-hover:border-[#f78e1f]",
     },
     {
       icon: Workflow,
-      name: "Studio and prepress",
-      detail: "Artwork clean up, vector redraws, colour separation and proofing. Most files arriving from clients need work before they can be printed properly.",
+      name: "Studio & Prepress",
+      detail:
+        "Artwork clean up, vector redraws, colour separation and proofing. Most files arriving from clients need work before they can be printed properly.",
+      tag: "Free Verification",
+      color: "text-[#783190]",
+      bg: "bg-[#783190]/10",
+      border: "group-hover:border-[#783190]",
     },
   ];
 
   return (
-    <section className="border-b border-brand-navy bg-white">
-      <div className="container-page py-14 sm:py-20 md:py-28">
-        <div className="grid gap-12 lg:grid-cols-5 lg:gap-16">
-          <div className="lg:col-span-2">
-            <h2 className="text-[11px] font-bold uppercase tracking-[0.3em] text-brand-orange">
-              Under one roof
-            </h2>
-            <p className="mt-5 text-2xl font-extrabold leading-tight tracking-tight text-brand-navy sm:mt-6 sm:text-3xl md:text-4xl">
+    <section className="relative overflow-hidden border-b border-[#783190]/10 bg-slate-50/50">
+      {/* Subtle background decoration */}
+      <div className="pointer-events-none absolute left-0 top-0 -translate-x-1/2 -translate-y-1/2 h-96 w-96 rounded-full bg-[#783190] opacity-[0.03] blur-3xl"></div>
+      
+      <div className="container-page relative z-10 py-16 sm:py-24 md:py-32">
+        <div className="grid gap-12 lg:grid-cols-12 lg:gap-16 items-start">
+          
+          {/* Left Column: The Narrative */}
+          <div className="lg:col-span-5 lg:sticky lg:top-32">
+            <div className="inline-flex items-center gap-2 rounded-full bg-[#f78e1f]/10 px-3 py-1.5">
+              <span className="h-2 w-2 rounded-full bg-[#f78e1f] animate-pulse"></span>
+              <h2 className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#f78e1f]">
+                Under one roof
+              </h2>
+            </div>
+            
+            <h3 className="mt-6 text-3xl font-extrabold leading-tight tracking-tight text-[#783190] sm:text-4xl md:text-5xl">
               We make it, so we can promise the date.
-            </p>
-            <p className="mt-5 text-base leading-relaxed text-brand-navy/70">
-              Suppliers who subcontract everything can only pass on someone else's timeline. Running
-              the main production lines ourselves means a delay is ours to solve rather than ours to
-              explain.
-            </p>
-            <p className="mt-4 text-base leading-relaxed text-brand-navy/70">
-              Where a job genuinely needs a specialist, we say so upfront and we still manage it end
-              to end. You deal with one contract and one point of contact either way.
-            </p>
+            </h3>
+            
+            <div className="mt-6 space-y-4 text-base leading-relaxed text-[#783190]/70">
+              <p>
+                Suppliers who subcontract everything can only pass on someone else's timeline. Running
+                the main production lines ourselves means a delay is ours to solve rather than ours to
+                explain.
+              </p>
+              <p>
+                Where a job genuinely needs a specialist, we say so upfront and we still manage it end
+                to end. You deal with one contract and one point of contact either way.
+              </p>
+            </div>
+
+            {/* Value Proposition Box */}
+            <div className="mt-10 rounded-xl bg-white p-6 shadow-sm border border-slate-200">
+              <h4 className="font-bold text-[#783190] mb-4 uppercase tracking-wide text-xs">
+                The In-House Advantage
+              </h4>
+              <ul className="space-y-3">
+                {[
+                  "Direct quality control at every stage",
+                  "No middleman markup on core products",
+                  "Immediate troubleshooting if artwork fails",
+                  "Enterprise-grade capacity guarantees"
+                ].map((item, i) => (
+                  <li key={i} className="flex items-start gap-3">
+                    <CheckCircle2 className="h-5 w-5 shrink-0 text-[#00a7a7]" />
+                    <span className="text-sm font-medium text-[#783190]/80">{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
 
-          <div className="lg:col-span-3">
-            <ul className="divide-y divide-brand-navy/12 border-y border-brand-navy/12">
-              {LINES.map((l, i) => (
-                <li key={l.name} className="group flex gap-5 py-7">
-                  <span className="font-mono text-xs tabular-nums text-brand-orange">
-                    {String(i + 1).padStart(2, "0")}
-                  </span>
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center border-2 border-brand-navy/15 text-brand-navy transition-colors group-hover:border-brand-orange group-hover:text-brand-orange">
-                    <l.icon className="h-5 w-5" />
+          {/* Right Column: The Grid */}
+          <div className="lg:col-span-7">
+            <div className="grid gap-6 sm:grid-cols-2">
+              {LINES.map((l) => (
+                <div 
+                  key={l.name} 
+                  className={`group relative flex flex-col rounded-2xl bg-white p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl border border-slate-150 ${l.border}`}
+                >
+                  {/* Top Header of Card */}
+                  <div className="mb-5 flex items-start justify-between gap-4">
+                    <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${l.bg} ${l.color} transition-transform duration-300 group-hover:scale-110`}>
+                      <l.icon className="h-6 w-6" />
+                    </div>
+                    <span className="inline-flex rounded bg-slate-100 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-500 transition-colors group-hover:bg-slate-200">
+                      {l.tag}
+                    </span>
                   </div>
-                  <div>
-                    <h3 className="text-base font-extrabold tracking-tight text-brand-navy">
+
+                  {/* Body of Card */}
+                  <div className="flex-1">
+                    <h4 className="text-lg font-extrabold tracking-tight text-[#783190]">
                       {l.name}
-                    </h3>
-                    <p className="mt-1.5 text-sm leading-relaxed text-brand-navy/65">{l.detail}</p>
+                    </h4>
+                    <p className="mt-2 text-sm leading-relaxed text-[#783190]/65">
+                      {l.detail}
+                    </p>
                   </div>
-                </li>
+                  
+                  {/* Decorative corner accent */}
+                  <div className="absolute -bottom-2 -right-2 h-16 w-16 rounded-tl-3xl bg-slate-50 opacity-0 transition-opacity duration-300 group-hover:opacity-100 -z-10"></div>
+                </div>
               ))}
-            </ul>
+            </div>
           </div>
+          
         </div>
       </div>
     </section>
   );
 }
-
 /**
  * What we commit to and what we will not do. Being specific about
  * refusals is more credible than a page of promises.
@@ -498,64 +567,102 @@ function Standards() {
   ];
 
   return (
-    <section className="border-b border-brand-navy bg-white">
-      <div className="container-page py-14 sm:py-20 md:py-28">
+    <section className="relative overflow-hidden border-b border-[#783190]/10 bg-slate-50/50 py-16 sm:py-24 md:py-28">
+      <div className="container-page relative z-10">
         <div className="max-w-3xl">
-          <h2 className="text-[11px] font-bold uppercase tracking-[0.3em] text-brand-orange">
-            How we hold ourselves
-          </h2>
-          <p className="mt-5 text-2xl font-extrabold leading-tight tracking-tight text-brand-navy sm:mt-6 sm:text-3xl md:text-4xl">
+          <div className="inline-flex items-center gap-2 rounded-full bg-[#f78e1f]/10 px-3 py-1.5">
+            <span className="h-2 w-2 rounded-full bg-[#f78e1f]"></span>
+            <h2 className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#f78e1f]">
+              How we hold ourselves
+            </h2>
+          </div>
+          <h3 className="mt-5 text-3xl font-extrabold leading-tight tracking-tight text-[#783190] sm:text-4xl md:text-5xl">
             The commitments that matter are the ones with teeth.
-          </p>
-          <p className="mt-4 text-base leading-relaxed text-brand-navy/70 sm:mt-5 sm:text-lg">
+          </h3>
+          <p className="mt-4 text-base leading-relaxed text-[#783190]/70 sm:text-lg">
             Every supplier claims quality. What tells you more is what they refuse to do when it
             would be easier not to refuse.
           </p>
         </div>
 
-        <div className="mt-14 grid gap-px border border-brand-navy/15 bg-brand-navy/15 lg:grid-cols-2">
-          <div className="bg-white p-6 sm:p-8 md:p-10">
-            <div className="flex items-center gap-3">
-              <CheckCircle2 className="h-5 w-5 text-brand-orange" />
-              <h3 className="text-sm font-black uppercase tracking-widest text-brand-navy">
-                What we always do
-              </h3>
+        <div className="mt-12 sm:mt-16 grid overflow-hidden rounded-2xl border border-slate-200 shadow-lg lg:grid-cols-2">
+          <div className="bg-white p-7 sm:p-10 md:p-12">
+            <div className="flex items-center gap-3 border-b border-slate-100 pb-6">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#00a7a7]/10 text-[#00a7a7]">
+                <CheckCircle2 className="h-6 w-6" />
+              </div>
+              <div>
+                <h4 className="text-xs font-bold uppercase tracking-widest text-[#00a7a7]">
+                  Standard Operating Procedure
+                </h4>
+                <h5 className="text-xl font-extrabold text-[#783190]">
+                  What we always do
+                </h5>
+              </div>
             </div>
-            <ul className="mt-7 space-y-4">
-              {WE_DO.map((item) => (
-                <li key={item} className="flex gap-3 text-sm leading-relaxed text-brand-navy/75">
-                  <span className="mt-2 h-1.5 w-1.5 shrink-0 bg-brand-orange" />
-                  {item}
+
+            <ul className="mt-8 space-y-5">
+              {WE_DO.map((item, idx) => (
+                <li key={idx} className="flex items-start gap-3.5 text-sm leading-relaxed text-slate-700">
+                  <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#00a7a7]/15 text-[#00a7a7]">
+                    <Check className="h-3.5 w-3.5 stroke-3" />
+                  </div>
+                  <span>{item}</span>
                 </li>
               ))}
             </ul>
           </div>
 
-          <div className="bg-brand-navy p-6 text-white sm:p-8 md:p-10">
-            <div className="flex items-center gap-3">
-              <XCircle className="h-5 w-5 text-brand-orange" />
-              <h3 className="text-sm font-black uppercase tracking-widest">
-                What we never do
-              </h3>
+          <div className="relative overflow-hidden bg-[#783190] p-7 text-white sm:p-10 md:p-12">
+            <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full "></div>
+
+            <div className="relative z-10 flex items-center gap-3 border-b border-white/15 pb-6">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-[#00a7a7]">
+                <XCircle className="h-6 w-6" />
+              </div>
+              <div>
+                <h4 className="text-xs font-bold uppercase tracking-widest text-[#00a7a7]">
+                  Non-Negotiables
+                </h4>
+                <h5 className="text-xl font-extrabold text-white">
+                  What we never do
+                </h5>
+              </div>
             </div>
-            <ul className="mt-7 space-y-4">
-              {WE_DO_NOT.map((item) => (
-                <li key={item} className="flex gap-3 text-sm leading-relaxed text-white/75">
-                  <span className="mt-2 h-1.5 w-1.5 shrink-0 bg-brand-orange" />
-                  {item}
+
+            <ul className="relative z-10 mt-8 space-y-5">
+              {WE_DO_NOT.map((item, idx) => (
+                <li key={idx} className="flex items-start gap-3.5 text-sm leading-relaxed text-white/85">
+                  <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#00a7a7] text-[ #783190]">
+                    <X className="h-3.5 w-3.5 stroke-3" />
+                  </div>
+                  <span>{item}</span>
                 </li>
               ))}
             </ul>
           </div>
         </div>
 
-        <div className="mt-10 flex flex-wrap items-center gap-4 border border-brand-navy/15 bg-brand-surface p-6">
-          <Award className="h-6 w-6 shrink-0 text-brand-orange" />
-          <p className="text-sm leading-relaxed text-brand-navy/75">
-            <span className="font-bold text-brand-navy">Our reprint guarantee.</span> If the finished
-            work does not match the proof you approved, we produce it again at our cost. That is the
-            whole policy, and it is why the proof stage is never skipped.
-          </p>
+        <div className="mt-8 rounded-2xl border border-[#00a7a7]/30 bg-linear-to-r from-[#00a7a7]/10 via-white to-white p-6 sm:p-8 shadow-sm">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#00a7a7] text-white shadow-md">
+              <ShieldCheck className="h-6 w-6" />
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold uppercase tracking-wider text-[#00a7a7]">
+                  Ironclad Promise
+                </span>
+                <span className="h-1 w-1 rounded-full bg-[#00a7a7]"></span>
+                <span className="text-xs font-bold text-[#783190]">Zero Risk</span>
+              </div>
+              <p className="mt-1 text-sm leading-relaxed text-slate-700 sm:text-base">
+                <strong className="font-extrabold text-[#783190]">Our reprint guarantee:</strong> If the finished
+                work does not match the proof you approved, we reproduce it immediately at our cost. That is the
+                whole policy, which is why the proof stage is never skipped.
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     </section>
@@ -679,7 +786,7 @@ function CallToAction() {
           <div className="mt-10 flex flex-wrap justify-center gap-4">
             <a
               href="/request-quote"
-              className="inline-flex w-full items-center justify-center gap-2 bg-brand-orange px-8 py-4 text-sm font-bold uppercase tracking-wide text-white transition-all hover:-translate-y-0.5 hover:brightness-95 sm:w-auto"
+              className="inline-flex w-full items-center justify-center gap-2 bg-brand-blue px-8 py-4 text-sm font-bold uppercase tracking-wide text-white transition-all hover:-translate-y-0.5 hover:brightness-95 sm:w-auto"
             >
               Request a quote
               <ArrowRight className="h-4 w-4" />

@@ -50,7 +50,6 @@ const SOCIALS = [
   { icon: InstagramIcon, label: "Instagram", href: "https://www.instagram.com/protocol_promotions?igsh=MzRlODBiNWFlZA==" },
   { icon: TikTokIcon, label: "TikTok", href: "#" },
   { icon: XIcon, label: "X", href: "#" },
-  { icon: YoutubeIcon, label: "YouTube", href: "#" },
 ];
 
 /* ================================================================
@@ -76,7 +75,7 @@ export function TopBar() {
       <div className="container-page flex h-12 items-center justify-between">
         {/* Left: free-delivery + contact */}
         <div className="flex items-center gap-6">
-          <span className="group inline-flex items-center gap-2 font-medium text-white/90">
+          <span className="group inline-flex items-center gap-2 font-medium text-white">
             <Truck className="h-4 w-4 text-brand-orange transition-transform duration-300 group-hover:-translate-y-0.5" />
             Free delivery over{" "}
             <span className="font-bold text-brand-orange">{KSH.format(FREE_DELIVERY_THRESHOLD)}</span>
@@ -86,13 +85,13 @@ export function TopBar() {
 
           <a
             href="tel:+254762446077"
-            className="hidden items-center gap-2 font-medium text-white/80 transition-colors duration-200 hover:text-brand-orange lg:inline-flex"
+            className="hidden items-center gap-2 font-medium text-white transition-colors duration-200 hover:text-brand-orange lg:inline-flex"
           >
             <Phone className="h-4 w-4 text-brand-orange/80" /> +254 762 446 077
           </a>
           <a
             href="mailto:protocolpromotions@gmail.com"
-            className="hidden items-center gap-2 font-medium text-white/80 transition-colors duration-200 hover:text-brand-orange xl:inline-flex"
+            className="hidden items-center gap-2 font-medium text-white transition-colors duration-200 hover:text-brand-orange xl:inline-flex"
           >
             <Mail className="h-4 w-4 text-brand-orange/80" /> protocolpromotions@gmail.com
           </a>
@@ -110,7 +109,7 @@ export function TopBar() {
               target="_blank"
               rel="noopener noreferrer"
               aria-label={s.label}
-              className="grid h-8 w-8 place-items-center rounded-full text-white/75 transition-all duration-200 hover:-translate-y-0.5 hover:bg-white/10 hover:text-brand-orange"
+              className="grid h-8 w-8 place-items-center rounded-full text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-white hover:text-brand-blue"
             >
               <s.icon className="h-4.5 w-4.5" />
             </a>

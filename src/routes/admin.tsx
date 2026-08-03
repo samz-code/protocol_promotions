@@ -67,17 +67,17 @@ function AdminShell() {
   if (isLoading) {
     return (
       <div className="grid min-h-screen place-items-center bg-white">
-        <Loader2 className="h-6 w-6 animate-spin text-brand-navy" />
+        <Loader2 className="h-6 w-6 animate-spin text-[#783190]" />
       </div>
     );
   }
 
   if (!session) {
-    return <Denied reason="signed-out" />;
+    return <Denied reason="signed-out" />
   }
 
   if (!isStaff) {
-    return <Denied reason="not-staff" />;
+    return <Denied reason="not-staff" />
   }
 
   async function handleSignOut() {
@@ -89,15 +89,15 @@ function AdminShell() {
     <div className="min-h-screen bg-white">
       <div className="flex">
         {/* Desktop sidebar */}
-        <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-brand-navy bg-brand-navy text-white lg:flex">
+        <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-[#783190] bg-[#783190] text-white lg:flex">
           <SidebarBody profile={profile} onSignOut={handleSignOut} />
         </aside>
 
         {/* Mobile drawer */}
         {mobileOpen && (
-          <div className="fixed inset-0 z-50 bg-brand-navy/50 lg:hidden" onClick={() => setMobileOpen(false)}>
+          <div className="fixed inset-0 z-50 bg-[#783190]/50 lg:hidden" onClick={() => setMobileOpen(false)}>
             <aside
-              className="absolute inset-y-0 left-0 flex w-72 flex-col bg-brand-navy text-white"
+              className="absolute inset-y-0 left-0 flex w-72 flex-col bg-[#783190] text-white"
               onClick={(e) => e.stopPropagation()}
             >
               <button
@@ -156,7 +156,7 @@ function SidebarBody({
 
           return (
             <div key={group} className="mb-5">
-              <div className="px-5 pb-2 text-[10px] font-bold uppercase tracking-[0.18em] text-white/35">
+              <div className="px-5 pb-2 text-[10px] font-bold uppercase tracking-[0.18em] text-white/40">
                 {group}
               </div>
               {items.map((item) => {
@@ -172,8 +172,8 @@ function SidebarBody({
                     onClick={onNavigate}
                     className={`flex items-center gap-3 border-l-2 px-5 py-2.5 text-sm font-semibold transition-colors ${
                       isActive
-                        ? "border-brand-orange bg-white/10 text-white"
-                        : "border-transparent text-white/60 hover:border-white/25 hover:bg-white/5 hover:text-white"
+                        ? "border-[#00a7a7] bg-white/10 text-white"
+                        : "border-transparent text-white/70 hover:border-white/25 hover:bg-white/5 hover:text-white"
                     }`}
                   >
                     <item.icon className="h-4 w-4 shrink-0" />
@@ -188,14 +188,14 @@ function SidebarBody({
 
       <div className="border-t border-white/15 px-5 py-4">
         <div className="truncate text-sm font-bold">{profile?.full_name ?? "Unnamed"}</div>
-        <div className="mt-0.5 truncate text-xs text-white/50">{profile?.email}</div>
-        <div className="mt-1 inline-block bg-brand-orange px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white">
+        <div className="mt-0.5 truncate text-xs text-white/60">{profile?.email}</div>
+        <div className="mt-1.5 inline-block rounded bg-[#00a7a7] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white">
           {profile?.role}
         </div>
         <button
           type="button"
           onClick={onSignOut}
-          className="mt-4 flex w-full items-center gap-2 text-xs font-bold uppercase tracking-wide text-white/50 transition-colors hover:text-brand-orange"
+          className="mt-4 flex w-full items-center gap-2 text-xs font-bold uppercase tracking-wide text-white/50 transition-colors hover:text-[#00a7a7]"
         >
           <LogOut className="h-3.5 w-3.5" />
           Sign out
@@ -226,11 +226,11 @@ function TopBar({ onOpenMenu }: { onOpenMenu: () => void }) {
   });
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-brand-navy bg-white px-5 md:px-8">
+    <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-[#783190]/20 bg-white px-5 md:px-8">
       <button
         type="button"
         onClick={onOpenMenu}
-        className="grid h-9 w-9 place-items-center text-brand-navy lg:hidden"
+        className="grid h-9 w-9 place-items-center text-[#783190] lg:hidden"
         aria-label="Open menu"
       >
         <Menu className="h-5 w-5" />
@@ -239,19 +239,19 @@ function TopBar({ onOpenMenu }: { onOpenMenu: () => void }) {
       <div className="ml-auto flex items-center gap-4">
         <Link
           to="/"
-          className="text-xs font-bold uppercase tracking-wide text-brand-navy/60 transition-colors hover:text-brand-orange"
+          className="text-xs font-bold uppercase tracking-wide text-[#783190]/70 transition-colors hover:text-[#00a7a7]"
         >
           View site
         </Link>
         <Link
           to="/admin/notifications"
-          className="relative grid h-9 w-9 place-items-center text-brand-navy transition-colors hover:text-brand-orange"
+          className="relative grid h-9 w-9 place-items-center text-[#783190] transition-colors hover:text-[#00a7a7]"
           aria-label={`${unread} unread notifications`}
           title="Notifications"
         >
           <Bell className="h-5 w-5" />
           {unread > 0 && (
-            <span className="absolute -right-0.5 -top-0.5 grid h-4 min-w-4 place-items-center bg-brand-orange px-1 text-[9px] font-bold text-white">
+            <span className="absolute -right-0.5 -top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-[#de166a] px-1 text-[9px] font-bold text-white shadow-sm">
               {unread > 99 ? "99+" : unread}
             </span>
           )}
@@ -266,29 +266,29 @@ function Denied({ reason }: { reason: "signed-out" | "not-staff" }) {
 
   return (
     <div className="grid min-h-screen place-items-center bg-white px-5">
-      <div className="max-w-md">
-        <ShieldOff className="h-10 w-10 text-brand-orange" />
-        <h1 className="mt-6 text-4xl font-extrabold leading-tight tracking-tight text-brand-navy">
+      <div className="max-w-md text-center md:text-left">
+        <ShieldOff className="mx-auto md:mx-0 h-12 w-12 text-[#de166a]" />
+        <h1 className="mt-6 text-4xl font-extrabold leading-tight tracking-tight text-[#783190]">
           {signedOut ? "You are not signed in." : "This is not for you."}
         </h1>
-        <p className="mt-5 text-base leading-relaxed text-brand-navy/70">
+        <p className="mt-5 text-base leading-relaxed text-[#783190]/70">
           {signedOut
             ? "The control room needs a staff account. Sign in and try again."
             : "Your account exists, but it does not carry staff or admin permissions. If that is wrong, someone with an admin account needs to change your role."}
         </p>
-        <div className="mt-8 flex flex-wrap gap-3">
+        <div className="mt-8 flex flex-wrap justify-center md:justify-start gap-3">
           {signedOut ? (
             <Link
               to="/login"
               search={{ redirect: "/admin" }}
-              className="inline-flex items-center gap-2 bg-brand-navy px-7 py-3.5 text-sm font-bold uppercase tracking-wide text-white transition-all hover:-translate-y-0.5 hover:brightness-110"
+              className="inline-flex items-center gap-2 rounded bg-[#783190] px-7 py-3.5 text-sm font-bold uppercase tracking-wide text-white transition-all hover:-translate-y-0.5 hover:brightness-110"
             >
               Sign in
             </Link>
           ) : null}
           <Link
             to="/"
-            className="inline-flex items-center gap-2 border border-brand-navy px-7 py-3.5 text-sm font-bold uppercase tracking-wide text-brand-navy transition-all hover:-translate-y-0.5 hover:border-brand-orange hover:text-brand-orange"
+            className="inline-flex items-center gap-2 rounded border border-[#783190] px-7 py-3.5 text-sm font-bold uppercase tracking-wide text-[#783190] transition-all hover:-translate-y-0.5 hover:border-[#00a7a7] hover:text-[#00a7a7]"
           >
             Back to site
           </Link>

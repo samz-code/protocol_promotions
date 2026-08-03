@@ -1,6 +1,16 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, type FormEvent } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { Menu, Search, ShoppingCart, User, ChevronDown, X } from "lucide-react";
+import {
+  Menu,
+  Search,
+  ShoppingCart,
+  User,
+  ChevronDown,
+  X,
+  ArrowRight,
+  TrendingUp,
+  Sparkles,
+} from "lucide-react";
 import { Logo } from "./Logo";
 import { shopMenu, services, industries } from "./nav-data";
 import { Button } from "@/components/ui/button";
@@ -144,15 +154,13 @@ function SearchOverlay({ onClose }: { onClose: () => void }) {
     };
   }, [onClose]);
 
-  function submit(e: React.FormEvent) {
+  function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const query = q.trim();
     if (!query) return;
     navigate({ to: "/shop", search: { q: query } });
     onClose();
   }
-
-  const suggestions = ["Polo shirts", "Hoodies", "Mugs", "Banners", "Business cards", "Tote bags"];
 
   return (
     <div
@@ -173,7 +181,6 @@ function SearchOverlay({ onClose }: { onClose: () => void }) {
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Search products, categories, materials..."
-            /* 16px minimum stops iOS Safari zooming the page on focus */
             className="min-w-0 flex-1 py-4 text-base text-brand-navy outline-none placeholder:text-brand-navy/35 sm:py-5 sm:text-lg"
           />
           <button
@@ -191,23 +198,133 @@ function SearchOverlay({ onClose }: { onClose: () => void }) {
             Popular searches
           </div>
           <div className="flex flex-wrap gap-2">
-            {suggestions.map((s) => (
+            {SUGGESTIONS.slice(0, 8).map((item) => (
               <button
-                key={s}
+                key={item.term}
                 type="button"
                 onClick={() => {
-                  navigate({ to: "/shop", search: { q: s } });
+                  navigate({ to: "/shop", search: { q: item.term } });
                   onClose();
                 }}
                 className="rounded-full border border-brand-navy/15 bg-white px-3.5 py-1.5 text-sm font-medium text-brand-navy/70 transition-colors hover:border-brand-navy hover:text-brand-navy"
               >
-                {s}
+                {item.term}
               </button>
             ))}
           </div>
           <p className="mt-5 hidden text-xs text-brand-navy/45 sm:block">
             Press Enter to search, or Escape to close.
           </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const SUGGESTIONS = [
+  { term: "Custom Polo Shirts", category: "Apparel", popular: true },
+  { term: "Heavyweight Hoodies", category: "Apparel", popular: false },
+  { term: "Laser Engraved Mugs", category: "Merchandise", popular: true },
+  { term: "Vinyl Outdoor Banners", category: "Signage", popular: true },
+  { term: "Soft-Touch Business Cards", category: "Print", popular: true },
+  { term: "Eco-Friendly Tote Bags", category: "Merchandise", popular: false },
+  { term: "DTF Custom Workwear", category: "Apparel", popular: true },
+  { term: "Bespoke Packaging Boxes", category: "Packaging", popular: false },
+  { term: "Acrylic 3D Office Signs", category: "Signage", popular: false },
+  { term: "Spot UV Presentation Folders", category: "Print", popular: false },
+] as const;
+
+const CATEGORIES = ["All", "Apparel", "Print", "Signage", "Merchandise", "Packaging"] as const;
+
+export function SearchSection() {
+  const [query, setQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<string>("All");
+
+  const filteredSuggestions = SUGGESTIONS.filter((item) => {
+    const matchesQuery = item.term.toLowerCase().includes(query.toLowerCase());
+    const matchesCategory = selectedCategory === "All" || item.category === selectedCategory;
+    return matchesQuery && matchesCategory;
+  });
+
+  return (
+    <div className="w-full max-w-3xl">
+      <div className="relative flex items-center">
+        <div className="pointer-events-none absolute left-5 flex items-center justify-center text-[#783190]">
+          <Search className="h-5 w-5 stroke-[2.5]" />
+        </div>
+
+        <input
+          type="text"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search products (e.g., 'Embroidered Polo Shirts', 'Spot UV Cards')..."
+          className="h-14 w-full rounded-2xl border-2 border-slate-200 bg-white pl-13 pr-24 text-sm font-medium text-slate-800 placeholder-slate-400 outline-none shadow-sm transition-all focus:border-[#783190] focus:ring-4 focus:ring-[#783190]/10"
+        />
+
+        <div className="absolute right-3 flex items-center gap-2">
+          {query && (
+            <button
+              onClick={() => setQuery("")}
+              className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-slate-500 hover:bg-slate-200 transition-colors"
+              aria-label="Clear search"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+          <button
+            className="flex h-9 items-center gap-1.5 rounded-xl bg-[#783190] px-4 text-xs font-bold uppercase tracking-wider text-white transition-all hover:bg-[#5b236f]"
+          >
+            <span>Search</span>
+            <ArrowRight className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      </div>
+
+      <div className="mt-4 flex flex-wrap items-center gap-2">
+        <span className="text-xs font-bold uppercase tracking-wider text-slate-400 mr-1">
+          Category:
+        </span>
+        {CATEGORIES.map((cat) => (
+          <button
+            key={cat}
+            onClick={() => setSelectedCategory(cat)}
+            className={`rounded-lg px-3 py-1 text-xs font-bold transition-all ${
+              selectedCategory === cat
+                ? "bg-[#783190] text-white shadow-sm"
+                : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+            }`}
+          >
+            {cat}
+          </button>
+        ))}
+      </div>
+
+      <div className="mt-5">
+        <div className="flex items-center gap-1.5 text-xs font-bold text-[#f78e1f] uppercase tracking-wider mb-2.5">
+          <TrendingUp className="h-4 w-4" />
+          <span>Popular Searches</span>
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          {filteredSuggestions.length > 0 ? (
+            filteredSuggestions.map((item) => (
+              <button
+                key={item.term}
+                onClick={() => setQuery(item.term)}
+                className="group flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 shadow-xs transition-all hover:border-[#00a7a7] hover:bg-[#00a7a7]/5 hover:text-[#00a7a7]"
+              >
+                <span>{item.term}</span>
+                {item.popular && (
+                  <span className="flex items-center gap-0.5 rounded-md bg-[#de166a]/10 px-1.5 py-0.5 text-[9px] font-bold text-[#de166a]">
+                    <Sparkles className="h-2.5 w-2.5" />
+                    HOT
+                  </span>
+                )}
+              </button>
+            ))
+          ) : (
+            <p className="text-xs text-slate-400 italic">No matching products found.</p>
+          )}
         </div>
       </div>
     </div>
@@ -301,7 +418,7 @@ function ShopPanel({ onSelect }: { onSelect: () => void }) {
                   <Link
                     to={it.href}
                     onClick={onSelect}
-                    className="block rounded-md px-2 py-1.5 text-[14.5px] font-medium text-brand-navy/80 transition-colors hover:bg-white hover:text-brand-orange"
+                    className="block rounded-md px-2 py-1.5 text-[14.5px] font-medium text-brand-navy/80 transition-colors hover:bg-white hover:text-brand-blue"
                   >
                     {it.label}
                   </Link>
@@ -338,7 +455,7 @@ function SimplePanel({
             key={it}
             to={basePath}
             onClick={onSelect}
-            className="py-1.5 text-[14.5px] font-medium text-brand-navy/80 transition-colors hover:text-brand-orange"
+            className="py-1.5 text-[14.5px] font-medium text-brand-navy/80 transition-colors hover:text-brand-blue"
           >
             {it}
           </Link>

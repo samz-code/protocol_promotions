@@ -1,18 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import logoImg from "@/assets/logo.png";
 
-/* ================================================================
-   Preloader
-   Branded splash shown on first paint of the homepage. Holds for a
-   minimum beat so the logo actually registers, then waits for the
-   window load event before dismissing.
-
-   Safety rules baked in:
-   - Hard ceiling (MAX_MS) so a stalled image can never trap a visitor
-   - Skips entirely for prefers-reduced-motion and for repeat visits
-     within the same tab session
-   - Restores body scroll on every exit path, including unmount
-   ================================================================ */
 
 const MIN_MS = 1500; // minimum time the splash stays up
 const MAX_MS = 4000; // absolute ceiling, dismiss no matter what

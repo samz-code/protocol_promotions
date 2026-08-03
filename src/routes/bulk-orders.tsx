@@ -58,14 +58,14 @@ function BulkPage() {
             </ul>
           </div>
 
-          <div className="bg-brand-navy text-white p-8 rounded-xl">
+          <div className="bg-brand-blue text-white p-8 rounded-xl">
             <h3 className="font-bold text-lg mb-5">Bulk orders</h3>
             <ul className="space-y-3 text-sm text-white/80">
-              <li className="flex items-start gap-2"><Check className="h-4 w-4 text-brand-orange mt-0.5 shrink-0" /> Custom specs, materials, and branding methods matched to your budget</li>
-              <li className="flex items-start gap-2"><Check className="h-4 w-4 text-brand-orange mt-0.5 shrink-0" /> Unit price drops as your quantity grows</li>
-              <li className="flex items-start gap-2"><Check className="h-4 w-4 text-brand-orange mt-0.5 shrink-0" /> One contact managing files, production, and shipping</li>
-              <li className="flex items-start gap-2"><Check className="h-4 w-4 text-brand-orange mt-0.5 shrink-0" /> Every unit checked against one approved master sample</li>
-              <li className="flex items-start gap-2"><Check className="h-4 w-4 text-brand-orange mt-0.5 shrink-0" /> Delivery coordinated across multiple offices or branches</li>
+              <li className="flex items-start gap-2"><Check className="h-4 w-4 text-brand-navy mt-0.5 shrink-0" /> Custom specs, materials, and branding methods matched to your budget</li>
+              <li className="flex items-start gap-2"><Check className="h-4 w-4 text-brand-navy mt-0.5 shrink-0" /> Unit price drops as your quantity grows</li>
+              <li className="flex items-start gap-2"><Check className="h-4 w-4 text-brand-navy mt-0.5 shrink-0" /> One contact managing files, production, and shipping</li>
+              <li className="flex items-start gap-2"><Check className="h-4 w-4 text-brand-navy mt-0.5 shrink-0" /> Every unit checked against one approved master sample</li>
+              <li className="flex items-start gap-2"><Check className="h-4 w-4 text-brand-navy mt-0.5 shrink-0" /> Delivery coordinated across multiple offices or branches</li>
             </ul>
           </div>
         </div>
@@ -122,7 +122,7 @@ function BulkPage() {
 
           {/* Sticky Quote Card */}
           <div className="lg:col-span-1">
-            <div className="sticky top-24 bg-brand-navy text-white p-8 rounded-xl">
+            <div className="sticky top-24 bg-brand-blue text-white p-8 rounded-xl">
               <h2 className="text-2xl font-extrabold">Need a custom quote?</h2>
               <p className="mt-4 text-white/80 leading-relaxed">
                 Provide us with your quantities, deadline, and artwork. Our bulk specialists will build a detailed proposal for you within one business day.
@@ -141,7 +141,7 @@ function BulkPage() {
       {/* Workflow Section */}
       <section className="bg-brand-navy/5 py-20 border-y border-border">
         <div className="container-page">
-          <h2 className="text-3xl font-extrabold text-brand-navy mb-3">How a bulk order actually runs</h2>
+          <h2 className="text-3xl font-extrabold text-brand-blue mb-3">How a bulk order actually runs</h2>
           <p className="text-foreground/70 max-w-2xl mb-12 leading-relaxed">
             Three stages, in order. Nothing moves to production until you've approved a physical or digital sample.
           </p>
@@ -153,7 +153,7 @@ function BulkPage() {
             ].map((s) => (
               <div key={s.step} className="bg-white p-8 rounded-xl border border-border">
                 <div className="text-brand-orange font-bold mb-4">{s.step}</div>
-                <h4 className="text-lg font-bold text-brand-navy mb-2">{s.title}</h4>
+                <h4 className="text-lg font-bold text-brand-blue mb-2">{s.title}</h4>
                 <p className="text-sm text-foreground/70">{s.desc}</p>
               </div>
             ))}

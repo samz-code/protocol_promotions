@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { MapPin, Phone, Mail, Code2, ChevronDown, ArrowRight } from "lucide-react";
+import { MapPin, Phone, Mail, Code2, ChevronDown, ArrowRight, Zap } from "lucide-react";
 import type { SVGProps } from "react";
 import { Logo } from "./Logo";
 
@@ -53,7 +53,6 @@ const SOCIALS = [
   { icon: InstagramIcon, label: "Instagram", href: "https://www.instagram.com/protocol_promotions?igsh=MzRlODBiNWFlZA==" },
   { icon: TikTokIcon, label: "TikTok", href: "#" },
   { icon: XIcon, label: "X", href: "#" },
-  { icon: YoutubeIcon, label: "YouTube", href: "#" },
 ];
 
 type FooterLink = { to: string; label: string };
@@ -101,38 +100,18 @@ export function Footer() {
       {/* Top accent hairline */}
       <div className="h-0.5 w-full bg-brand-orange/70" />
 
-      {/* CTA banner — gives the mobile footer an immediate hook */}
-      <div className="border-b border-white/10">
-        <div className="container-page flex flex-col items-start gap-4 py-8 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h3 className="text-lg font-extrabold text-white sm:text-xl">
-              Ready to brand something?
-            </h3>
-            <p className="mt-1 text-sm text-white/60">
-              Send the brief. We come back with a real price and a real date.
-            </p>
-          </div>
-          <Link
-            to="/request-quote"
-            className="group inline-flex w-full items-center justify-center gap-2 bg-brand-orange px-6 py-3.5 text-sm font-bold uppercase tracking-wide text-white transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[5px_5px_0_0_rgba(255,255,255,0.25)] sm:w-auto"
-          >
-            Request a quote
-            <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
-          </Link>
-        </div>
-      </div>
-
+      
       {/* Main grid */}
       <div className="container-page grid gap-8 py-12 md:grid-cols-2 md:gap-10 lg:grid-cols-5 lg:py-14">
-        {/* Brand + contact + socials */}
         <div className="lg:col-span-2">
-          <div className="inline-block rounded-md bg-white p-2">
-            <Logo />
-          </div>
-          <p className="mt-4 max-w-sm text-sm leading-relaxed text-white/70">
-            Kenya's enterprise partner for branding, printing and promotional products. Real
-            products, real production, real accountability — from artwork upload to delivery.
-          </p>
+        <Logo 
+  variant="footer" 
+  imgClassName="h-16 md:h-20 brightness-0 invert" 
+/>
+<p className="mt-4 max-w-sm text-sm leading-relaxed text-white/70">
+  Kenya's enterprise partner offering full printing, branding, and promotional items. 
+  Real products, real production, real accountability  from artwork upload to delivery.
+</p>
 
           {/* Contact — carded on mobile so it reads as a distinct block */}
           <div className="mt-6 space-y-2.5 border-t border-white/10 pt-5 text-sm sm:border-0 sm:pt-0">

@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import logoAsset from "@/assets/logo.png";
+import footerLogoAsset from "@/assets/footerlogo.png";
 
 /**
  * Brand mark.
@@ -11,6 +12,8 @@ import logoAsset from "@/assets/logo.png";
  * Pass `asLink={false}` when this sits inside something that is already a
  * link or a button, since nesting anchors is invalid HTML and breaks
  * keyboard navigation.
+ * 
+ * Pass `variant="footer"` to use the alternative footer logo asset.
  */
 export function Logo({
   className = "",
@@ -18,16 +21,21 @@ export function Logo({
   to = "/",
   asLink = true,
   priority = false,
+  variant = "default",
 }: {
   className?: string;
   imgClassName?: string;
   to?: string;
   asLink?: boolean;
   priority?: boolean;
+  variant?: "default" | "footer";
 }) {
+  // Determine which image file to display based on the variant prop
+  const activeLogo = variant === "footer" ? footerLogoAsset : logoAsset;
+
   const img = (
     <img
-      src={logoAsset}
+      src={activeLogo}
       alt="Protocol Promotions"
       width={220}
       height={60}

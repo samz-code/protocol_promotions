@@ -30,6 +30,12 @@ import {
   Loader2,
   ChevronUp,
   ChevronDown,
+  Printer,
+  Presentation,
+  Palette,
+  Package,
+  Gift,
+  Shirt,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
@@ -431,7 +437,7 @@ function LogoMarquee() {
         <DotField className="pp-mask-fade-center opacity-30" />
       </div>
 
-      <p className="relative mb-10 text-center text-[10px] font-bold uppercase tracking-[0.3em] text-brand-navy/35">
+      <p className="relative mb-18 text-center text-[10px] font-bold uppercase tracking-[0.3em] text-brand-navy/35">
         Trusted by industry leaders
       </p>
 
@@ -462,66 +468,108 @@ function LogoMarquee() {
   );
 }
 
-/* ================================================================
-   Hero
-   ================================================================ */
 
 /* ----------------------------------------------------------------
-   Offerings data — the left rail's content. Edit freely; the rail
-   auto-adapts to however many items you list.
+   Keyword-Rich Offerings Data
    ---------------------------------------------------------------- */
-
 const OFFERINGS = [
   {
-    icon: Layers,
-    title: "Printing & Branding",
-    desc: "Business cards, banners and branded collateral, produced in-house.",
+    icon: Printer,
+    title: "Commercial Print & Stationery",
+    tag: "High-Volume & Offset",
+    desc: "Luxury business cards, spot UV varnish, foil stamping, booklets, catalog design, and letterheads.",
+    color: "bg-[#00a7a7]",
   },
   {
-    icon: Paintbrush,
-    title: "Design & Development",
-    desc: "Brand identity, layout and creative direction for every project.",
+    icon: Shirt,
+    title: "Apparel & Custom Uniforms",
+    tag: "Multi-Method Decorating",
+    desc: "High-density embroidery, direct-to-film (DTF), screen printing, and sublimation on workwear & tees.",
+    color: "bg-[#de166a]",
   },
   {
-    icon: Scissors,
-    title: "Apparel & Merchandise",
-    desc: "Embroidery, DTF and screen printing on tees, aprons and uniforms.",
+    icon: Building2,
+    title: "Large Format & Signage",
+    tag: "Indoor & Outdoor",
+    desc: "Architectural 3D acrylic lettering, vinyl wall wraps, vehicle branding, and weatherproof outdoor banners.",
+    color: "bg-[#f78e1f]",
   },
   {
-    icon: PackageCheck,
-    title: "Corporate Gifts",
-    desc: "Branded giveaways, journals and executive gift sets for events.",
+    icon: Presentation,
+    title: "Trade Show & Event Displays",
+    tag: "Rapid Assembly",
+    desc: "Tension fabric media walls, roll-up pop banners, custom teardrop flags, and modular exhibition booths.",
+    color: "bg-[#783190]",
   },
   {
-    icon: Building,
-    title: "Signage & Large Format",
-    desc: "Roll-up banners, event backdrops and outdoor signage.",
+    icon: Package,
+    title: "Bespoke Packaging & Boxes",
+    tag: "Custom Die-Cut",
+    desc: "Rigid magnetic boxes, eco-friendly kraft packaging, stand-up pouches, and custom product sleeves.",
+    color: "bg-[#00a7a7]",
   },
   {
-    icon: ClipboardList,
-    title: "Packaging & Finishing",
-    desc: "Custom packaging, lamination and finishing for a polished result.",
+    icon: Gift,
+    title: "Executive Gifts & Merch",
+    tag: "Laser Engraved",
+    desc: "Branded drinkware, stainless tumblers, leather notebooks, tech accessories, and welcome kits.",
+    color: "bg-[#f78e1f]",
+  },
+  {
+    icon: Palette,
+    title: "Prepress & Vector Redraws",
+    tag: "Color Precision",
+    desc: "Artwork vectorization, Pantone match proofing, file preflight checks, and identity creative direction.",
+    color: "bg-[#783190]",
+  },
+  {
+    icon: Sparkles,
+    title: "Specialty Finishing & Cut",
+    tag: "In-House Craft",
+    desc: "Laser cutting, embossing, soft-touch lamination, custom die-cutting, and edge gilding.",
+    color: "bg-[#de166a]",
   },
 ] as const;
 
 /* ----------------------------------------------------------------
-   Offer flip — simple rotating service card under the headline
+   Offerings Flip Component
    ---------------------------------------------------------------- */
-
-function OfferingsFlip() {
+export function OfferingsFlip() {
   const [active, setActive] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
+  const DURATION = 3200; // ms per card
 
   useEffect(() => {
+    if (isPaused) return;
+
     const id = window.setInterval(() => {
       setActive((current) => (current + 1) % OFFERINGS.length);
-    }, 2600);
+    }, DURATION);
 
     return () => window.clearInterval(id);
-  }, []);
+  }, [isPaused]);
 
   return (
     <div className="mt-8 max-w-xl">
-      <div className="relative h-28 overflow-hidden rounded-[28px] border border-brand-navy/12 bg-white/85 backdrop-blur-sm shadow-[0_12px_28px_rgba(8,28,78,0.06)]">
+      <div
+        onMouseEnter={() => setIsPaused(true)}
+        onMouseLeave={() => setIsPaused(false)}
+        className="group relative h-32 overflow-hidden rounded-[24px] border border-slate-200/80 bg-white/90 backdrop-blur-md shadow-[0_12px_32px_rgba(8,28,78,0.08)] transition-all duration-300 hover:border-slate-300 hover:shadow-[0_16px_40px_rgba(8,28,78,0.14)]"
+        style={{ perspective: "1000px" }}
+      >
+        {/* Top Header Rail: Counter & Pause Indicator */}
+        <div className="absolute top-3 right-4 z-20 flex items-center gap-2">
+          {isPaused && (
+            <span className="animate-pulse text-[10px] font-bold uppercase tracking-wider text-slate-400">
+              Paused
+            </span>
+          )}
+          <span className="rounded-full bg-slate-100 px-2 py-0.5 font-mono text-[11px] font-extrabold tracking-wider text-[#783190]/60">
+            {String(active + 1).padStart(2, "0")} / {String(OFFERINGS.length).padStart(2, "0")}
+          </span>
+        </div>
+
+        {/* Rotating Cards Stream */}
         {OFFERINGS.map((offer, index) => {
           const OfferIcon = offer.icon;
           const isActive = index === active;
@@ -529,32 +577,61 @@ function OfferingsFlip() {
           return (
             <div
               key={`${offer.title}-${index}`}
-              className={`absolute inset-0 flex items-center gap-4 p-4 transition-all duration-700 ease-out ${
+              className={`absolute inset-0 flex items-center gap-4 p-5 transition-all duration-700 cubic-bezier(0.34, 1.56, 0.64, 1) ${
                 isActive
-                  ? "translate-y-0 rotate-x-0 opacity-100"
-                  : "translate-y-4 rotate-x-90 opacity-0"
+                  ? "pointer-events-auto z-10 translate-y-0 rotate-x-0 opacity-100"
+                  : "pointer-events-none z-0 translate-y-6 rotate-x-45 opacity-0"
               }`}
               style={{ transformStyle: "preserve-3d" }}
             >
-              <span className="flex h-11 w-11 shrink-0 items-center justify-center border border-brand-navy/15 bg-brand-surface text-brand-navy">
-                <OfferIcon className="h-5 w-5" />
-              </span>
-              <div>
-                <h3 className="text-base font-extrabold tracking-tight text-brand-navy">
-                  {offer.title}
-                </h3>
-                <p className="mt-1 text-sm leading-snug text-brand-navy/65">{offer.desc}</p>
+              {/* Icon Container */}
+              <div
+                className={`relative flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl ${offer.color} text-white shadow-md transition-transform duration-300 group-hover:scale-105`}
+              >
+                <OfferIcon className="h-6 w-6 stroke-[2.2]" />
+              </div>
+
+              {/* Card Details */}
+              <div className="pr-12">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-base font-extrabold tracking-tight text-[#783190]">
+                    {offer.title}
+                  </h3>
+                  <span className="inline-block rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600">
+                    {offer.tag}
+                  </span>
+                </div>
+                <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-slate-600">
+                  {offer.desc}
+                </p>
               </div>
             </div>
           );
         })}
+
+        {/* Dynamic Progress Timer Bar */}
+        {!isPaused && (
+          <div
+            key={active}
+            className="absolute bottom-0 left-0 h-1 bg-[#f78e1f]"
+            style={{
+              animation: `shrink ${DURATION}ms linear forwards`,
+            }}
+          />
+        )}
       </div>
+
+      <style>{`
+        @keyframes shrink {
+          from { width: 100%; }
+          to { width: 0%; }
+        }
+      `}</style>
     </div>
   );
 }
-
 /* ----------------------------------------------------------------
-   Right rail — live products, clean vertical conveyor, bottom -> top
+   Right rail-live products, clean vertical conveyor, bottom -> top
    ---------------------------------------------------------------- */
 
 function ProductCardMini({ p }: { p: LiveProduct }) {
@@ -696,9 +773,9 @@ function ProductsRail() {
 }
 
 /* ----------------------------------------------------------------
-   Statement — the hero section itself.
+   Statement-the hero section itself.
    Top: CMS-driven badge, heading, description and CTAs (unchanged).
-   Below: the two-rail band — animated offerings on the left,
+   Below: the two-rail band-animated offerings on the left,
    live catalogue products scrolling on the right.
    ---------------------------------------------------------------- */
 
@@ -752,7 +829,7 @@ function Statement() {
             </Reveal>
 
             <Reveal delay={170}>
-              <p className="mt-6 max-w-xl text-base leading-relaxed text-brand-navy/75 sm:mt-9 sm:text-lg">
+              <p className="mt-6 max-w-xl text-base leading-relaxed text-brand-blue sm:mt-9 sm:text-lg">
                 {heroDescription}
               </p>
             </Reveal>
@@ -765,7 +842,7 @@ function Statement() {
               <div className="mt-8 flex flex-col gap-3 sm:mt-10 sm:flex-row sm:flex-wrap sm:gap-4">
                 <Link
                   to="/shop"
-                  className="pp-sheen group inline-flex w-full items-center justify-center gap-2 bg-brand-navy px-8 py-4 text-sm font-bold uppercase tracking-wide text-white transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[6px_6px_0_0_var(--color-brand-orange)] sm:w-auto"
+                  className="pp-sheen group inline-flex w-full items-center justify-center gap-2 bg-brand-blue px-8 py-4 text-sm font-bold uppercase tracking-wide text-white transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[6px_6px_0_0_var(--color-brand-navy)] sm:w-auto"
                 >
                   {heroPrimary}
                   <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
@@ -1297,7 +1374,7 @@ const STEPS = [
     icon: ClipboardList,
     title: "Send the brief",
     kicker: "Even a bad photo works",
-    body: "Item, quantity, deadline, artwork if you have it. A phone photo of a shirt you liked at someone else's event is a perfectly good starting point — we've built entire jobs off worse.",
+    body: "Item, quantity, deadline, artwork if you have it. A phone photo of a shirt you liked at someone else's event is a perfectly good starting point-we've built entire jobs off worse.",
     detail: "Reply inside 2 working hours",
   },
   {
@@ -1305,7 +1382,7 @@ const STEPS = [
     icon: FileSignature,
     title: "Approve the proof",
     kicker: "The point of no return, deliberately",
-    body: "A digital mockup with exact placement, matched colour, and real material — not a stock photo standing in for your job. Until you type back 'approved', nothing moves. That word is the only green light we accept.",
+    body: "A digital mockup with exact placement, matched colour, and real material-not a stock photo standing in for your job. Until you type back 'approved', nothing moves. That word is the only green light we accept.",
     detail: "Unlimited revisions before sign-off",
   },
   {
@@ -1321,7 +1398,7 @@ const STEPS = [
     icon: Truck,
     title: "Delivered",
     kicker: "Wrong is our bill, not yours",
-    body: "Nairobi same-day or next-day. Countrywide by tracked courier. If it lands and doesn't match the proof you signed, we reprint it at our cost — same day we hear about it, no argument required.",
+    body: "Nairobi same-day or next-day. Countrywide by tracked courier. If it lands and doesn't match the proof you signed, we reprint it at our cost-same day we hear about it, no argument required.",
     detail: "Nairobi CBD & environs: same-day",
   },
 ];
@@ -1342,7 +1419,7 @@ function Process() {
               Four steps. No surprises.
             </h2>
             <p className="mt-3 max-w-xl text-sm leading-relaxed text-brand-navy/60">
-              Everything that can go wrong on a print job goes wrong between steps — so we made
+              Everything that can go wrong on a print job goes wrong between steps-so we made
               the steps hard to skip.
             </p>
           </div>
@@ -1394,10 +1471,10 @@ function Process() {
 
 function Argument() {
   return (
-    <section className="relative overflow-hidden border-b border-brand-navy bg-brand-navy text-white">
+    <section className="relative overflow-hidden border-b border-brand-blue bg-brand-blue text-white">
       <DotField variant="light" className="pp-mask-fade opacity-30" />
 
-      {/* Oversized ghost mark — decorative, sits behind the copy */}
+      {/* Oversized ghost mark-decorative, sits behind the copy */}
       <span
         aria-hidden="true"
         className="pointer-events-none absolute -right-10 top-1/2 hidden -translate-y-1/2 select-none text-[22rem] font-extrabold leading-none text-white/3 lg:block"
@@ -1410,7 +1487,7 @@ function Argument() {
           <Reveal className="lg:sticky lg:top-24 lg:self-start">
             <h2 className="text-3xl font-extrabold leading-tight tracking-tight md:text-4xl">
               Nothing enters production
-              <span className="text-brand-orange"> without a proof you signed.</span>
+              <span className="text-brand-navy"> without a proof you signed.</span>
             </h2>
             <p className="mt-4 text-sm leading-relaxed text-white/50">
               One word decides whether a machine turns on: <span className="text-white/80 font-semibold">approved</span>.
@@ -1421,7 +1498,7 @@ function Argument() {
           <div className="space-y-6 text-base leading-relaxed text-white/70">
             <Reveal delay={80}>
               <p>
-                Every job — a single embroidered polo or a 500-unit corporate rollout — goes out as
+                Every job-a single embroidered polo or a 500-unit corporate rollout-goes out as
                 a digital proof before a blade cuts, a needle stitches, or a press touches paper.
                 Placement to the millimetre. Colour matched, not guessed at. The actual material,
                 not a placeholder. You approve it in writing. A verbal "looks good" doesn't count;
@@ -1431,17 +1508,17 @@ function Argument() {
             </Reveal>
             <Reveal delay={160}>
               <p>
-                If what arrives doesn't match what you signed off — wrong placement, wrong shade,
-                wrong finish — we reprint it at our cost. No negotiation, no second invoice, no
+                If what arrives doesn't match what you signed off-wrong placement, wrong shade,
+                wrong finish-we reprint it at our cost. No negotiation, no second invoice, no
                 "let's meet in the middle." That only works because the proof exists in the first
                 place: it's the one moment a mistake costs one mockup instead of five hundred
                 finished units.
               </p>
             </Reveal>
             <Reveal delay={240}>
-              <p className="border-l-2 border-brand-orange pl-5 font-semibold text-white">
-                If your supplied artwork is the problem — low resolution, wrong colour mode, a logo
-                that will not survive being shrunk onto a pen — we say so before we run it, in
+              <p className="border-l-2 border-brand-navy pl-5 font-semibold text-white">
+                If your supplied artwork is the problem-low resolution, wrong colour mode, a logo
+                that will not survive being shrunk onto a pen-we say so before we run it, in
                 writing, with the exact failure mode spelled out. Not a vague "this might not work
                 great."
               </p>
@@ -1449,14 +1526,14 @@ function Argument() {
             <Reveal delay={300}>
               <p>
                 A supplier who won't put a reprint guarantee in writing is one who's already budgeted
-                for getting it wrong — and budgeted for you paying the difference. We'd rather build
+                for getting it wrong-and budgeted for you paying the difference. We'd rather build
                 the correction into the process than negotiate it after the box is already open.
               </p>
             </Reveal>
             <Reveal delay={380}>
               <Link
                 to="/services"
-                className="group inline-flex items-center gap-2 border-b-2 border-brand-orange pb-1 text-sm font-bold uppercase tracking-wide text-white transition-colors hover:text-brand-orange"
+                className="group inline-flex items-center gap-2 border-b-2 border-brand-navy pb-1 text-sm font-bold uppercase tracking-wide text-white transition-colors hover:text-brand-orange"
               >
                 See the full capability table
                 <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
@@ -1506,7 +1583,7 @@ function Sectors() {
               <p className="mt-5 max-w-sm text-base leading-relaxed text-brand-navy/70">
                 A hospital's compliance signage and an event's 48-hour backdrop are not the same
                 job wearing different colours. We've run corporate accounts long enough to build a
-                dedicated setup per sector — not one generic process stretched thin across twelve.
+                dedicated setup per sector-not one generic process stretched thin across twelve.
               </p>
             </div>
           </Reveal>
@@ -1719,7 +1796,7 @@ function WriteReview({ onSubmit }: { onSubmit: (r: Review & { rating: number }) 
         </button>
 
         {submitted && (
-          <p className="text-sm font-medium text-brand-orange">Thanks — your review was added below!</p>
+          <p className="text-sm font-medium text-brand-orange">Thanks-your review was added below!</p>
         )}
       </div>
     </form>
@@ -1878,7 +1955,7 @@ function Reviews() {
 
 function Close() {
   return (
-    <section className="relative overflow-hidden bg-brand-navy text-white">
+    <section className="relative overflow-hidden bg-brand-blue text-white">
       <PressGrid />
       <DotField variant="light" className="pp-mask-fade-center opacity-35" />
 
@@ -1889,7 +1966,7 @@ function Close() {
               <h2 className="text-4xl font-extrabold leading-[1.05] tracking-tight md:text-5xl">
                 Send the brief.
                 <br />
-                <span className="text-brand-orange">Get a real number.</span>
+                <span className="text-brand-navy">Get a real number.</span>
               </h2>
               <p className="mx-auto mt-6 max-w-md text-lg leading-relaxed text-white/70 lg:mx-0">
                 No discovery call. No qualification form. Tell us what you need made and we come
@@ -1902,14 +1979,14 @@ function Close() {
             <div className="flex flex-wrap justify-center gap-4 lg:justify-end">
               <Link
                 to="/request-quote"
-                className="pp-sheen group inline-flex items-center gap-2 bg-brand-orange px-8 py-4 text-sm font-bold uppercase tracking-wide text-white transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[6px_6px_0_0_rgba(255,255,255,0.35)]"
+                className="pp-sheen group inline-flex items-center gap-2 bg-brand-navy px-8 py-4 text-sm font-bold uppercase tracking-wide text-white transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[6px_6px_0_0_rgba(255,255,255,0.35)]"
               >
                 Request a quote
                 <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
               </Link>
               <Link
                 to="/shop"
-                className="group inline-flex items-center gap-2 border border-white/30 px-8 py-4 text-sm font-bold uppercase tracking-wide text-white transition-all duration-300 hover:-translate-y-0.5 hover:border-brand-orange hover:text-brand-orange"
+                className="group inline-flex items-center gap-2 border border-white/30 px-8 py-4 text-sm font-bold uppercase tracking-wide text-white transition-all duration-300 hover:-translate-y-0.5 hover:border-brand-navy hover:text-brand-navy"
               >
                 Browse the shop
                 <ArrowRight className="h-4 w-4 opacity-0 transition-all duration-300 group-hover:translate-x-1 group-hover:opacity-100" />
