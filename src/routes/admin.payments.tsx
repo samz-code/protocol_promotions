@@ -13,6 +13,7 @@ import {
   CheckCircle2, XCircle, CreditCard, Eye, EyeOff, Download,
 } from "lucide-react";
 import jsPDF from "jspdf";
+import QRCode from "qrcode";
 import logoUrl from "@/assets/logo.png";
 
 export const Route = createFileRoute("/admin/payments")({
@@ -139,119 +140,185 @@ function ChannelLogo({
 
 /* --------------------------------------------------------------- receipt */
 
+type LoadedImage = { dataUrl: string; width: number; height: number };
+
 /**
- * Loads a same-origin image and returns it as a base64 PNG data URL.
- * jsPDF's addImage() needs a data URL (or Image/Canvas element), not a raw
- * asset path, so we draw it to an off-screen canvas first.
+ * Loads a same-origin image and returns it as a base64 PNG data URL along
+ * with its natural pixel dimensions, so callers can fit it into a box
+ * without distorting the aspect ratio.
+ *
+ * The canvas is capped at 400px on its longest side. This is purely a
+ * file-size control for the exported PDF — the logo still prints at
+ * whatever physical size the caller requests in mm, this just avoids
+ * embedding a multi-megapixel source image at print resolution.
  */
-function loadImageAsDataUrl(src: string): Promise<string> {
+function loadImageAsDataUrl(src: string): Promise<LoadedImage> {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.crossOrigin = "anonymous";
     img.onload = () => {
+      const MAX_DIM = 400;
+      const scale = Math.min(1, MAX_DIM / Math.max(img.naturalWidth, img.naturalHeight));
       const canvas = document.createElement("canvas");
-      canvas.width = img.naturalWidth;
-      canvas.height = img.naturalHeight;
+      canvas.width = Math.max(1, Math.round(img.naturalWidth * scale));
+      canvas.height = Math.max(1, Math.round(img.naturalHeight * scale));
       const ctx = canvas.getContext("2d");
       if (!ctx) {
         reject(new Error("Canvas not supported"));
         return;
       }
-      ctx.drawImage(img, 0, 0);
-      resolve(canvas.toDataURL("image/png"));
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      resolve({
+        dataUrl: canvas.toDataURL("image/png"),
+        width: img.naturalWidth,
+        height: img.naturalHeight,
+      });
     };
     img.onerror = () => reject(new Error("Could not load logo"));
     img.src = src;
   });
 }
 
-/** Builds and downloads a one-page PDF receipt for a paid payment. */
-async function downloadReceipt(payment: Payment) {
-  const doc = new jsPDF({ unit: "mm", format: "a5" });
-  const pageWidth = doc.internal.pageSize.getWidth();
-  let y = 16;
+/** Generates a QR code as a base64 PNG data URL. */
+async function generateQrDataUrl(text: string): Promise<string> {
+  return QRCode.toDataURL(text, {
+    margin: 0,
+    width: 240,
+    color: { dark: "#0f1e3d", light: "#ffffff" },
+  });
+}
 
-  // Logo, best-effort — a missing or unreadable file should never block
-  // the receipt from generating.
+/**
+ * Builds and downloads a thermal-style (80mm roll) PDF receipt for a paid
+ * payment: monospace type, dashed dividers, and a QR code encoding the
+ * reference so the receipt can be verified at a glance.
+ */
+async function downloadReceipt(payment: Payment) {
+  const PAGE_W = 80; // mm — standard 80mm thermal roll width
+  const MARGIN = 5;
+  const CONTENT_W = PAGE_W - MARGIN * 2;
+  const center = PAGE_W / 2;
+
+  // Created tall, then trimmed to the real content height right before
+  // saving — thermal receipts have no fixed page length.
+  const doc = new jsPDF({ unit: "mm", format: [PAGE_W, 400], compress: true });
+  let y = 8;
+
+  const hr = () => {
+    doc.setFont("courier", "normal");
+    doc.setFontSize(9);
+    doc.setTextColor(170);
+    doc.text("-".repeat(46), center, y, { align: "center" });
+    doc.setTextColor(20);
+    y += 5;
+  };
+
+  const row = (label: string, value: string) => {
+    doc.setFont("courier", "normal");
+    doc.setFontSize(8.5);
+    doc.setTextColor(100);
+    doc.text(label, MARGIN, y);
+    doc.setFont("courier", "bold");
+    doc.setTextColor(20);
+    doc.text(value || "-", PAGE_W - MARGIN, y, { align: "right" });
+    y += 5.5;
+  };
+
+  // Logo — scaled to fit a fixed box, never stretched off its own
+  // aspect ratio.
   try {
-    const logoData = await loadImageAsDataUrl(logoUrl);
-    doc.addImage(logoData, "PNG", 15, y, 22, 22);
+    const logo = await loadImageAsDataUrl(logoUrl);
+    const maxW = 26;
+    const maxH = 22;
+    const scale = Math.min(maxW / logo.width, maxH / logo.height, 1);
+    const w = logo.width * scale;
+    const h = logo.height * scale;
+    doc.addImage(logo.dataUrl, "PNG", center - w / 2, y, w, h);
+    y += h + 4;
   } catch {
     // no logo, continue without it
   }
 
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(16);
-  doc.text("Payment Receipt", pageWidth - 15, y + 8, { align: "right" });
-
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(10);
-  doc.setTextColor(90);
-  doc.text(
-    `Issued ${new Date().toLocaleDateString("en-KE", { day: "numeric", month: "long", year: "numeric" })}`,
-    pageWidth - 15,
-    y + 15,
-    { align: "right" }
-  );
-
-  y += 34;
-  doc.setDrawColor(210);
-  doc.line(15, y, pageWidth - 15, y);
-  y += 10;
-
+  doc.setFont("courier", "bold");
+  doc.setFontSize(12);
   doc.setTextColor(20);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(11);
-  doc.text("Customer", 15, y);
-  doc.setFont("helvetica", "normal");
-  doc.text(payment.orders?.customer_name ?? "Direct payment", 60, y);
-  y += 7;
+  doc.text("PAYMENT RECEIPT", center, y, { align: "center" });
+  y += 5;
 
-  doc.setFont("helvetica", "bold");
-  doc.text("Order", 15, y);
-  doc.setFont("helvetica", "normal");
-  doc.text(payment.orders?.order_number ?? "Not linked to an order", 60, y);
-  y += 7;
-
-  doc.setFont("helvetica", "bold");
-  doc.text("Method", 15, y);
-  doc.setFont("helvetica", "normal");
-  doc.text(payment.method.replace("_", " "), 60, y);
-  y += 7;
-
-  doc.setFont("helvetica", "bold");
-  doc.text("Reference", 15, y);
-  doc.setFont("helvetica", "normal");
-  doc.text(payment.mpesa_receipt ?? payment.reference ?? "—", 60, y);
-  y += 7;
-
-  doc.setFont("helvetica", "bold");
-  doc.text("Date paid", 15, y);
-  doc.setFont("helvetica", "normal");
+  doc.setFont("courier", "normal");
+  doc.setFontSize(8);
+  doc.setTextColor(120);
   doc.text(
-    payment.paid_at
-      ? new Date(payment.paid_at).toLocaleDateString("en-KE", { day: "numeric", month: "long", year: "numeric" })
-      : "—",
-    60,
-    y
+    new Date().toLocaleDateString("en-KE", { day: "numeric", month: "long", year: "numeric" }),
+    center,
+    y,
+    { align: "center" }
   );
-  y += 14;
+  doc.setTextColor(20);
+  y += 7;
 
-  doc.setDrawColor(210);
-  doc.line(15, y, pageWidth - 15, y);
-  y += 12;
+  hr();
 
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(13);
-  doc.text("Amount received", 15, y);
-  doc.setFontSize(18);
-  doc.text(kes(Number(payment.amount)), pageWidth - 15, y, { align: "right" });
+  row("Customer", payment.orders?.customer_name ?? "Direct payment");
+  row("Order", payment.orders?.order_number ?? "Unlinked");
+  row("Method", payment.method.replace("_", " "));
+  row("Reference", payment.mpesa_receipt ?? payment.reference ?? "-");
+  row(
+    "Date paid",
+    payment.paid_at
+      ? new Date(payment.paid_at).toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric" })
+      : "-"
+  );
 
-  y += 18;
-  doc.setFont("helvetica", "normal");
+  hr();
+
+  doc.setFont("courier", "bold");
   doc.setFontSize(9);
+  doc.setTextColor(20);
+  doc.text("AMOUNT RECEIVED", MARGIN, y);
+  y += 8;
+  doc.setFontSize(17);
+  doc.text(kes(Number(payment.amount)), center, y, { align: "center" });
+  y += 9;
+
+  hr();
+
+  // QR code — encodes the reference and amount so the receipt can be
+  // scanned and cross-checked.
+  try {
+    const qrText = [
+      `Receipt: ${payment.mpesa_receipt ?? payment.reference ?? payment.id}`,
+      `Amount: ${kes(Number(payment.amount))}`,
+      `Order: ${payment.orders?.order_number ?? "-"}`,
+      `Paid: ${payment.paid_at ? new Date(payment.paid_at).toISOString().slice(0, 10) : "-"}`,
+    ].join("\n");
+    const qrData = await generateQrDataUrl(qrText);
+    const qrSize = 24;
+    doc.addImage(qrData, "PNG", center - qrSize / 2, y, qrSize, qrSize);
+    y += qrSize + 6;
+  } catch {
+    // no QR, continue without it
+  }
+
+  doc.setFont("courier", "normal");
+  doc.setFontSize(7.5);
   doc.setTextColor(140);
-  doc.text("This receipt confirms payment received and is not a tax invoice.", 15, y);
+  const note = doc.splitTextToSize(
+    "This receipt confirms payment received and is not a tax invoice.",
+    CONTENT_W
+  );
+  doc.text(note, center, y, { align: "center" });
+  y += note.length * 3.6 + 5;
+
+  doc.setFont("courier", "bold");
+  doc.setFontSize(8.5);
+  doc.setTextColor(20);
+  doc.text("Thank you", center, y, { align: "center" });
+  y += 8;
+
+  // Trim the page to the actual content height so the PDF isn't a long
+  // blank strip.
+  (doc.internal.pageSize as unknown as { setHeight: (h: number) => void }).setHeight(y);
 
   const filename = `receipt-${payment.mpesa_receipt ?? payment.orders?.order_number ?? payment.id.slice(0, 8)}.pdf`;
   doc.save(filename);
