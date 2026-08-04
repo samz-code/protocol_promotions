@@ -476,56 +476,48 @@ const OFFERINGS = [
   {
     icon: Printer,
     title: "Commercial Print & Stationery",
-    tag: "High-Volume & Offset",
     desc: "Luxury business cards, spot UV varnish, foil stamping, booklets, catalog design, and letterheads.",
     color: "bg-[#00a7a7]",
   },
   {
     icon: Shirt,
     title: "Apparel & Custom Uniforms",
-    tag: "Multi-Method Decorating",
     desc: "High-density embroidery, direct-to-film (DTF), screen printing, and sublimation on workwear & tees.",
     color: "bg-[#de166a]",
   },
   {
     icon: Building2,
     title: "Large Format & Signage",
-    tag: "Indoor & Outdoor",
     desc: "Architectural 3D acrylic lettering, vinyl wall wraps, vehicle branding, and weatherproof outdoor banners.",
     color: "bg-[#f78e1f]",
   },
   {
     icon: Presentation,
     title: "Trade Show & Event Displays",
-    tag: "Rapid Assembly",
     desc: "Tension fabric media walls, roll-up pop banners, custom teardrop flags, and modular exhibition booths.",
     color: "bg-[#783190]",
   },
   {
     icon: Package,
     title: "Bespoke Packaging & Boxes",
-    tag: "Custom Die-Cut",
     desc: "Rigid magnetic boxes, eco-friendly kraft packaging, stand-up pouches, and custom product sleeves.",
     color: "bg-[#00a7a7]",
   },
   {
     icon: Gift,
     title: "Executive Gifts & Merch",
-    tag: "Laser Engraved",
     desc: "Branded drinkware, stainless tumblers, leather notebooks, tech accessories, and welcome kits.",
     color: "bg-[#f78e1f]",
   },
   {
     icon: Palette,
     title: "Prepress & Vector Redraws",
-    tag: "Color Precision",
     desc: "Artwork vectorization, Pantone match proofing, file preflight checks, and identity creative direction.",
     color: "bg-[#783190]",
   },
   {
     icon: Sparkles,
     title: "Specialty Finishing & Cut",
-    tag: "In-House Craft",
     desc: "Laser cutting, embossing, soft-touch lamination, custom die-cutting, and edge gilding.",
     color: "bg-[#de166a]",
   },
@@ -554,21 +546,8 @@ export function OfferingsFlip() {
       <div
         onMouseEnter={() => setIsPaused(true)}
         onMouseLeave={() => setIsPaused(false)}
-        className="group relative h-32 overflow-hidden rounded-[24px] border border-slate-200/80 bg-white/90 backdrop-blur-md shadow-[0_12px_32px_rgba(8,28,78,0.08)] transition-all duration-300 hover:border-slate-300 hover:shadow-[0_16px_40px_rgba(8,28,78,0.14)]"
-        style={{ perspective: "1000px" }}
+        className="group relative min-h-26 overflow-hidden rounded-4xl border border-slate-200/80 bg-white/90 backdrop-blur-md shadow-[0_12px_32px_rgba(8,28,78,0.08)] transition-all duration-300 hover:border-slate-300 hover:shadow-[0_16px_40px_rgba(8,28,78,0.14)] sm:min-h-28"
       >
-        {/* Top Header Rail: Counter & Pause Indicator */}
-        <div className="absolute top-3 right-4 z-20 flex items-center gap-2">
-          {isPaused && (
-            <span className="animate-pulse text-[10px] font-bold uppercase tracking-wider text-slate-400">
-              Paused
-            </span>
-          )}
-          <span className="rounded-full bg-slate-100 px-2 py-0.5 font-mono text-[11px] font-extrabold tracking-wider text-[#783190]/60">
-            {String(active + 1).padStart(2, "0")} / {String(OFFERINGS.length).padStart(2, "0")}
-          </span>
-        </div>
-
         {/* Rotating Cards Stream */}
         {OFFERINGS.map((offer, index) => {
           const OfferIcon = offer.icon;
@@ -577,31 +556,25 @@ export function OfferingsFlip() {
           return (
             <div
               key={`${offer.title}-${index}`}
-              className={`absolute inset-0 flex items-center gap-4 p-5 transition-all duration-700 cubic-bezier(0.34, 1.56, 0.64, 1) ${
+              className={`absolute inset-0 flex items-center gap-3 p-4 transition-all duration-500 ease-out sm:gap-4 sm:p-5 ${
                 isActive
-                  ? "pointer-events-auto z-10 translate-y-0 rotate-x-0 opacity-100"
-                  : "pointer-events-none z-0 translate-y-6 rotate-x-45 opacity-0"
+                  ? "pointer-events-auto z-10 translate-x-0 opacity-100"
+                  : "pointer-events-none z-0 translate-x-2 opacity-0"
               }`}
-              style={{ transformStyle: "preserve-3d" }}
             >
               {/* Icon Container */}
               <div
-                className={`relative flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl ${offer.color} text-white shadow-md transition-transform duration-300 group-hover:scale-105`}
+                className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${offer.color} text-white shadow-md sm:h-14 sm:w-14 sm:rounded-2xl`}
               >
-                <OfferIcon className="h-6 w-6 stroke-[2.2]" />
+                <OfferIcon className="h-5 w-5 stroke-[2.2] sm:h-6 sm:w-6" />
               </div>
 
               {/* Card Details */}
-              <div className="pr-12">
-                <div className="flex items-center gap-2">
-                  <h3 className="text-base font-extrabold tracking-tight text-[#783190]">
-                    {offer.title}
-                  </h3>
-                  <span className="inline-block rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600">
-                    {offer.tag}
-                  </span>
-                </div>
-                <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-slate-600">
+              <div className="min-w-0 flex-1">
+                <h3 className="truncate text-sm font-extrabold tracking-tight text-[#783190] sm:text-base">
+                  {offer.title}
+                </h3>
+                <p className="mt-0.5 line-clamp-2 text-xs leading-relaxed text-slate-600">
                   {offer.desc}
                 </p>
               </div>
@@ -613,12 +586,25 @@ export function OfferingsFlip() {
         {!isPaused && (
           <div
             key={active}
-            className="absolute bottom-0 left-0 h-1 bg-[#f78e1f]"
-            style={{
-              animation: `shrink ${DURATION}ms linear forwards`,
-            }}
+            className="absolute bottom-0 left-0 h-0.5 bg-[#f78e1f]"
+            style={{ animation: `shrink ${DURATION}ms linear forwards` }}
           />
         )}
+      </div>
+
+      {/* Dot indicators */}
+      <div className="mt-2.5 flex items-center justify-center gap-1.5 sm:justify-start">
+        {OFFERINGS.map((_, i) => (
+          <button
+            key={i}
+            type="button"
+            aria-label={`Show offering ${i + 1}`}
+            onClick={() => setActive(i)}
+            className={`h-1.5 rounded-full transition-all duration-300 ${
+              i === active ? "w-5 bg-[#f78e1f]" : "w-1.5 bg-slate-300"
+            }`}
+          />
+        ))}
       </div>
 
       <style>{`
@@ -809,80 +795,84 @@ function Statement() {
 
       <div className="container-page relative px-5 py-8 sm:px-6 sm:py-10 md:py-14">
         <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_minmax(360px,0.9fr)] xl:items-start xl:pt-1">
-          <div className="order-2 max-w-2xl xl:order-1">
-            <Reveal>
-              <p className="inline-flex items-center gap-2 border border-brand-navy/15 bg-white/70 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.25em] text-brand-orange backdrop-blur-sm">
-                <span className="pp-ticker-dot inline-block h-1.5 w-1.5 bg-brand-orange" />
-                {heroBadge}
-              </p>
-            </Reveal>
+  {/* Badge — always first, top-left of the left column on desktop */}
+  <div className="order-1 max-w-2xl xl:order-0l-start-1 xl:row-start-1">
+    <Reveal>
+      <p className="inline-flex items-center gap-2 border border-brand-navy/15 bg-white/70 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.25em] text-brand-orange backdrop-blur-sm">
+        <span className="pp-ticker-dot inline-block h-1.5 w-1.5 bg-brand-orange" />
+        {heroBadge}
+      </p>
+    </Reveal>
+  </div>
 
-            <Reveal delay={90}>
-              <h1 className="mt-5 text-[2rem] font-extrabold leading-[1.1] tracking-tight text-brand-navy sm:mt-6 sm:text-5xl md:text-6xl lg:text-[4.25rem]">
-                {heroTitle.split("\n").map((line, index) => (
-                  <span key={index}>
-                    {line}
-                    {index < heroTitle.split("\n").length - 1 ? <br /> : null}
-                  </span>
-                ))}
-              </h1>
-            </Reveal>
+  {/* Products rail — second on mobile, right column (full height) on desktop */}
+  <div className="order-2 xl:order-0 xl:col-start-2 xl:row-start-1 xl:row-span-2 xl:pt-2">
+    <Reveal delay={280}>
+      <ProductsRail />
+    </Reveal>
+  </div>
 
-            <Reveal delay={170}>
-              <p className="mt-6 max-w-xl text-base leading-relaxed text-brand-blue sm:mt-9 sm:text-lg">
-                {heroDescription}
-              </p>
-            </Reveal>
+  {/* Heading, description, offerings, CTAs, stats — third on mobile, below badge on desktop */}
+  <div className="order-3 max-w-2xl xl:order-0 xl:col-start-1 xl:row-start-2">
+    <Reveal delay={90}>
+      <h1 className="mt-5 text-[2rem] font-extrabold leading-[1.1] tracking-tight text-brand-navy sm:mt-6 sm:text-5xl md:text-6xl lg:text-[4.25rem]">
+        {heroTitle.split("\n").map((line, index) => (
+          <span key={index}>
+            {line}
+            {index < heroTitle.split("\n").length - 1 ? <br /> : null}
+          </span>
+        ))}
+      </h1>
+    </Reveal>
 
-            <Reveal delay={220}>
-              <OfferingsFlip />
-            </Reveal>
+    <Reveal delay={170}>
+      <p className="mt-6 max-w-xl text-base leading-relaxed text-brand-blue sm:mt-9 sm:text-lg">
+        {heroDescription}
+      </p>
+    </Reveal>
 
-            <Reveal delay={250}>
-              <div className="mt-8 flex flex-col gap-3 sm:mt-10 sm:flex-row sm:flex-wrap sm:gap-4">
-                <Link
-                  to="/shop"
-                  className="pp-sheen group inline-flex w-full items-center justify-center gap-2 bg-brand-blue px-8 py-4 text-sm font-bold uppercase tracking-wide text-white transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[6px_6px_0_0_var(--color-brand-navy)] sm:w-auto"
-                >
-                  {heroPrimary}
-                  <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
-                </Link>
-                <Link
-                  to="/request-quote"
-                  className="group inline-flex w-full items-center justify-center gap-2 border border-brand-navy px-8 py-4 text-sm font-bold uppercase tracking-wide text-brand-navy transition-all duration-300 hover:-translate-y-0.5 hover:border-brand-orange hover:text-brand-orange sm:w-auto"
-                >
-                  {heroSecondary}
-                  <ArrowRight className="h-4 w-4 opacity-0 transition-all duration-300 group-hover:translate-x-1 group-hover:opacity-100" />
-                </Link>
-              </div>
-            </Reveal>
+    <Reveal delay={220}>
+      <OfferingsFlip />
+    </Reveal>
 
-            {HERO_STATS.length > 0 && (
-              <Reveal delay={330}>
-                <dl className="mt-10 grid max-w-lg grid-cols-3 border-t border-brand-navy/12 pt-6 sm:mt-12">
-                  {HERO_STATS.map((s) => (
-                    <div key={s.label} className="pr-4">
-                      <dt className="sr-only">{s.label}</dt>
-                      <dd className="text-xl font-extrabold tabular-nums text-brand-navy sm:text-2xl">
-                        {s.value}
-                      </dd>
-                      <span className="mt-1 block text-[10px] font-bold uppercase tracking-widest text-brand-navy/45">
-                        {s.label}
-                      </span>
-                    </div>
-                  ))}
-                </dl>
-              </Reveal>
-            )}
+    <Reveal delay={250}>
+      <div className="mt-8 flex flex-col gap-3 sm:mt-10 sm:flex-row sm:flex-wrap sm:gap-4">
+        <Link
+          to="/shop"
+          className="pp-sheen group inline-flex w-full items-center justify-center gap-2 bg-brand-blue px-8 py-4 text-sm font-bold uppercase tracking-wide text-white transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[6px_6px_0_0_var(--color-brand-navy)] sm:w-auto"
+        >
+          {heroPrimary}
+          <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
+        </Link>
+        <Link
+          to="/request-quote"
+          className="group inline-flex w-full items-center justify-center gap-2 border border-brand-navy px-8 py-4 text-sm font-bold uppercase tracking-wide text-brand-navy transition-all duration-300 hover:-translate-y-0.5 hover:border-brand-orange hover:text-brand-orange sm:w-auto"
+        >
+          {heroSecondary}
+          <ArrowRight className="h-4 w-4 opacity-0 transition-all duration-300 group-hover:translate-x-1 group-hover:opacity-100" />
+        </Link>
+      </div>
+    </Reveal>
 
-          </div>
-
-          <div className="order-1 xl:order-2 xl:pt-2">
-            <Reveal delay={280}>
-              <ProductsRail />
-            </Reveal>
-          </div>
-        </div>
+    {HERO_STATS.length > 0 && (
+      <Reveal delay={330}>
+        <dl className="mt-10 grid max-w-lg grid-cols-3 border-t border-brand-navy/12 pt-6 sm:mt-12">
+          {HERO_STATS.map((s) => (
+            <div key={s.label} className="pr-4">
+              <dt className="sr-only">{s.label}</dt>
+              <dd className="text-xl font-extrabold tabular-nums text-brand-navy sm:text-2xl">
+                {s.value}
+              </dd>
+              <span className="mt-1 block text-[10px] font-bold uppercase tracking-widest text-brand-navy/45">
+                {s.label}
+              </span>
+            </div>
+          ))}
+        </dl>
+      </Reveal>
+    )}
+  </div>
+</div>
       </div>
     </section>
   );
