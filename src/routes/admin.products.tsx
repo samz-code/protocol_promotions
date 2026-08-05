@@ -6,7 +6,7 @@ import { AdminField, ConfirmDialog, inputCls } from "@/lib/admin-ui";
 import {
   Loader2, Plus, Pencil, Trash2, Copy, X, AlertCircle, Check, Upload,
   Image as ImageIcon, Search, GripVertical, ArrowLeft, Package,
-  Eye, EyeOff, Filter, TrendingUp,
+  Eye, EyeOff, Filter, TrendingUp, Video,
 } from "lucide-react";
 
 export const Route = createFileRoute("/admin/products")({
@@ -1177,15 +1177,103 @@ function OptionsTab({ form, set }: { form: Partial<Product>; set: SetFn }) {
   );
 }
 
-function MediaTab({
-  form, set, onError,
+// Utility to parse YouTube and Vimeo URLs into iframe embed links
+function getEmbedUrl(url: string): string | null {
+  if (!url) return null;
+  
+  // YouTube
+  const ytMatch = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/);
+  if (ytMatch && ytMatch[1]) {
+    return `https://www.youtube.com/embed/${ytMatch[1]}`;
+  }
+
+  // Vimeo
+  const vimeoMatch = url.match(/vimeo\.com\/(?:channels\/(?:\w+\/)?|groups\/([^\/]*)\/videos\/|album\/(\d+)\/video\/|video\/|)(\d+)/);
+  if (vimeoMatch && vimeoMatch[3]) {
+    return `https://player.vimeo.com/video/${vimeoMatch[3]}`;
+  }
+
+  return null;
+}
+
+function ContentTab({ form, set }: { form: Partial<Product>; set: SetFn }) {
+  return (
+    <div className="space-y-6">
+      <SectionCard title="Story" description="A richer product summary for shoppers and search.">
+        <div className="space-y-6">
+          <AdminField
+            id="p-long"
+            label="Long description"
+            hint="Detailed product story shown on the product page."
+          >
+            <textarea
+              id="p-long"
+              rows={6}
+              value={form.long_description ?? ""}
+              onChange={(e) => set("long_description", e.target.value)}
+              className={inputCls}
+            />
+          </AdminField>
+
+          <StringList
+            label="Key bullets"
+            hint="Short value points"
+            items={form.key_bullets ?? []}
+            onChange={(v) => set("key_bullets", v)}
+            placeholder="Free setup on bulk orders"
+          />
+        </div>
+      </SectionCard>
+
+      <SectionCard title="Benefits" description="Why customers care about this product.">
+        <StringList
+          label="Benefits"
+          items={form.benefits ?? []}
+          onChange={(v) => set("benefits", v)}
+          placeholder="Durable and easy to clean"
+        />
+      </SectionCard>
+
+      <SectionCard title="Use cases" description="Where the product is typically used.">
+        <StringList
+          label="Use cases"
+          items={form.use_cases ?? []}
+          onChange={(v) => set("use_cases", v)}
+          placeholder="Corporate gifting"
+        />
+      </SectionCard>
+
+      <SectionCard title="Specs & FAQs" description="Technical details and customer questions.">
+        <div className="space-y-6">
+          <SpecList
+            specs={form.specs ?? []}
+            onChange={(v) => set("specs", v)}
+          />
+          <FaqList
+            faqs={form.faqs ?? []}
+            onChange={(v) => set("faqs", v)}
+          />
+        </div>
+      </SectionCard>
+    </div>
+  );
+}
+
+export function MediaTab({
+  form,
+  set,
+  onError,
 }: {
   form: Partial<Product>;
   set: SetFn;
   onError: (m: string) => void;
 }) {
   const [uploading, setUploading] = useState(false);
+  const [isDraggingFile, setIsDraggingFile] = useState(false);
+  const [draggedImageIndex, setDraggedImageIndex] = useState<number | null>(null);
+
   const images = form.images ?? [];
+  const videoEmbedUrl = getEmbedUrl(form.video_url ?? "");
 
   async function handleUpload(files: FileList | null) {
     if (!files || files.length === 0) return;
@@ -1207,7 +1295,7 @@ function MediaTab({
         const { data } = supabase.storage.from("product-images").getPublicUrl(path);
         uploaded.push(data.publicUrl);
 
-        // Register it in the media library too.
+        // Register in media library database table
         await supabase.from("media").insert({
           bucket: "product-images",
           path,
@@ -1228,25 +1316,59 @@ function MediaTab({
     }
   }
 
+  // Move image position in array
   function move(from: number, to: number) {
-    if (to < 0 || to >= images.length) return;
+    if (to < 0 || to >= images.length || from === to) return;
     const next = [...images];
     const [item] = next.splice(from, 1);
     next.splice(to, 0, item);
     set("images", next);
   }
 
+  // Handle Drag Events for File Upload Dropzone
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!isDraggingFile) setIsDraggingFile(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingFile(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingFile(false);
+
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      handleUpload(e.dataTransfer.files);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <SectionCard title="Product images" description="The first image is used as the thumbnail everywhere.">
-        <label className="flex cursor-pointer flex-col items-center justify-center border-2 border-dashed border-brand-navy/25 py-12 transition-colors hover:border-brand-orange hover:bg-brand-surface/50">
+        {/* File Drop Zone */}
+        <label
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          className={`flex cursor-pointer flex-col items-center justify-center border-2 border-dashed py-12 transition-colors ${
+            isDraggingFile
+              ? "border-brand-orange bg-brand-surface"
+              : "border-brand-navy/25 hover:border-brand-orange hover:bg-brand-surface/50"
+          }`}
+        >
           {uploading ? (
             <Loader2 className="h-6 w-6 animate-spin text-brand-navy" />
           ) : (
             <>
               <Upload className="h-6 w-6 text-brand-navy/40" />
               <span className="mt-3 text-sm font-bold text-brand-navy">
-                Drop files or click to upload
+                {isDraggingFile ? "Drop files here" : "Drop files or click to upload"}
               </span>
               <span className="mt-1 text-xs text-brand-navy/45">JPG, PNG or WebP</span>
             </>
@@ -1261,18 +1383,33 @@ function MediaTab({
           />
         </label>
 
+        {/* Uploaded Images Drag & Drop List */}
         {images.length > 0 && (
           <ul className="mt-5 space-y-2">
             {images.map((url, i) => (
               <li
                 key={url}
-                className="flex items-center gap-4 border-2 border-brand-navy/12 p-2.5 transition-colors hover:border-brand-navy/30"
+                draggable
+                onDragStart={() => setDraggedImageIndex(i)}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={() => {
+                  if (draggedImageIndex !== null) {
+                    move(draggedImageIndex, i);
+                    setDraggedImageIndex(null);
+                  }
+                }}
+                onDragEnd={() => setDraggedImageIndex(null)}
+                className={`flex items-center gap-4 border-2 border-brand-navy/12 p-2.5 transition-colors hover:border-brand-navy/30 bg-white ${
+                  draggedImageIndex === i ? "opacity-40 border-dashed border-brand-orange" : ""
+                }`}
               >
-                <GripVertical className="h-4 w-4 shrink-0 text-brand-navy/20" />
+                <div className="cursor-grab active:cursor-grabbing p-1">
+                  <GripVertical className="h-4 w-4 shrink-0 text-brand-navy/40" />
+                </div>
                 <img
                   src={url}
                   alt=""
-                  className="h-14 w-14 shrink-0 border border-brand-navy/10 object-cover"
+                  className="h-14 w-14 shrink-0 border border-brand-navy/10 object-cover select-none"
                 />
                 <span className="min-w-0 flex-1 truncate font-mono text-[11px] text-brand-navy/50">
                   {url.split("/").pop()}
@@ -1316,66 +1453,44 @@ function MediaTab({
         )}
       </SectionCard>
 
+      {/* Video Section with URL Parsing & Live Preview */}
       <SectionCard title="Video" description="Optional. A YouTube or Vimeo link shown on the product page.">
         <AdminField id="p-video" label="Video URL">
           <input
             id="p-video"
+            type="url"
             value={form.video_url ?? ""}
             onChange={(e) => set("video_url", e.target.value)}
             className={inputCls}
-            placeholder="https://youtube.com/watch?v=..."
+            placeholder="https://youtube.com/watch?v=... or https://vimeo.com/..."
           />
         </AdminField>
-      </SectionCard>
-    </div>
-  );
-}
 
-function ContentTab({ form, set }: { form: Partial<Product>; set: SetFn }) {
-  return (
-    <div className="space-y-6">
-      <SectionCard title="Full description" description="Shown in the Description tab on the product page.">
-        <AdminField id="p-long" label="Long description" hint="Leave a blank line between paragraphs.">
-          <textarea
-            id="p-long"
-            rows={10}
-            value={form.long_description ?? ""}
-            onChange={(e) => set("long_description", e.target.value)}
-            className={`${inputCls} leading-relaxed`}
-          />
-        </AdminField>
-      </SectionCard>
-
-      <SectionCard title="Selling points" description="Short lines that sell the product at a glance.">
-        <div className="space-y-8">
-          <StringList
-            label="Key bullets"
-            hint="The at-a-glance feature list"
-            items={form.key_bullets ?? []}
-            onChange={(v) => set("key_bullets", v)}
-            placeholder="Front kangaroo pocket for everyday convenience."
-          />
-          <StringList
-            label="Benefits"
-            items={form.benefits ?? []}
-            onChange={(v) => set("benefits", v)}
-            placeholder="Gives your brand a polished, wearable look."
-          />
-          <StringList
-            label="Use cases"
-            items={form.use_cases ?? []}
-            onChange={(v) => set("use_cases", v)}
-            placeholder="Staff uniforms for company teams."
-          />
-        </div>
-      </SectionCard>
-
-      <SectionCard title="Specifications" description="Technical detail shown in the Specs tab.">
-        <SpecList specs={form.specs ?? []} onChange={(v) => set("specs", v)} />
-      </SectionCard>
-
-      <SectionCard title="Product FAQs" description="Answers shown on this product's page only.">
-        <FaqList faqs={form.faqs ?? []} onChange={(v) => set("faqs", v)} />
+        {/* Video Player Preview */}
+        {form.video_url && (
+          <div className="mt-4">
+            {videoEmbedUrl ? (
+              <div className="overflow-hidden border border-brand-navy/15 rounded bg-black">
+                <div className="relative aspect-video w-full">
+                  <iframe
+                    src={videoEmbedUrl}
+                    title="Product Video Preview"
+                    className="h-full w-full border-0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 p-3 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded">
+                <Video className="h-4 w-4 shrink-0" />
+                <span>
+                  Please enter a valid YouTube (e.g. <code>https://youtube.com/watch?v=...</code>) or Vimeo link.
+                </span>
+              </div>
+            )}
+          </div>
+        )}
       </SectionCard>
     </div>
   );
@@ -1425,7 +1540,7 @@ function SeoTab({ form, set }: { form: Partial<Product>; set: SetFn }) {
             {title || form.name || "Untitled product"}
           </div>
           <div className="mt-0.5 font-mono text-xs text-brand-navy/45">
-            protocolpromotions.co.ke/shop/{form.slug || "slug"}
+            www.protocolpromotions.com/shop/{form.slug || "slug"}
           </div>
           <p className="mt-1.5 line-clamp-2 text-xs leading-relaxed text-brand-navy/60">
             {desc || form.short_description || "No description set."}
