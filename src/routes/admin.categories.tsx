@@ -16,6 +16,10 @@ import {
   Ruler, Hammer, Wrench, Sparkles, Car, Truck,
   Bike, Tent, TreePine, Sun, Building2, Store,
   Factory, Users, Handshake, BadgeCheck, Percent, Tag,
+  // Newly added icons
+  Shield, Crown, Gem, Magnet, IdCard, Badge, ShieldAlert,
+  Utensils, Book, Flame, ScissorsLineDashed, Smile, Activity,
+  FileCheck, Scroll, Ticket, Sparkle
 } from "lucide-react";
 
 export const Route = createFileRoute("/admin/categories")({
@@ -103,6 +107,24 @@ const ICON_REGISTRY: Record<string, ComponentType<{ className?: string; strokeWi
   BadgeCheck,
   Percent,
   Tag,
+  // Newly added mapping
+  Shield,
+  Crown,
+  Gem,
+  Magnet,
+  IdCard,
+  Badge,
+  ShieldAlert,
+  Utensils,
+  Book,
+  Flame,
+  ScissorsLineDashed,
+  Smile,
+  Activity,
+  FileCheck,
+  Scroll,
+  Ticket,
+  Sparkle,
 };
 
 const ICON_GROUPS: { group: string; icons: string[] }[] = [
@@ -112,7 +134,7 @@ const ICON_GROUPS: { group: string; icons: string[] }[] = [
   },
   {
     group: "Print",
-    icons: ["Printer", "FileText", "BookOpen", "Newspaper", "StickyNote", "Files", "Stamp", "Mail"],
+    icons: ["Printer", "FileText", "BookOpen", "Newspaper", "StickyNote", "Files", "Stamp", "Mail", "FileCheck", "Scroll", "Book"],
   },
   {
     group: "Signage and display",
@@ -120,27 +142,27 @@ const ICON_GROUPS: { group: string; icons: string[] }[] = [
   },
   {
     group: "Drinkware and gifts",
-    icons: ["Coffee", "CupSoda", "Wine", "Gift", "Award", "Trophy", "Medal", "Cake"],
+    icons: ["Coffee", "CupSoda", "Wine", "Gift", "Award", "Trophy", "Medal", "Cake", "Flame", "Utensils", "Crown", "Gem"],
   },
   {
     group: "Bags and packaging",
-    icons: ["ShoppingBag", "Package", "Box", "Briefcase", "Backpack", "Luggage", "Archive"],
+    icons: ["ShoppingBag", "Package", "Box", "Briefcase", "Backpack", "Luggage", "Archive", "ScissorsLineDashed"],
   },
   {
     group: "Tech and office",
-    icons: ["MonitorSmartphone", "Laptop", "Headphones", "Keyboard", "Mouse", "BatteryCharging", "Usb", "Calculator"],
+    icons: ["MonitorSmartphone", "Laptop", "Headphones", "Keyboard", "Mouse", "BatteryCharging", "Usb", "Calculator", "IdCard"],
   },
   {
     group: "Design and tools",
-    icons: ["Palette", "PenTool", "Paintbrush", "Scissors", "Ruler", "Hammer", "Wrench", "Sparkles"],
+    icons: ["Palette", "PenTool", "Paintbrush", "Scissors", "Ruler", "Hammer", "Wrench", "Sparkles", "Sparkle"],
   },
   {
     group: "Vehicles and outdoor",
     icons: ["Car", "Truck", "Bike", "Tent", "TreePine", "Sun"],
   },
   {
-    group: "Business",
-    icons: ["Building2", "Store", "Factory", "Users", "Handshake", "BadgeCheck", "Percent", "Tag"],
+    group: "Business and accessories",
+    icons: ["Building2", "Store", "Factory", "Users", "Handshake", "BadgeCheck", "Percent", "Tag", "Shield", "Magnet", "Badge", "Ticket", "Smile", "Activity"],
   },
 ];
 
@@ -330,7 +352,6 @@ function CategoriesPage() {
                   {c.description ?? <span className="text-brand-navy/30">Not set</span>}
                 </td>
                 <td className="px-4 py-4 align-middle">
-                  {/* The glyph itself reads faster than its name. */}
                   {c.icon ? (
                     <span className="inline-flex items-center gap-2">
                       <span className="grid h-9 w-9 place-items-center border-2 border-brand-navy/15 bg-brand-surface">
@@ -631,10 +652,6 @@ export function ConfirmDialog({
   );
 }
 
-/**
- * Sixty six names in a dropdown is worse than twelve. This shows the
- * actual glyphs, grouped and searchable, so the choice takes a second.
- */
 function IconPicker({
   value, onChange,
 }: {
@@ -668,7 +685,6 @@ function IconPicker({
         </span>
       </div>
 
-      {/* Current selection, click to change */}
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
@@ -761,8 +777,6 @@ function IconPicker({
   );
 }
 
-/** Resolves a lucide name to its glyph. Used in the list so you can see
- *  at a glance what each category is set to. */
 function CategoryGlyph({ name }: { name: string }) {
   const Icon = ICON_REGISTRY[name];
 
