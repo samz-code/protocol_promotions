@@ -16,7 +16,6 @@ import {
   Ruler, Hammer, Wrench, Sparkles, Car, Truck,
   Bike, Tent, TreePine, Sun, Building2, Store,
   Factory, Users, Handshake, BadgeCheck, Percent, Tag,
-  // Newly added icons
   Shield, Crown, Gem, Magnet, IdCard, Badge, ShieldAlert,
   Utensils, Book, Flame, ScissorsLineDashed, Smile, Activity,
   FileCheck, Scroll, Ticket, Sparkle
@@ -37,9 +36,6 @@ type Category = {
   is_active: boolean;
 };
 
-/* Grouped so picking one is quick. Every name here must also exist in the
-   CATEGORY_ICONS map in shop.tsx, otherwise the shop falls back to a
-   generic box and the choice silently does nothing. */
 const ICON_REGISTRY: Record<string, ComponentType<{ className?: string; strokeWidth?: number }>> = {
   Shirt,
   Footprints,
@@ -107,7 +103,6 @@ const ICON_REGISTRY: Record<string, ComponentType<{ className?: string; strokeWi
   BadgeCheck,
   Percent,
   Tag,
-  // Newly added mapping
   Shield,
   Crown,
   Gem,
@@ -181,7 +176,7 @@ async function fetchCategories(): Promise<Category[]> {
   const { data, error } = await supabase
     .from("categories")
     .select("id, slug, name, description, icon, parent_id, sort_order, is_active")
-    .order("sort_order", { ascending: true });
+    .order("name", { ascending: true });
   if (error) throw error;
   return (data ?? []) as Category[];
 }
@@ -264,8 +259,7 @@ function CategoriesPage() {
             Categories
           </h1>
           <p className="mt-2 text-sm text-brand-navy/60">
-            {categories.length} {categories.length === 1 ? "category" : "categories"}. Order controls
-            how they appear in the shop and the nav.
+            {categories.length} {categories.length === 1 ? "category" : "categories"}. Sorted alphabetically by name.
           </p>
         </div>
         <button
