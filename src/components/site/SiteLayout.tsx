@@ -5,6 +5,8 @@ import { Navbar } from "./Navbar";
 import { Footer } from "./Footer";
 import { WhatsAppFloat } from "./WhatsAppFloat";
 
+/* ------------------------------------------------------------------ types */
+
 interface NavigationSettings {
   show_top_bar: boolean;
   show_navbar: boolean;
@@ -15,6 +17,8 @@ interface WhatsAppSettings {
   phone_number: string;
   default_message: string;
 }
+
+/* ------------------------------------------------------------- main layout */
 
 export function SiteLayout({ children }: { children: ReactNode }) {
   const { data: blocks } = useCmsBlocks(["global_navigation_settings", "whatsapp_float_config"]);
@@ -34,26 +38,18 @@ export function SiteLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-screen flex flex-col bg-background overflow-x-hidden">
-      {navSettings.show_top_bar && (
-        <div className="fixed top-0 left-0 right-0 z-50 h-10">
-          <TopBar />
-        </div>
-      )}
+      {navSettings.show_top_bar && <TopBar />}
 
-      {navSettings.show_navbar && <Navbar hasTopBar={navSettings.show_top_bar} />}
+      {/*
+        Navbar owns its own sticky positioning (sticky top-0 z-50 on its
+        <header>), unconditionally, on every breakpoint. No wrapper needed
+        here — a previous CMS-driven wrapper duplicated this with a
+        different z-index and defaulted to "off", which was redundant at
+        best and confusing at worst.
+      */}
+      {navSettings.show_navbar && <Navbar />}
 
-      {/* Top padding compensates for fixed header elements (10 for TopBar + 20/24 for Navbar) */}
-      <main
-        className={`flex-1 min-w-0 w-full ${
-          navSettings.show_navbar
-            ? navSettings.show_top_bar
-              ? "pt-30 md:pt-34"
-              : "pt-20 md:pt-24"
-            : ""
-        }`}
-      >
-        {children}
-      </main>
+      <main className="flex-1 min-w-0 w-full">{children}</main>
 
       <Footer />
 
@@ -61,6 +57,8 @@ export function SiteLayout({ children }: { children: ReactNode }) {
     </div>
   );
 }
+
+/* ------------------------------------------------------------- page header */
 
 export function PageHeader({
   eyebrow,
