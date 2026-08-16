@@ -18,7 +18,7 @@ import { useCart } from "@/lib/cart";
 
 type Panel = "shop" | "services" | "industries" | null;
 
-export function Navbar({ hasTopBar = false }: { hasTopBar?: boolean }) {
+export function Navbar() {
   const [panel, setPanel] = useState<Panel>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -45,9 +45,7 @@ export function Navbar({ hasTopBar = false }: { hasTopBar?: boolean }) {
 
   return (
     <header
-      className={`fixed left-0 right-0 z-50 bg-white transition-shadow ${
-        hasTopBar ? "top-10" : "top-0"
-      } ${
+      className={`sticky top-0 z-50 bg-white transition-shadow ${
         scrolled
           ? "shadow-[0_1px_0_0_var(--color-border),0_8px_24px_-16px_rgb(0_0_0/0.18)]"
           : "border-b border-border"
@@ -59,7 +57,9 @@ export function Navbar({ hasTopBar = false }: { hasTopBar?: boolean }) {
         {/* Logo renders its own link and caps its own height per breakpoint */}
         <Logo className="shrink" imgClassName="h-10 md:h-14" priority />
 
-        {/* Desktop nav */}
+        {/* Desktop nav. Was gated behind xl (1280px), which pushed real laptop
+            viewports (zoom, devtools, non-maximized windows) into the mobile
+            layout. lg (1024px) is a safer floor for "laptop" screens. */}
         <nav className="hidden items-center gap-0 whitespace-nowrap text-[15px] font-bold tracking-[-0.01em] lg:flex 2xl:gap-0.5 2xl:text-[16.5px]">
           <NavTrigger label="Shop" active={panel === "shop"} onEnter={() => setPanel("shop")} />
           <NavTrigger label="Services" active={panel === "services"} onEnter={() => setPanel("services")} />
@@ -388,6 +388,7 @@ function IconLink({
   );
 }
 
+/** Small crop-mark glyph, a nod to print registration marks, used as the section marker instead of a generic eyebrow label. */
 function RegistrationMark() {
   return (
     <svg width="12" height="12" viewBox="0 0 12 12" className="shrink-0 text-brand-orange" aria-hidden="true">
@@ -467,6 +468,8 @@ function SimplePanel({
 function MobileDrawer({ onClose, onSearch }: { onClose: () => void; onSearch: () => void }) {
   const panelRef = useRef<HTMLDivElement>(null);
 
+  // Lock scroll, close on Escape, and move focus into the drawer so
+  // keyboard and screen reader users are not left behind on the page.
   useEffect(() => {
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -508,6 +511,7 @@ function MobileDrawer({ onClose, onSearch }: { onClose: () => void; onSearch: ()
       <div
         ref={panelRef}
         tabIndex={-1}
+        /* dvh keeps the panel correct when mobile browser chrome collapses */
         className="absolute inset-y-0 right-0 flex h-full max-h-dvh w-[86%] max-w-sm flex-col bg-white outline-none"
         onClick={(e) => e.stopPropagation()}
       >
@@ -522,6 +526,7 @@ function MobileDrawer({ onClose, onSearch }: { onClose: () => void; onSearch: ()
           </button>
         </div>
 
+        {/* Padded for the iOS home indicator so the last link is never cut off */}
         <nav className="flex-1 overflow-y-auto overscroll-contain p-2 pb-[max(1rem,env(safe-area-inset-bottom))]">
           <button
             type="button"
