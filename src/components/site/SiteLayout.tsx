@@ -18,11 +18,6 @@ interface WhatsAppSettings {
   default_message: string;
 }
 
-interface GlobalLayoutSettings {
-  global_navigation_settings?: NavigationSettings;
-  whatsapp_float_config?: WhatsAppSettings;
-}
-
 /* ------------------------------------------------------------- main layout */
 
 export function SiteLayout({ children }: { children: ReactNode }) {
@@ -42,7 +37,7 @@ export function SiteLayout({ children }: { children: ReactNode }) {
     };
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="min-h-screen flex flex-col bg-background overflow-x-hidden">
       {navSettings.show_top_bar && <TopBar />}
 
       {/*
@@ -54,7 +49,7 @@ export function SiteLayout({ children }: { children: ReactNode }) {
       */}
       {navSettings.show_navbar && <Navbar />}
 
-      <main className="flex-1">{children}</main>
+      <main className="flex-1 min-w-0 w-full">{children}</main>
 
       <Footer />
 
@@ -76,17 +71,17 @@ export function PageHeader({
 }) {
   return (
     <section className="bg-brand-surface border-b border-border">
-      <div className="container-page py-8 md:py-12">
+      <div className="container-page py-8 md:py-12 min-w-0">
         {eyebrow && (
-          <div className="text-[11px] tracking-[0.2em] uppercase font-bold text-brand-orange mb-3">
+          <div className="text-[11px] tracking-[0.2em] uppercase font-bold text-brand-orange mb-3 wrap-break-word">
             {eyebrow}
           </div>
         )}
-        <h1 className="text-3xl md:text-5xl font-extrabold text-brand-navy max-w-3xl">
+        <h1 className="text-3xl md:text-5xl font-extrabold text-brand-navy max-w-3xl wrap-break-word">
           {title}
         </h1>
         {description && (
-          <p className="mt-4 text-base md:text-lg text-muted-foreground max-w-2xl">
+          <p className="mt-4 text-base md:text-lg text-muted-foreground max-w-2xl wrap-break-word">
             {description}
           </p>
         )}

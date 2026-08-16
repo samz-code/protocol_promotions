@@ -5,10 +5,11 @@ import { supabase } from "@/lib/supabase";
 import { SiteLayout } from "@/components/site/SiteLayout";
 import { ProductConfigurator } from "@/components/shop/ProductConfigurator";
 import { useCart } from "@/lib/cart";
-import { FaWhatsapp } from "react-icons/fa";
+import { FaWhatsapp, FaFacebookF, FaLinkedinIn, FaTelegramPlane } from "react-icons/fa";
+import { FaXTwitter } from "react-icons/fa6";
 import {
   Star, ChevronRight, ChevronLeft, Package, Loader2, AlertCircle,
-  Check, ShieldCheck, Truck, Layers, Copy, CheckCheck,
+  Check, ShieldCheck, Truck, Layers, Copy, CheckCheck, Share2,
 } from "lucide-react";
 
 export const Route = createFileRoute("/shop_/$slug")({
@@ -21,7 +22,6 @@ export const Route = createFileRoute("/shop_/$slug")({
   component: ProductDetailPage,
 });
 
-// Business WhatsApp number, full international format, digits only.
 const WHATSAPP_NUMBER = "254762446077";
 
 const KSH = new Intl.NumberFormat("en-KE", {
@@ -29,17 +29,6 @@ const KSH = new Intl.NumberFormat("en-KE", {
   currency: "KES",
   maximumFractionDigits: 0,
 });
-
-/* ================================================================
-   Colour palette system
-
-   Product colours arrive as plain names (e.g. "Navy Blue"). This
-   resolves a name to a real hex swatch so we can render a colour dot,
-   not just wording. It also accepts:
-     - a raw hex string:        "#1b2a4a"
-     - an explicit name|hex:    "Bottle Green|#0b3d2e"
-   so admins can override any colour per product without code changes.
-   ================================================================ */
 
 const COLOR_MAP: Record<string, string> = {
   white: "#ffffff",
@@ -109,8 +98,6 @@ const COLOR_MAP: Record<string, string> = {
   plum: "#5f3a5f",
 };
 
-// A colour is "light" if its perceived luminance is high, so we can add a
-// ring/border to keep white and pale swatches visible on a white background.
 function isLightHex(hex: string): boolean {
   const m = hex.replace("#", "");
   if (m.length !== 6) return false;
@@ -121,32 +108,27 @@ function isLightHex(hex: string): boolean {
   return luminance > 0.8;
 }
 
-// Resolve a raw colour string into a { name, hex } pair.
 function resolveColor(raw: string): { name: string; hex: string | null } {
   const value = (raw ?? "").trim();
 
-  // Explicit "Name|#hex" override.
   if (value.includes("|")) {
     const [name, hex] = value.split("|").map((s) => s.trim());
     return { name: name || hex, hex: /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(hex) ? hex : null };
   }
 
-  // Raw hex string.
   if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(value)) {
     return { name: value, hex: value };
   }
 
-  // Named colour: normalise by stripping spaces/dashes and lowercasing.
   const key = value.toLowerCase().replace(/[\s\-_]/g, "");
   return { name: value, hex: COLOR_MAP[key] ?? null };
 }
 
-function Swatch({ raw, size = 14 }: { raw: string; size?: number }) {
+function Swatch({ raw, size = 12 }: { raw: string; size?: number }) {
   const { hex } = resolveColor(raw);
   const dim = { height: size, width: size };
 
   if (!hex) {
-    // Unknown colour: neutral chequer so it is clearly "no swatch" not black.
     return (
       <span
         aria-hidden="true"
@@ -173,7 +155,6 @@ function Swatch({ raw, size = 14 }: { raw: string; size?: number }) {
   );
 }
 
-// Clean display name (drops any "|#hex" suffix, keeps raw hex as-is).
 function colorDisplayName(raw: string): string {
   return resolveColor(raw).name;
 }
@@ -221,8 +202,6 @@ type Review = {
   created_at: string;
 };
 
-// Shape of the current configuration we mirror from the configurator so the
-// WhatsApp order message reflects exactly what the customer selected.
 type Selection = {
   quantity: number;
   color: string | null;
@@ -280,8 +259,8 @@ function ProductDetailPage() {
   if (query.isLoading) {
     return (
       <SiteLayout>
-        <div className="container-page grid place-items-center py-32">
-          <Loader2 className="h-7 w-7 animate-spin text-brand-navy" />
+        <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8 grid place-items-center">
+          <Loader2 className="h-6 w-6 animate-spin text-brand-navy" />
         </div>
       </SiteLayout>
     );
@@ -290,13 +269,13 @@ function ProductDetailPage() {
   if (query.isError) {
     return (
       <SiteLayout>
-        <div className="container-page py-24">
-          <div className="mx-auto max-w-md border border-dashed border-brand-navy/20 bg-brand-surface/50 p-10 text-center">
-            <AlertCircle className="mx-auto h-6 w-6 text-brand-orange" />
-            <h1 className="mt-4 text-lg font-bold text-brand-navy">Could not load product</h1>
-            <p className="mt-1.5 text-sm text-brand-navy/60">{(query.error as Error).message}</p>
-            <Link to="/shop" className="mt-6 inline-flex items-center gap-1.5 text-sm font-bold text-brand-orange hover:gap-2.5 transition-all">
-              <ChevronLeft className="h-4 w-4" /> Back to shop
+        <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-md border border-dashed border-brand-navy/20 bg-brand-surface/50 p-6 text-center rounded-xl">
+            <AlertCircle className="mx-auto h-5 w-5 text-brand-orange" />
+            <h1 className="mt-3 text-sm font-bold text-brand-navy">Could not load product</h1>
+            <p className="mt-1 text-xs text-brand-navy/60">{(query.error as Error).message}</p>
+            <Link to="/shop" className="mt-4 inline-flex items-center gap-1 text-xs font-bold text-brand-orange hover:underline">
+              <ChevronLeft className="h-3.5 w-3.5" /> Back to shop
             </Link>
           </div>
         </div>
@@ -307,13 +286,13 @@ function ProductDetailPage() {
   if (!query.data) {
     return (
       <SiteLayout>
-        <div className="container-page py-24">
-          <div className="mx-auto max-w-md border border-dashed border-brand-navy/20 bg-brand-surface/50 p-10 text-center">
-            <Package className="mx-auto h-6 w-6 text-brand-navy/40" />
-            <h1 className="mt-4 text-lg font-bold text-brand-navy">Product not found</h1>
-            <p className="mt-1.5 text-sm text-brand-navy/60">This item may have been removed or is not currently available.</p>
-            <Link to="/shop" className="mt-6 inline-flex items-center gap-1.5 text-sm font-bold text-brand-orange hover:gap-2.5 transition-all">
-              <ChevronLeft className="h-4 w-4" /> Back to shop
+        <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-md border border-dashed border-brand-navy/20 bg-brand-surface/50 p-6 text-center rounded-xl">
+            <Package className="mx-auto h-5 w-5 text-brand-navy/40" />
+            <h1 className="mt-3 text-sm font-bold text-brand-navy">Product not found</h1>
+            <p className="mt-1 text-xs text-brand-navy/60">This item may have been removed or is not available.</p>
+            <Link to="/shop" className="mt-4 inline-flex items-center gap-1 text-xs font-bold text-brand-orange hover:underline">
+              <ChevronLeft className="h-3.5 w-3.5" /> Back to shop
             </Link>
           </div>
         </div>
@@ -347,8 +326,6 @@ function ProductView({
   const images = toArray<string>(product.images);
   const bullets = toArray<string>(product.key_bullets);
 
-  // Mirror the current configuration so the WhatsApp order reflects it.
-  // Seeded with sensible defaults so the button works before any change.
   const [selection, setSelection] = useState<Selection>(() => ({
     quantity: product.moq || 1,
     color: toArray<string>(product.colors)[0] ?? null,
@@ -358,9 +335,6 @@ function ProductView({
     total: Number(product.price) * (product.moq || 1),
   }));
 
-  // Resolve unit price from the tier table for a given quantity, so the
-  // fallback selection bar and the WhatsApp total stay accurate even if the
-  // configurator does not report changes.
   const priceForQty = useMemo(() => {
     const sorted = [...tiers].sort((a, b) => a.min_qty - b.min_qty);
     return (qty: number) => {
@@ -377,108 +351,108 @@ function ProductView({
 
   return (
     <SiteLayout>
-      {/* Breadcrumb */}
-      <div className="border-b border-brand-navy/12 bg-brand-surface/40">
-        <div className="container-page flex items-center gap-1.5 overflow-x-auto whitespace-nowrap py-3 text-[11px] font-medium text-brand-navy/55 sm:py-4 sm:text-xs">
-          <Link to="/" className="transition-colors hover:text-brand-orange">Home</Link>
-          <ChevronRight className="h-3 w-3" />
-          <Link to="/shop" className="transition-colors hover:text-brand-orange">Shop</Link>
-          {product.categories && (
-            <>
-              <ChevronRight className="h-3 w-3" />
-              <Link to="/shop" search={{ category: product.categories.slug }} className="transition-colors hover:text-brand-orange">
-                {product.categories.name}
-              </Link>
-            </>
-          )}
-          <ChevronRight className="h-3 w-3" />
-          <span className="truncate font-semibold text-brand-navy">{product.name}</span>
-        </div>
-      </div>
-
-      <section className="container-page py-6 sm:py-8 md:py-14">
-        <div className="grid gap-8 sm:gap-10 lg:grid-cols-2 lg:gap-14">
-          <Gallery images={images} name={product.name} badge={product.badge} />
-
-          <div>
+      <div className="w-full">
+        {/* Breadcrumb */}
+        <div className="border-b border-brand-navy/10 bg-brand-surface/40">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 flex items-center gap-1.5 overflow-x-auto whitespace-nowrap py-2 text-[11px] font-medium text-brand-navy/60 no-scrollbar">
+            <Link to="/" className="transition-colors hover:text-brand-orange shrink-0">Home</Link>
+            <ChevronRight className="h-3 w-3 shrink-0 text-brand-navy/30" />
+            <Link to="/shop" className="transition-colors hover:text-brand-orange shrink-0">Shop</Link>
             {product.categories && (
-              <div className="text-[11px] font-bold uppercase tracking-widest text-brand-orange">
-                {product.categories.name}
-              </div>
+              <>
+                <ChevronRight className="h-3 w-3 shrink-0 text-brand-navy/30" />
+                <Link to="/shop" search={{ category: product.categories.slug }} className="transition-colors hover:text-brand-orange shrink-0 truncate max-w-25 sm:max-w-none">
+                  {product.categories.name}
+                </Link>
+              </>
             )}
-            <h1 className="mt-2 text-2xl font-extrabold tracking-tight text-brand-navy sm:text-3xl md:text-4xl">
-              {product.name}
-            </h1>
-
-            <div className="mt-3 flex flex-wrap items-center gap-4 text-sm">
-              <div className="flex items-center gap-1">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} className={`h-4 w-4 ${i < Math.round(product.rating) ? "fill-brand-orange text-brand-orange" : "text-brand-navy/20"}`} />
-                ))}
-                <span className="ml-1 font-semibold text-brand-navy">{product.rating > 0 ? product.rating.toFixed(1) : "New"}</span>
-                {product.review_count > 0 && <span className="text-brand-navy/50">({product.review_count})</span>}
-              </div>
-              {product.sku && <span className="font-mono text-xs text-brand-navy/45">SKU: {product.sku}</span>}
-            </div>
-
-            {product.short_description && (
-              <p className="mt-4 text-[15px] leading-relaxed text-brand-navy/70 sm:mt-5 sm:text-base">{product.short_description}</p>
-            )}
-
-            {bullets.length > 0 && (
-              <ul className="mt-5 space-y-2">
-                {bullets.map((b, i) => (
-                  <li key={i} className="group flex items-start gap-2.5 text-sm text-brand-navy/75 transition-colors hover:text-brand-navy">
-                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-brand-orange transition-transform group-hover:scale-125" />
-                    {b}
-                  </li>
-                ))}
-              </ul>
-            )}
-
-            {variants.length > 0 && <VariantStockTable variants={variants} />}
-
-            <div className="mt-8">
-              <ProductConfigurator
-                product={product}
-                tiers={tiers}
-                setupFees={setupFees}
-                onAddToCart={(payload: any) => {
-                  onAddToCart(payload);
-                  // Mirror the configured selection into the WhatsApp order.
-                  syncFromPayload(payload, priceForQty, setSelection);
-                }}
-              />
-            </div>
-
-            {/* Direct WhatsApp order */}
-            <WhatsAppOrderBar
-              product={product}
-              selection={selection}
-              setSelection={setSelection}
-              priceForQty={priceForQty}
-              productUrl={productUrl}
-            />
-
-            {/* Trust row */}
-            <div className="mt-7 grid grid-cols-3 gap-2 border-t border-brand-navy/12 pt-5 sm:mt-8 sm:gap-3 sm:pt-6">
-              <TrustItem icon={Truck} label="Nationwide delivery" />
-              <TrustItem icon={ShieldCheck} label="Free proof first" />
-              <TrustItem icon={Layers} label="Volume discounts" />
-            </div>
+            <ChevronRight className="h-3 w-3 shrink-0 text-brand-navy/30" />
+            <span className="truncate font-semibold text-brand-navy max-w-35ax-w-xs">{product.name}</span>
           </div>
         </div>
 
-        <ProductTabs product={product} reviews={reviews} />
-      </section>
+        <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-4 sm:py-6 md:py-8">
+          <div className="grid gap-6 lg:grid-cols-12 lg:gap-8 items-start">
+            <div className="lg:col-span-5">
+              <Gallery images={images} name={product.name} badge={product.badge} />
+            </div>
+
+            <div className="lg:col-span-7 min-w-0">
+              {product.categories && (
+                <div className="text-[10px] font-bold uppercase tracking-widest text-brand-orange truncate">
+                  {product.categories.name}
+                </div>
+              )}
+              <h1 className="mt-0.5 text-xl font-extrabold tracking-tight text-brand-navy sm:text-2xl md:text-3xl wrap-break-word">
+                {product.name}
+              </h1>
+
+              <div className="mt-2 flex flex-wrap items-center gap-2.5 text-xs">
+                <div className="flex items-center gap-1">
+                  {[...Array(5)].map((_, i) => (
+                    <Star key={i} className={`h-3.5 w-3.5 ${i < Math.round(product.rating) ? "fill-brand-orange text-brand-orange" : "text-brand-navy/20"}`} />
+                  ))}
+                  <span className="ml-1 font-bold text-brand-navy">{product.rating > 0 ? product.rating.toFixed(1) : "New"}</span>
+                  {product.review_count > 0 && <span className="text-brand-navy/50">({product.review_count})</span>}
+                </div>
+                {product.sku && <span className="font-mono text-[11px] text-brand-navy/45 border-l border-brand-navy/15 pl-2.5">SKU: {product.sku}</span>}
+              </div>
+
+              {product.short_description && (
+                <p className="mt-3 text-xs sm:text-sm leading-relaxed text-brand-navy/75 wrap-break-word">
+                  {product.short_description}
+                </p>
+              )}
+
+              {bullets.length > 0 && (
+                <ul className="mt-3 space-y-1.5">
+                  {bullets.map((b, i) => (
+                    <li key={i} className="flex items-start gap-2 text-xs text-brand-navy/80">
+                      <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand-orange" />
+                      <span className="wrap-break-word">{b}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              <SocialShareBar title={product.name} url={productUrl} />
+
+              {variants.length > 0 && <VariantStockTable variants={variants} />}
+
+              <div className="mt-5 min-w-0">
+                <ProductConfigurator
+                  product={product}
+                  tiers={tiers}
+                  setupFees={setupFees}
+                  onAddToCart={(payload: any) => {
+                    onAddToCart(payload);
+                    syncFromPayload(payload, priceForQty, setSelection);
+                  }}
+                />
+              </div>
+
+              <WhatsAppOrderBar
+                product={product}
+                selection={selection}
+                setSelection={setSelection}
+                priceForQty={priceForQty}
+                productUrl={productUrl}
+              />
+
+              <div className="mt-5 grid grid-cols-3 gap-2 border-t border-brand-navy/10 pt-4">
+                <TrustItem icon={Truck} label="East Africa delivery" />
+                <TrustItem icon={ShieldCheck} label="Free visual proof" />
+                <TrustItem icon={Layers} label="Automatic scaling" />
+              </div>
+            </div>
+          </div>
+
+          <ProductTabs product={product} reviews={reviews} />
+        </section>
+      </div>
     </SiteLayout>
   );
 }
-
-/* ================================================================
-   Try to read quantity / color / size / method / price out of the
-   configurator payload, whatever its exact field names are.
-   ================================================================ */
 
 function syncFromPayload(
   payload: any,
@@ -487,31 +461,84 @@ function syncFromPayload(
 ) {
   if (!payload || typeof payload !== "object") return;
 
-  const quantity =
-    Number(payload.quantity ?? payload.qty ?? payload.count ?? 0) || 0;
+  const quantity = Number(payload.quantity ?? payload.qty ?? payload.count ?? 0) || 0;
   if (quantity <= 0) return;
 
   const color = payload.color ?? payload.colour ?? payload.variantColor ?? null;
   const size = payload.size ?? payload.variantSize ?? null;
-  const method =
-    payload.method ?? payload.printMethod ?? payload.print_method ?? payload.technique ?? null;
+  const method = payload.method ?? payload.printMethod ?? payload.print_method ?? payload.technique ?? null;
 
-  const unitPrice =
-    Number(payload.unitPrice ?? payload.unit_price ?? priceForQty(quantity)) ||
-    priceForQty(quantity);
-
-  const total =
-    Number(payload.total ?? payload.lineTotal ?? unitPrice * quantity) ||
-    unitPrice * quantity;
+  const unitPrice = Number(payload.unitPrice ?? payload.unit_price ?? priceForQty(quantity)) || priceForQty(quantity);
+  const total = Number(payload.total ?? payload.lineTotal ?? unitPrice * quantity) || unitPrice * quantity;
 
   setSelection({ quantity, color, size, method, unitPrice, total });
 }
 
-/* ================================================================
-   WhatsApp order bar
-   Lets the customer place the exact configured order over WhatsApp,
-   with a live editable quantity fallback and a copyable summary.
-   ================================================================ */
+function SocialShareBar({ title, url }: { title: string; url: string }) {
+  const shareText = `Check out ${title} on Protocol Promotions:`;
+  const encodedUrl = encodeURIComponent(url);
+  const encodedText = encodeURIComponent(shareText);
+
+  const channels = [
+    {
+      name: "WhatsApp",
+      icon: FaWhatsapp,
+      href: `https://api.whatsapp.com/send?text=${encodedText}%20${encodedUrl}`,
+      color: "hover:bg-[#25D366] hover:text-white hover:border-[#25D366]",
+    },
+    {
+      name: "Facebook",
+      icon: FaFacebookF,
+      href: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`,
+      color: "hover:bg-[#1877F2] hover:text-white hover:border-[#1877F2]",
+    },
+    {
+      name: "X",
+      icon: FaXTwitter,
+      href: `https://twitter.com/intent/tweet?url=${encodedUrl}&text=${encodedText}`,
+      color: "hover:bg-black hover:text-white hover:border-black",
+    },
+    {
+      name: "LinkedIn",
+      icon: FaLinkedinIn,
+      href: `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`,
+      color: "hover:bg-[#0A66C2] hover:text-white hover:border-[#0A66C2]",
+    },
+    {
+      name: "Telegram",
+      icon: FaTelegramPlane,
+      href: `https://t.me/share/url?url=${encodedUrl}&text=${encodedText}`,
+      color: "hover:bg-[#229ED9] hover:text-white hover:border-[#229ED9]",
+    },
+  ];
+
+  return (
+    <div className="mt-4 pt-3 border-t border-brand-navy/10">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-[11px] font-bold uppercase tracking-wider text-brand-navy/50 flex items-center gap-1 mr-1">
+          <Share2 className="h-3 w-3 text-brand-orange shrink-0" /> Share
+        </span>
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {channels.map((c) => {
+            const Icon = c.icon;
+            return (
+              <a
+                key={c.name}
+                href={c.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                title={`Share on ${c.name}`}
+                className={`h-7 w-7 rounded-md border border-brand-navy/15 bg-white text-brand-navy/70 flex items-center justify-center transition-all duration-200 ${c.color}`}
+              >
+                <Icon className="h-3 w-3 shrink-0" />
+              </a>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function WhatsAppOrderBar({
   product,
@@ -571,31 +598,28 @@ function WhatsAppOrderBar({
       setCopied(true);
       setTimeout(() => setCopied(false), 1800);
     } catch {
-      // Clipboard unavailable; silently ignore.
+      // Clipboard fallback ignored
     }
   };
 
   return (
-    <div className="mt-6 border border-brand-navy/15 bg-brand-surface/60">
-      {/* Header */}
-      <div className="flex items-center gap-2 border-b border-brand-navy/12 bg-white px-4 py-3">
-        <FaWhatsapp className="h-5 w-5 text-[#25D366]" />
-        <div className="text-sm font-extrabold text-brand-navy">Order directly on WhatsApp</div>
-        <span className="ml-auto inline-flex items-center gap-1.5 text-[11px] font-semibold text-green-600">
-          <span className="h-2 w-2 animate-pulse rounded-full bg-green-500" />
-          Usually replies fast
+    <div className="mt-5 border border-brand-navy/15 bg-brand-surface/60 rounded-lg overflow-hidden">
+      <div className="flex items-center gap-2 border-b border-brand-navy/10 bg-white px-3.5 py-2">
+        <FaWhatsapp className="h-4 w-4 text-[#25D366] shrink-0" />
+        <div className="text-xs font-extrabold text-brand-navy truncate">Direct WhatsApp Order</div>
+        <span className="ml-auto inline-flex items-center gap-1 text-[10px] font-semibold text-green-600 shrink-0">
+          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-green-500" />
+          Fast Response
         </span>
       </div>
 
-      {/* Quick selectors (fallback / confirmation) */}
-      <div className="space-y-3 px-4 py-4">
-        <div className="flex flex-wrap items-center gap-3">
-          {/* Quantity stepper */}
-          <div className="inline-flex items-center border border-brand-navy/20 bg-white">
+      <div className="space-y-2.5 px-3.5 py-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="inline-flex items-center border border-brand-navy/20 bg-white rounded-md overflow-hidden shrink-0">
             <button
               type="button"
               onClick={() => setQty(selection.quantity - 1)}
-              className="grid h-9 w-9 place-items-center text-brand-navy transition-colors hover:bg-brand-navy hover:text-white"
+              className="grid h-7 w-7 place-items-center text-xs text-brand-navy hover:bg-brand-navy hover:text-white transition-colors"
               aria-label="Decrease quantity"
             >
               −
@@ -605,32 +629,28 @@ function WhatsAppOrderBar({
               min={product.moq || 1}
               value={selection.quantity}
               onChange={(e) => setQty(Number(e.target.value))}
-              className="h-9 w-16 border-x border-brand-navy/15 bg-white text-center text-sm font-bold tabular-nums text-brand-navy outline-none focus:bg-brand-surface"
+              className="h-7 w-12 border-x border-brand-navy/15 bg-white text-center text-xs font-bold tabular-nums text-brand-navy outline-none"
             />
             <button
               type="button"
               onClick={() => setQty(selection.quantity + 1)}
-              className="grid h-9 w-9 place-items-center text-brand-navy transition-colors hover:bg-brand-navy hover:text-white"
+              className="grid h-7 w-7 place-items-center text-xs text-brand-navy hover:bg-brand-navy hover:text-white transition-colors"
               aria-label="Increase quantity"
             >
               +
             </button>
           </div>
-          <span className="text-[11px] font-semibold uppercase tracking-widest text-brand-navy/45">
-            MOQ {product.moq || 1}
-          </span>
 
-          <div className="ml-auto text-right">
-            <div className="text-[11px] font-semibold uppercase tracking-widest text-brand-navy/45">
-              Est. total
+          <div className="text-right">
+            <div className="text-[9px] font-bold uppercase tracking-widest text-brand-navy/45">
+              Est. Total
             </div>
-            <div className="text-lg font-extrabold tabular-nums text-brand-navy">
+            <div className="text-sm font-black tabular-nums text-brand-navy">
               {KSH.format(selection.total)}
             </div>
           </div>
         </div>
 
-        {/* Chip selectors, only shown when the product offers options */}
         {colors.length > 0 && (
           <ChipRow
             label="Colour"
@@ -658,30 +678,25 @@ function WhatsAppOrderBar({
         )}
       </div>
 
-      {/* Actions */}
-      <div className="flex flex-col gap-2 border-t border-brand-navy/12 bg-white p-4 sm:flex-row">
+      <div className="flex flex-col gap-1.5 border-t border-brand-navy/10 bg-white p-3 sm:flex-row">
         <a
           href={href}
           target="_blank"
           rel="noopener noreferrer"
-          className="group inline-flex flex-1 items-center justify-center gap-2 bg-[#25D366] px-6 py-3.5 text-sm font-bold uppercase tracking-wide text-white transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[5px_5px_0_0_var(--color-brand-navy)] active:translate-y-0"
+          className="group inline-flex flex-1 items-center justify-center gap-1.5 bg-[#25D366] px-4 py-2 rounded-md text-xs font-bold uppercase tracking-wide text-white hover:bg-[#20bd5a] transition-colors"
         >
-          <FaWhatsapp className="h-5 w-5 transition-transform duration-300 group-hover:rotate-6" />
-          Send order on WhatsApp
+          <FaWhatsapp className="h-3.5 w-3.5 shrink-0" />
+          Send Order on WhatsApp
         </a>
         <button
           type="button"
           onClick={copy}
-          className="inline-flex items-center justify-center gap-2 border border-brand-navy px-5 py-3.5 text-sm font-bold uppercase tracking-wide text-brand-navy transition-all duration-300 hover:-translate-y-0.5 hover:border-brand-orange hover:text-brand-orange active:translate-y-0"
+          className="inline-flex items-center justify-center gap-1.5 border border-brand-navy/20 px-3 py-2 rounded-md text-xs font-bold uppercase tracking-wide text-brand-navy hover:bg-brand-surface transition-colors shrink-0"
         >
-          {copied ? <CheckCheck className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
+          {copied ? <CheckCheck className="h-3.5 w-3.5 text-green-600 shrink-0" /> : <Copy className="h-3.5 w-3.5 shrink-0" />}
           {copied ? "Copied" : "Copy"}
         </button>
       </div>
-
-      <p className="px-4 pb-4 text-[11px] leading-relaxed text-brand-navy/50">
-        Sends your exact selection to our team. Final price is confirmed after artwork and setup.
-      </p>
     </div>
   );
 }
@@ -696,17 +711,17 @@ function ChipRow({
   withSwatch?: boolean;
 }) {
   return (
-    <div>
-      <div className="mb-1.5 flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-brand-navy/45">
+    <div className="w-full">
+      <div className="mb-1 flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-widest text-brand-navy/45">
         {label}
         {withSwatch && value && (
-          <span className="inline-flex items-center gap-1.5 normal-case tracking-normal text-brand-navy/70">
-            <Swatch raw={value} size={12} />
+          <span className="inline-flex items-center gap-1 normal-case tracking-normal text-brand-navy/70 truncate">
+            <Swatch raw={value} size={9} />
             {colorDisplayName(value)}
           </span>
         )}
       </div>
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-1">
         {options.map((opt) => {
           const selected = value === opt;
           return (
@@ -715,14 +730,14 @@ function ChipRow({
               type="button"
               onClick={() => onSelect(opt)}
               title={withSwatch ? colorDisplayName(opt) : opt}
-              className={`inline-flex items-center gap-1.5 border px-3 py-1.5 text-xs font-semibold transition-all duration-200 ${
+              className={`inline-flex items-center gap-1 border px-2 py-0.5 rounded text-[11px] font-medium transition-all ${
                 selected
-                  ? "border-brand-navy bg-brand-navy text-white"
-                  : "border-brand-navy/20 bg-white text-brand-navy/75 hover:-translate-y-0.5 hover:border-brand-orange hover:text-brand-orange"
+                  ? "border-brand-navy bg-brand-navy text-white font-semibold"
+                  : "border-brand-navy/15 bg-white text-brand-navy/75 hover:border-brand-navy/40"
               }`}
             >
-              {withSwatch && <Swatch raw={opt} size={14} />}
-              {withSwatch ? colorDisplayName(opt) : opt}
+              {withSwatch && <Swatch raw={opt} size={10} />}
+              <span className="truncate max-w-25">{withSwatch ? colorDisplayName(opt) : opt}</span>
             </button>
           );
         })}
@@ -731,19 +746,15 @@ function ChipRow({
   );
 }
 
-/* ================================================================
-   Gallery
-   ================================================================ */
-
 function Gallery({ images, name, badge }: { images: string[]; name: string; badge: string | null }) {
   const [active, setActive] = useState(0);
   const hasImages = images.length > 0;
 
   return (
-    <div className="lg:sticky lg:top-24 lg:self-start">
-      <div className="group relative aspect-square overflow-hidden border border-brand-navy/15 bg-brand-surface">
+    <div className="lg:sticky lg:top-20">
+      <div className="group relative aspect-square max-w-md mx-auto lg:max-w-none overflow-hidden rounded-lg border border-brand-navy/15 bg-brand-surface">
         {badge && (
-          <span className="absolute left-4 top-4 z-10 bg-brand-navy px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-white">
+          <span className="absolute left-2.5 top-2.5 z-10 rounded bg-brand-navy px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wider text-white shadow-xs max-w-[70%] truncate">
             {badge}
           </span>
         )}
@@ -751,11 +762,11 @@ function Gallery({ images, name, badge }: { images: string[]; name: string; badg
           <img
             src={images[active]}
             alt={name}
-            className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.04]"
+            className="h-full w-full object-contain p-2 transition-transform duration-300 ease-out group-hover:scale-105"
           />
         ) : (
           <div className="grid h-full place-items-center">
-            <Package className="h-16 w-16 text-brand-navy/12" />
+            <Package className="h-12 w-12 text-brand-navy/15 shrink-0" />
           </div>
         )}
 
@@ -764,22 +775,21 @@ function Gallery({ images, name, badge }: { images: string[]; name: string; badg
             <button
               type="button"
               onClick={() => setActive((a) => (a - 1 + images.length) % images.length)}
-              className="absolute left-3 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center border border-brand-navy bg-white/90 text-brand-navy backdrop-blur-sm transition-colors hover:bg-brand-navy hover:text-white"
+              className="absolute left-2 top-1/2 grid h-7 w-7 -translate-y-1/2 place-items-center rounded-full border border-brand-navy/20 bg-white/90 text-brand-navy backdrop-blur-xs transition-colors hover:bg-brand-navy hover:text-white"
               aria-label="Previous image"
             >
-              <ChevronLeft className="h-4 w-4" />
+              <ChevronLeft className="h-3.5 w-3.5" />
             </button>
             <button
               type="button"
               onClick={() => setActive((a) => (a + 1) % images.length)}
-              className="absolute right-3 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center border border-brand-navy bg-white/90 text-brand-navy backdrop-blur-sm transition-colors hover:bg-brand-navy hover:text-white"
+              className="absolute right-2 top-1/2 grid h-7 w-7 -translate-y-1/2 place-items-center rounded-full border border-brand-navy/20 bg-white/90 text-brand-navy backdrop-blur-xs transition-colors hover:bg-brand-navy hover:text-white"
               aria-label="Next image"
             >
-              <ChevronRight className="h-4 w-4" />
+              <ChevronRight className="h-3.5 w-3.5" />
             </button>
 
-            {/* Counter */}
-            <span className="absolute bottom-3 right-3 bg-brand-navy/80 px-2 py-0.5 text-[11px] font-bold tabular-nums text-white">
+            <span className="absolute bottom-2 right-2 rounded bg-brand-navy/80 px-1.5 py-0.5 text-[9px] font-bold tabular-nums text-white">
               {active + 1} / {images.length}
             </span>
           </>
@@ -787,19 +797,19 @@ function Gallery({ images, name, badge }: { images: string[]; name: string; badg
       </div>
 
       {images.length > 1 && (
-        <div className="mt-3 flex gap-2.5 overflow-x-auto pb-1">
+        <div className="mt-2.5 flex gap-1.5 overflow-x-auto pb-1 no-scrollbar justify-center lg:justify-start">
           {images.map((img, i) => (
             <button
               key={i}
               type="button"
               onClick={() => setActive(i)}
-              className={`h-16 w-16 shrink-0 overflow-hidden border-2 transition-all ${
+              className={`h-11 w-11 shrink-0 overflow-hidden rounded border transition-all ${
                 i === active
-                  ? "border-brand-orange"
+                  ? "border-brand-orange shadow-xs"
                   : "border-transparent opacity-60 hover:opacity-100"
               }`}
             >
-              <img src={img} alt={`${name} view ${i + 1}`} className="h-full w-full object-cover" />
+              <img src={img} alt={`${name} thumbnail ${i + 1}`} className="h-full w-full object-cover" />
             </button>
           ))}
         </div>
@@ -810,23 +820,27 @@ function Gallery({ images, name, badge }: { images: string[]; name: string; badg
 
 function VariantStockTable({ variants }: { variants: Variant[] }) {
   return (
-    <div className="mt-6 overflow-hidden border border-brand-navy/15 sm:mt-8">
-      <div className="bg-brand-surface px-4 py-2.5 text-[11px] font-bold uppercase tracking-widest text-brand-navy/60">
-        Available colours & stock
+    <div className="mt-4 overflow-hidden rounded-lg border border-brand-navy/15">
+      <div className="bg-brand-surface px-3 py-1.5 text-[9px] font-extrabold uppercase tracking-widest text-brand-navy/60">
+        Available Options & Stock
       </div>
-      <ul className="divide-y divide-brand-navy/8">
+      <ul className="divide-y divide-brand-navy/8 max-h-36 overflow-y-auto">
         {variants.map((v) => {
           const out = v.stock_qty <= 0;
           const low = !out && v.stock_qty <= v.low_stock_at;
           return (
-            <li key={v.id} className="flex items-center justify-between px-4 py-3 text-sm transition-colors hover:bg-brand-surface/60">
-              <span className="flex items-center gap-2 font-semibold text-brand-navy">
-                {v.color && <Swatch raw={v.color} size={14} />}
-                {[v.color ? colorDisplayName(v.color) : null, v.size].filter(Boolean).join(" · ") || "Standard"}
+            <li key={v.id} className="flex items-center justify-between px-3 py-1.5 text-xs hover:bg-brand-surface/60">
+              <span className="flex items-center gap-1.5 font-medium text-brand-navy truncate pr-2">
+                {v.color && <Swatch raw={v.color} size={10} />}
+                <span className="truncate">
+                  {[v.color ? colorDisplayName(v.color) : null, v.size].filter(Boolean).join(" · ") || "Standard"}
+                </span>
               </span>
-              <span className={`inline-flex items-center gap-1.5 text-xs font-bold ${out ? "text-brand-navy/40" : low ? "text-brand-orange" : "text-green-600"}`}>
+              <span className={`inline-flex items-center gap-1 text-[10px] font-bold shrink-0 ${
+                out ? "text-brand-navy/40" : low ? "text-brand-orange" : "text-green-600"
+              }`}>
                 <span className={`h-1.5 w-1.5 rounded-full ${out ? "bg-brand-navy/30" : low ? "bg-brand-orange" : "bg-green-500"}`} />
-                {out ? "Out of stock" : low ? `Low stock (${v.stock_qty})` : `In stock (${v.stock_qty})`}
+                {out ? "Out of stock" : low ? `Low (${v.stock_qty})` : `In stock (${v.stock_qty})`}
               </span>
             </li>
           );
@@ -838,11 +852,11 @@ function VariantStockTable({ variants }: { variants: Variant[] }) {
 
 function TrustItem({ icon: Icon, label }: { icon: typeof Truck; label: string }) {
   return (
-    <div className="group flex flex-col items-center gap-2 text-center">
-      <span className="grid h-10 w-10 place-items-center border border-brand-navy/12 bg-brand-surface transition-colors duration-300 group-hover:border-brand-orange group-hover:bg-brand-orange/10">
-        <Icon className="h-5 w-5 text-brand-orange" />
+    <div className="flex flex-col items-center gap-1 text-center">
+      <span className="grid h-7 w-7 place-items-center rounded-md border border-brand-navy/12 bg-brand-surface shrink-0">
+        <Icon className="h-3.5 w-3.5 text-brand-orange shrink-0" />
       </span>
-      <span className="text-[11px] font-semibold leading-tight text-brand-navy/70">{label}</span>
+      <span className="text-[10px] font-bold leading-tight text-brand-navy/75 wrap-break-word">{label}</span>
     </div>
   );
 }
@@ -858,14 +872,14 @@ function ProductTabs({ product, reviews }: { product: Product; reviews: Review[]
   ] as const;
 
   return (
-    <div className="mt-10 sm:mt-14 md:mt-16">
-      <div className="flex gap-1 overflow-x-auto border-b-2 border-brand-navy/10 pb-px">
+    <div className="mt-8 sm:mt-10">
+      <div className="flex gap-1 overflow-x-auto border-b border-brand-navy/10 pb-px no-scrollbar">
         {tabs.map((t) => (
           <button
             key={t.key}
             type="button"
             onClick={() => setTab(t.key)}
-            className={`-mb-0.5 shrink-0 whitespace-nowrap border-b-2 px-3.5 py-3 text-[13px] font-bold uppercase tracking-wide transition-colors sm:px-5 sm:text-sm ${
+            className={`-mb-px shrink-0 whitespace-nowrap border-b-2 px-3 py-2 text-xs font-bold uppercase tracking-wide transition-colors ${
               tab === t.key ? "border-brand-orange text-brand-navy" : "border-transparent text-brand-navy/45 hover:text-brand-navy"
             }`}
           >
@@ -874,28 +888,28 @@ function ProductTabs({ product, reviews }: { product: Product; reviews: Review[]
         ))}
       </div>
 
-      <div className="py-6 sm:py-8">
+      <div className="py-4">
         {tab === "description" && (
-          <div className="max-w-3xl whitespace-pre-line text-[15px] leading-relaxed text-brand-navy/75 sm:text-base">
-            {product.long_description || product.short_description || "No description available for this product yet."}
+          <div className="max-w-2xl whitespace-pre-line text-xs sm:text-sm leading-relaxed text-brand-navy/75 wrap-break-wordword">
+            {product.long_description || product.short_description || "No detailed description available."}
           </div>
         )}
 
         {tab === "specs" && (
           specs.length > 0 ? (
-            <div className="max-w-2xl overflow-hidden border border-brand-navy/15">
+            <div className="max-w-xl overflow-hidden rounded-lg border border-brand-navy/15">
               <dl className="divide-y divide-brand-navy/8">
                 {specs.map((s, i) => {
                   const label = s.label ?? s.name ?? "";
                   return (
                     <div
                       key={i}
-                      className="grid gap-0.5 px-4 py-3 transition-colors hover:bg-brand-surface/50 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)] sm:gap-4 sm:px-5 sm:py-3.5"
+                      className="grid gap-1 px-3 py-2 hover:bg-brand-surface/50 sm:grid-cols-[140px_1fr] sm:gap-4 sm:px-4"
                     >
-                      <dt className="text-[11px] font-bold uppercase tracking-wide text-brand-navy/50 sm:self-center sm:text-sm sm:font-bold sm:normal-case sm:tracking-normal sm:text-brand-navy">
+                      <dt className="text-[10px] font-extrabold uppercase text-brand-navy/50 sm:text-xs sm:normal-case sm:text-brand-navy wrap-break-word">
                         {label}
                       </dt>
-                      <dd className="text-sm leading-relaxed text-brand-navy/75 sm:self-center">
+                      <dd className="text-xs leading-relaxed text-brand-navy/75 wrap-break-word">
                         {s.value}
                       </dd>
                     </div>
@@ -904,32 +918,32 @@ function ProductTabs({ product, reviews }: { product: Product; reviews: Review[]
               </dl>
             </div>
           ) : (
-            <p className="text-sm text-brand-navy/50">No specifications listed for this product.</p>
+            <p className="text-xs text-brand-navy/50">No specifications listed for this product.</p>
           )
         )}
 
         {tab === "reviews" && (
           reviews.length > 0 ? (
-            <ul className="max-w-3xl space-y-5">
+            <ul className="max-w-xl space-y-3">
               {reviews.map((r) => (
-                <li key={r.id} className="border-b border-brand-navy/8 pb-5 last:border-0">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <span className="text-sm font-bold text-brand-navy">{r.author_name}</span>
-                      {r.author_role && <span className="ml-2 text-xs text-brand-navy/45">{r.author_role}</span>}
+                <li key={r.id} className="border-b border-brand-navy/8 pb-3 last:border-0">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <span className="text-xs font-bold text-brand-navy truncate block">{r.author_name}</span>
+                      {r.author_role && <span className="text-[10px] text-brand-navy/45 truncate block">{r.author_role}</span>}
                     </div>
-                    <div className="flex items-center gap-0.5">
+                    <div className="flex items-center gap-0.5 shrink-0">
                       {[...Array(5)].map((_, i) => (
-                        <Star key={i} className={`h-3.5 w-3.5 ${i < r.rating ? "fill-brand-orange text-brand-orange" : "text-brand-navy/20"}`} />
+                        <Star key={i} className={`h-3 w-3 ${i < r.rating ? "fill-brand-orange text-brand-orange" : "text-brand-navy/20"}`} />
                       ))}
                     </div>
                   </div>
-                  <p className="mt-2 text-sm leading-relaxed text-brand-navy/70">{r.body}</p>
+                  <p className="mt-1.5 text-xs leading-relaxed text-brand-navy/70 wrap-break-word">{r.body}</p>
                 </li>
               ))}
             </ul>
           ) : (
-            <p className="text-sm text-brand-navy/50">No reviews yet. Be the first to review this product after ordering.</p>
+            <p className="text-xs text-brand-navy/50">No reviews yet.</p>
           )
         )}
       </div>

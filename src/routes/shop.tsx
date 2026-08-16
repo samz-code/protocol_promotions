@@ -17,7 +17,7 @@ import {
   Usb, Calculator, Paintbrush, Scissors, Ruler, Hammer,
   Wrench, Sparkles, Car, Bike, Tent, TreePine,
   Sun, Building2, Store, Factory, Users, Handshake,
-  BadgeCheck, Tag,
+  BadgeCheck, Tag, ChevronRight, LayoutGrid
 } from "lucide-react";
 
 type ShopSearch = {
@@ -41,9 +41,6 @@ export const Route = createFileRoute("/shop")({
   component: ShopPage,
 });
 
-
-/** Categories store a lucide name. Resolving through an explicit map keeps
- *  bundling predictable and guarantees every option actually renders. */
 const CATEGORY_ICONS: Record<string, typeof Shirt> = {
   Shirt,
   Footprints,
@@ -262,7 +259,6 @@ function ShopPage() {
       if (methods.length > 0 && !methods.some((m) => p.print_methods.includes(m))) return false;
       if (materials.length > 0 && !materials.some((m) => p.materials.includes(m))) return false;
 
-      // Text search across everything searchable: name, category, print methods, materials.
       if (terms.length > 0) {
         const haystack = [
           p.name,
@@ -295,249 +291,252 @@ function ShopPage() {
 
   return (
     <SiteLayout>
-      <PageHeader
-        title={activeCategory ? activeCategory.name : "All Promotional Products"}
-        description="Configure your chosen items with dynamic vector layouts, precise size adjustments, brand colors, and your choice of elite printing methods. Volume discounts apply instantly at checkout."
-      />
-
-      <ShopTrustStrip />
-
-      {categories.length > 0 && (
-        <CategoryStrip
-          categories={categories}
-          activeSlug={activeCategory?.slug ?? null}
-          onSelect={setCategory}
+      <div className="w-full">
+        <PageHeader
+          title={activeCategory ? activeCategory.name : "All Promotional Products"}
+          description="Configure your chosen items with dynamic vector layouts, precise size adjustments, brand colors, and your choice of elite printing methods. Volume discounts apply instantly at checkout."
         />
-      )}
 
-      <section className="container-page py-8 sm:py-10 md:py-16">
-        {/* Mobile Filter Toggle Button */}
-        <div className="lg:hidden mb-6">
-          <button
-            type="button"
-            onClick={() => setMobileFiltersOpen(true)}
-            className="w-full flex items-center justify-center gap-2 rounded-md border border-brand-navy/20 bg-white px-5 py-3 text-sm font-semibold text-brand-navy"
-          >
-            <Filter className="h-4 w-4 text-brand-orange" /> Filters ({activeCount})
-          </button>
-        </div>
+        <ShopTrustStrip />
 
-        <div className="grid items-start gap-6 lg:grid-cols-[230px_1fr] lg:gap-8 xl:grid-cols-[260px_1fr] xl:gap-10 2xl:gap-12">
+        {categories.length > 0 && (
+          <CategoryStrip
+            categories={categories}
+            products={products}
+            activeSlug={activeCategory?.slug ?? null}
+            onSelect={setCategory}
+          />
+        )}
 
-          {/* Sidebar - Desktop Layout & Mobile Backdrop drawer */}
-          <aside className={`
-            space-y-8 fixed inset-y-0 left-0 z-50 w-full max-w-xs transform overflow-y-auto bg-white p-6 transition-transform duration-300 lg:sticky lg:top-6 lg:z-0 lg:max-h-[calc(100vh-3rem)] lg:w-auto lg:translate-x-0 lg:p-0 lg:pr-1
-            ${mobileFiltersOpen ? "translate-x-0" : "-translate-x-full"}
-          `}>
-            <div className="flex items-center justify-between pb-4 lg:pb-0 border-b border-brand-navy/10 lg:border-none">
-              <div className="flex items-center gap-2 text-sm font-bold text-brand-navy uppercase tracking-wider">
-                <Filter className="h-4 w-4 text-brand-navy/60" /> Filter Options
-              </div>
-              <div className="flex items-center gap-4">
-                {activeCount > 0 && (
-                  <button
-                    type="button"
-                    onClick={clearAll}
-                    className="text-xs font-bold uppercase text-brand-orange hover:text-brand-orange/85 transition-colors"
-                  >
-                    Clear all
-                  </button>
-                )}
-                <button
-                  type="button"
-                  onClick={() => setMobileFiltersOpen(false)}
-                  className="lg:hidden text-brand-navy p-1"
-                  aria-label="Close filters menu"
-                >
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
-            </div>
+        <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+          <div className="lg:hidden mb-4">
+            <button
+              type="button"
+              onClick={() => setMobileFiltersOpen(true)}
+              className="w-full flex items-center justify-center gap-2 rounded-lg border border-brand-navy/20 bg-white px-4 py-2.5 text-xs font-semibold text-brand-navy shadow-xs active:bg-brand-surface"
+            >
+              <Filter className="h-3.5 w-3.5 text-brand-orange shrink-0" /> Filters ({activeCount})
+            </button>
+          </div>
 
-            <div>
-              <div className="text-[11px] font-bold uppercase tracking-widest text-brand-navy/50 mb-3.5 flex items-center gap-1.5">
-                <ShoppingBag className="h-3.5 w-3.5 text-brand-orange" /> Browse Categories
-              </div>
-              <ul className="space-y-1">
-                <li>
-                  <button
-                    type="button"
-                    onClick={() => { setCategory(null); setMobileFiltersOpen(false); }}
-                    className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors flex items-center justify-between ${
-                      !activeCategory
-                        ? "bg-brand-surface text-brand-navy font-bold"
-                        : "text-brand-navy/70 hover:bg-brand-surface"
-                    }`}
-                  >
-                    <span>All Products</span>
-                    <span className="text-[11px] bg-brand-navy/10 text-brand-navy/70 font-semibold px-2 py-0.5 rounded-full">
-                      {products.length}
-                    </span>
-                  </button>
-                </li>
-                {categories.map((c) => {
-                  const CategoryIcon = categoryIcon(c.icon);
-                  const catCount = products.filter(p => p.category_id === c.id).length;
-                  return (
-                    <li key={c.id}>
-                      <button
-                        type="button"
-                        onClick={() => { setCategory(c.slug); setMobileFiltersOpen(false); }}
-                        className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors flex items-center justify-between ${
-                          activeCategory?.id === c.id
-                            ? "bg-brand-surface text-brand-navy font-bold"
-                            : "text-brand-navy/70 hover:bg-brand-surface"
-                        }`}
-                      >
-                        <div className="flex items-center gap-2">
-                          <CategoryIcon className="h-4 w-4 shrink-0 text-brand-navy/70" strokeWidth={2.25} />
-                          <span>{c.name}</span>
-                        </div>
-                        <span className="text-[11px] bg-brand-navy/10 text-brand-navy/70 font-semibold px-2 py-0.5 rounded-full">
-                          {catCount}
-                        </span>
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
+          <div className="grid items-start gap-6 lg:grid-cols-[220px_1fr] xl:grid-cols-[240px_1fr]">
 
-            <FilterGroup
-              title="Filter by Price"
-              icon={Coins}
-              items={PRICE_BANDS.map((b) => b.label)}
-              selected={bands}
-              onToggle={(v) => setBands((prev) => toggle(prev, v))}
-            />
-            
-            <FilterGroup
-              title="Branding Method"
-              icon={Printer}
-              items={PRINT_METHODS}
-              selected={methods}
-              onToggle={(v) => setMethods((prev) => toggle(prev, v))}
-            />
-            
-            <FilterGroup
-              title="Product Material"
-              icon={Palette}
-              items={MATERIALS}
-              selected={materials}
-              onToggle={(v) => setMaterials((prev) => toggle(prev, v))}
-            />
-
-            <div className="rounded-lg bg-brand-navy text-white p-5 space-y-4">
-              <div className="flex items-center gap-2 text-sm font-semibold">
-                <Percent className="h-4 w-4 text-brand-orange" />
-                Enterprise Solutions
-              </div>
-              <p className="text-xs text-white/70 leading-relaxed">
-                Need to procure promotional collateral across multiple branches? Set up a corporate portal with pre-negotiated volume tiers.
-              </p>
-              <Link
-                to="/request-quote"
-                className="inline-flex items-center gap-1 text-xs font-bold text-brand-orange hover:text-brand-orange/85"
-              >
-                Learn about portal access <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
-            </div>
-
-            <div className="rounded-lg bg-brand-surface p-5 border border-brand-navy/10">
-              <div className="flex items-center gap-2 text-sm font-semibold text-brand-navy">
-                <Layers className="h-4 w-4 text-brand-orange" />
-                Automatic Bulk Tiers
-              </div>
-              <p className="mt-2 text-xs text-brand-navy/60 leading-relaxed">
-                Prices decrease as quantity scales. Orders beyond 1,000 units are eligible for custom structural runs, special materials, and off-shore pricing rates.
-              </p>
-              <Link
-                to="/bulk-orders"
-                className="inline-flex items-center gap-1 mt-3 text-xs font-semibold text-brand-orange hover:underline"
-              >
-                See tier schedules <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
-            </div>
-          </aside>
-
-          {/* Mobile drawer dark overlay background overlay */}
-          {mobileFiltersOpen && (
-            <div
-              className="fixed inset-0 z-40 bg-brand-navy/40 backdrop-blur-xs lg:hidden"
-              onClick={() => setMobileFiltersOpen(false)}
-            />
-          )}
-
-          {/* Products Grid Section */}
-          <div className="w-full">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 mb-8 border-b border-brand-navy/10">
-              <div>
-                <div className="text-lg font-extrabold uppercase tracking-tight text-brand-navy sm:text-xl">
-                  {searchQuery
-                    ? `Results for "${searchQuery}"`
-                    : activeCategory
-                      ? activeCategory.name
-                      : "Core Corporate Collection"}
+            <aside className={`
+              space-y-6 fixed inset-y-0 left-0 z-50 w-full max-w-xs transform overflow-y-auto bg-white p-5 shadow-xl transition-transform duration-300 lg:sticky lg:top-4 lg:z-0 lg:max-h-[calc(100vh-2rem)] lg:w-auto lg:translate-x-0 lg:p-0 lg:shadow-none lg:bg-transparent
+              ${mobileFiltersOpen ? "translate-x-0" : "-translate-x-full"}
+            `}>
+              <div className="flex items-center justify-between pb-3 lg:pb-0 border-b border-brand-navy/10 lg:border-none">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-brand-navy uppercase tracking-wider">
+                  <Filter className="h-3.5 w-3.5 text-brand-navy/60 shrink-0" /> Filter Options
                 </div>
-                <div className="mt-0.5 flex flex-wrap items-center gap-2 text-sm text-brand-navy/50">
-                  {productsQuery.isLoading ? (
-                    "Syncing secure catalogue connection..."
-                  ) : (
-                    <>
-                      <span>
-                        Displaying <span className="font-semibold text-brand-navy/70">{results.length}</span>{" "}
-                        {results.length === 1 ? "premium product" : "premium products"}
-                        {activeCount > 0 && " matching active filters"}
+                <div className="flex items-center gap-3">
+                  {activeCount > 0 && (
+                    <button
+                      type="button"
+                      onClick={clearAll}
+                      className="text-[11px] font-bold uppercase text-brand-orange hover:text-brand-orange/85 transition-colors"
+                    >
+                      Clear all
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setMobileFiltersOpen(false)}
+                    className="lg:hidden text-brand-navy p-1 rounded hover:bg-brand-surface"
+                    aria-label="Close filters menu"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <div className="text-[10px] font-bold uppercase tracking-widest text-brand-navy/50 mb-2 flex items-center gap-1">
+                  <ShoppingBag className="h-3 w-3 text-brand-orange shrink-0" /> Browse Categories
+                </div>
+                <ul className="space-y-0.5">
+                  <li>
+                    <button
+                      type="button"
+                      onClick={() => { setCategory(null); setMobileFiltersOpen(false); }}
+                      className={`w-full text-left px-2.5 py-1.5 rounded text-xs transition-colors flex items-center justify-between ${
+                        !activeCategory
+                          ? "bg-brand-navy text-white font-bold"
+                          : "text-brand-navy/70 hover:bg-brand-surface"
+                      }`}
+                    >
+                      <span className="truncate">All Products</span>
+                      <span className={`text-[10px] font-semibold px-1.5 py-0.2 rounded-full shrink-0 ml-1.5 ${
+                        !activeCategory ? "bg-white/20 text-white" : "bg-brand-navy/10 text-brand-navy/70"
+                      }`}>
+                        {products.length}
                       </span>
-                      {searchQuery && (
+                    </button>
+                  </li>
+                  {categories.map((c) => {
+                    const CategoryIcon = categoryIcon(c.icon);
+                    const catCount = products.filter(p => p.category_id === c.id).length;
+                    const isActive = activeCategory?.id === c.id;
+                    return (
+                      <li key={c.id}>
                         <button
                           type="button"
-                          onClick={clearSearch}
-                          className="inline-flex items-center gap-1 rounded-full bg-brand-navy/5 px-2.5 py-0.5 text-xs font-bold text-brand-navy hover:bg-brand-navy hover:text-white transition-colors"
+                          onClick={() => { setCategory(c.slug); setMobileFiltersOpen(false); }}
+                          className={`w-full text-left px-2.5 py-1.5 rounded text-xs transition-colors flex items-center justify-between ${
+                            isActive
+                              ? "bg-brand-navy text-white font-bold"
+                              : "text-brand-navy/70 hover:bg-brand-surface"
+                          }`}
                         >
-                          Clear search <X className="h-3 w-3" />
+                          <div className="flex items-center gap-1.5 min-w-0 pr-1.5">
+                            <CategoryIcon className={`h-3.5 w-3.5 shrink-0 ${isActive ? "text-brand-orange" : "text-brand-navy/70"}`} strokeWidth={2.25} />
+                            <span className="truncate">{c.name}</span>
+                          </div>
+                          <span className={`text-[10px] font-semibold px-1.5 py-0.2 rounded-full shrink-0 ${
+                            isActive ? "bg-white/20 text-white" : "bg-brand-navy/10 text-brand-navy/70"
+                          }`}>
+                            {catCount}
+                          </span>
                         </button>
-                      )}
-                    </>
-                  )}
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+
+              <FilterGroup
+                title="Filter by Price"
+                icon={Coins}
+                items={PRICE_BANDS.map((b) => b.label)}
+                selected={bands}
+                onToggle={(v) => setBands((prev) => toggle(prev, v))}
+              />
+              
+              <FilterGroup
+                title="Branding Method"
+                icon={Printer}
+                items={PRINT_METHODS}
+                selected={methods}
+                onToggle={(v) => setMethods((prev) => toggle(prev, v))}
+              />
+              
+              <FilterGroup
+                title="Product Material"
+                icon={Palette}
+                items={MATERIALS}
+                selected={materials}
+                onToggle={(v) => setMaterials((prev) => toggle(prev, v))}
+              />
+
+              <div className="rounded-lg bg-brand-navy text-white p-4 space-y-2 shadow-xs">
+                <div className="flex items-center gap-1.5 text-xs font-semibold">
+                  <Percent className="h-3.5 w-3.5 text-brand-orange shrink-0" />
+                  Enterprise Solutions
+                </div>
+                <p className="text-[11px] text-white/70 leading-relaxed">
+                  Need to procure promotional collateral across multiple branches? Set up a corporate portal with pre-negotiated volume tiers.
+                </p>
+                <Link
+                  to="/request-quote"
+                  className="inline-flex items-center gap-1 text-[11px] font-bold text-brand-orange hover:text-brand-orange/85 transition-colors"
+                >
+                  Learn about portal access <ArrowRight className="h-3 w-3 shrink-0" />
+                </Link>
+              </div>
+
+              <div className="rounded-lg bg-brand-surface p-4 border border-brand-navy/10">
+                <div className="flex items-center gap-1.5 text-xs font-semibold text-brand-navy">
+                  <Layers className="h-3.5 w-3.5 text-brand-orange shrink-0" />
+                  Automatic Bulk Tiers
+                </div>
+                <p className="mt-1.5 text-[11px] text-brand-navy/60 leading-relaxed">
+                  Prices decrease as quantity scales. Orders beyond 1,000 units are eligible for custom structural runs and off-shore rates.
+                </p>
+                <Link
+                  to="/bulk-orders"
+                  className="inline-flex items-center gap-1 mt-2 text-[11px] font-semibold text-brand-orange hover:underline"
+                >
+                  See tier schedules <ArrowRight className="h-3 w-3 shrink-0" />
+                </Link>
+              </div>
+            </aside>
+
+            {mobileFiltersOpen && (
+              <div
+                className="fixed inset-0 z-40 bg-brand-navy/40 backdrop-blur-xs lg:hidden"
+                onClick={() => setMobileFiltersOpen(false)}
+              />
+            )}
+
+            <div className="w-full min-w-0">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-4 mb-4 border-b border-brand-navy/10">
+                <div className="min-w-0 max-w-full">
+                  <h1 className="text-base font-extrabold uppercase tracking-tight text-brand-navy sm:text-lg truncate">
+                    {searchQuery
+                      ? `Results for "${searchQuery}"`
+                      : activeCategory
+                        ? activeCategory.name
+                        : "Core Corporate Collection"}
+                  </h1>
+                  <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-brand-navy/50">
+                    {productsQuery.isLoading ? (
+                      "Syncing catalogue connection..."
+                    ) : (
+                      <>
+                        <span className="wrap-break-word">
+                          Displaying <span className="font-semibold text-brand-navy/70">{results.length}</span>{" "}
+                          {results.length === 1 ? "product" : "products"}
+                          {activeCount > 0 && " matching active filters"}
+                        </span>
+                        {searchQuery && (
+                          <button
+                            type="button"
+                            onClick={clearSearch}
+                            className="inline-flex items-center gap-1 rounded-full bg-brand-navy/5 px-2 py-0.5 text-[10px] font-bold text-brand-navy hover:bg-brand-navy hover:text-white transition-colors shrink-0"
+                          >
+                            Clear search <X className="h-2.5 w-2.5" />
+                          </button>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
+                  <span className="hidden sm:inline text-[11px] font-bold uppercase tracking-wider text-brand-navy/40 shrink-0">Sort</span>
+                  <select
+                    value={sort}
+                    onChange={(e) => setSort(e.target.value as SortKey)}
+                    className="w-full sm:w-auto rounded-md border border-brand-navy/15 bg-white px-2.5 py-1.5 text-xs font-bold text-brand-navy focus:outline-none focus:border-brand-navy/40 transition-colors cursor-pointer"
+                    aria-label="Sort products"
+                  >
+                    <option value="featured">Featured Layouts</option>
+                    <option value="price-asc">Unit Price: Low to High</option>
+                    <option value="price-desc">Unit Price: High to Low</option>
+                    <option value="rating">Industry Rating</option>
+                  </select>
                 </div>
               </div>
-              <div className="flex items-center gap-2.5 w-full sm:w-auto">
-                <span className="hidden sm:inline text-xs font-bold uppercase tracking-wider text-brand-navy/40">Sort Catalogue</span>
-                <select
-                  value={sort}
-                  onChange={(e) => setSort(e.target.value as SortKey)}
-                  className="w-full sm:w-auto rounded-lg border border-brand-navy/15 bg-white px-3.5 py-2.5 text-sm font-bold text-brand-navy focus:outline-none focus:border-brand-navy/40 transition-colors cursor-pointer"
-                  aria-label="Sort products"
-                >
-                  <option value="featured">Featured Layouts</option>
-                  <option value="price-asc">Unit Price: Low to High</option>
-                  <option value="price-desc">Unit Price: High to Low</option>
-                  <option value="rating">Industry Rating</option>
-                </select>
-              </div>
+
+              {productsQuery.isLoading ? (
+                <GridSkeleton />
+              ) : productsQuery.isError ? (
+                <LoadError />
+              ) : results.length === 0 ? (
+                <EmptyState onClear={clearAll} />
+              ) : (
+                <div className="grid gap-3.5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                  {results.map((p) => (
+                    <ProductCard key={p.id} product={p} />
+                  ))}
+                </div>
+              )}
             </div>
-
-            {productsQuery.isLoading ? (
-              <GridSkeleton />
-            ) : productsQuery.isError ? (
-              <LoadError />
-            ) : results.length === 0 ? (
-              <EmptyState onClear={clearAll} />
-            ) : (
-              <div className="grid gap-4 sm:grid-cols-2 sm:gap-5 lg:gap-6 2xl:grid-cols-3">
-                {results.map((p) => (
-                  <ProductCard key={p.id} product={p} />
-                ))}
-              </div>
-            )}
           </div>
-        </div>
-      </section>
+        </section>
 
-      <ShopHelpGuides />
-
-      <ShopCTA />
+        <ShopHelpGuides />
+        <ShopCTA />
+      </div>
     </SiteLayout>
   );
 }
@@ -547,41 +546,38 @@ function ShopTrustStrip() {
     { 
       icon: Truck, 
       label: "Delivery across East Africa", 
-      desc: "Doorstep delivery to Nairobi, Kampala, Dar es Salaam & regional hubs." 
+      desc: "Doorstep delivery to Nairobi, Kampala, Dar es Salaam & hubs." 
     },
     { 
       icon: PenTool, 
       label: "Free vector layouts & proofing", 
-      desc: "No order goes into production without your explicit visual approval." 
+      desc: "No order printed without explicit visual approval." 
     },
     { 
       icon: Layers, 
       label: "Pre-calibrated bulk scaling", 
-      desc: "Wholesale unit pricing applies automatically within our live checkout." 
+      desc: "Wholesale unit pricing applies automatically in checkout." 
     },
   ];
 
   return (
-    <section className="bg-brand-navy text-white border-y border-white/10 overflow-hidden">
-      <div className="container-page grid gap-4 py-6 sm:gap-6 md:grid-cols-3 md:py-8">
+    <section className="bg-brand-navy text-white border-y border-white/10">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 grid gap-2 py-4 sm:gap-4 md:grid-cols-3">
         {items.map((i) => {
           const IconComponent = i.icon;
           return (
             <div 
               key={i.label} 
-              className="group flex gap-4 p-4 rounded-xl border border-transparent hover:border-white/10 hover:bg-white/3 hover:-translate-y-1 transition-all duration-300 ease-out cursor-default"
+              className="group flex items-start gap-2.5 p-2.5 rounded-lg transition-all duration-200 cursor-default"
             >
-              {/* High-visibility Icon Container with active hover effects */}
-              <div className="h-12 w-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0 transition-all duration-300 ease-out group-hover:scale-110 group-hover:bg-brand-orange group-hover:border-brand-orange group-hover:shadow-[0_0_15px_rgba(249,115,22,0.35)]">
-                <IconComponent className="h-5 w-5 text-brand-orange group-hover:text-white transition-colors duration-300" />
+              <div className="h-8 w-8 rounded bg-white/5 border border-white/10 flex items-center justify-center shrink-0 transition-all duration-300 group-hover:bg-brand-orange group-hover:border-brand-orange">
+                <IconComponent className="h-4 w-4 text-brand-orange group-hover:text-white transition-colors duration-300" />
               </div>
-              
-              {/* Typography block responsive to parent hovers */}
-              <div className="space-y-1">
-                <span className="text-[13px] font-black uppercase tracking-wider text-white block transition-colors duration-300 group-hover:text-brand-orange">
+              <div className="space-y-0.5 min-w-0">
+                <h3 className="text-xs font-bold uppercase tracking-wide text-white transition-colors duration-300 group-hover:text-brand-orange truncate">
                   {i.label}
-                </span>
-                <p className="text-xs text-white/60 leading-relaxed font-medium">
+                </h3>
+                <p className="text-[11px] text-white/60 leading-snug line-clamp-2">
                   {i.desc}
                 </p>
               </div>
@@ -594,44 +590,92 @@ function ShopTrustStrip() {
 }
 
 function CategoryStrip({
-  categories, activeSlug, onSelect,
+  categories, products, activeSlug, onSelect,
 }: {
   categories: Category[];
+  products: Product[];
   activeSlug: string | null;
   onSelect: (slug: string | null) => void;
 }) {
   return (
-    <section className="container-page pt-8 md:pt-10">
-      <div className="flex gap-2.5 overflow-x-auto pb-3 -mx-1 px-1 sm:flex-wrap">
-        {categories.map((c) => {
-          const Icon = categoryIcon(c.icon);
-          const isActive = activeSlug === c.slug;
-          return (
+    <section className="bg-brand-surface/50 border-b border-brand-navy/10 py-4">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between gap-3 mb-2.5">
+          <div className="flex items-center gap-1.5">
+            <LayoutGrid className="h-3.5 w-3.5 text-brand-orange shrink-0" />
+            <h2 className="text-xs font-extrabold uppercase tracking-wider text-brand-navy">
+              Browse by Category
+            </h2>
+          </div>
+          {activeSlug && (
             <button
-              key={c.id}
               type="button"
-              onClick={() => onSelect(isActive ? null : c.slug)}
-              className={`group inline-flex shrink-0 items-center gap-2 rounded-full border px-3 py-2 text-[13px] font-bold tracking-tight transition-all sm:gap-2.5 sm:px-4 sm:py-2.5 sm:text-sm ${
-                isActive
-                  ? "border-brand-navy bg-brand-navy text-white shadow-md"
-                  : "border-brand-navy/15 bg-white text-brand-navy/70 hover:border-brand-navy/40 hover:text-brand-navy"
+              onClick={() => onSelect(null)}
+              className="text-[11px] font-bold text-brand-orange hover:underline shrink-0"
+            >
+              View All Categories
+            </button>
+          )}
+        </div>
+
+        <div className="relative">
+          <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar scroll-smooth sm:flex-wrap">
+            <button
+              type="button"
+              onClick={() => onSelect(null)}
+              className={`group inline-flex shrink-0 items-center gap-2 rounded-md border px-2.5 py-1.5 text-xs font-bold transition-all ${
+                !activeSlug
+                  ? "border-brand-navy bg-brand-navy text-white shadow-xs"
+                  : "border-brand-navy/12 bg-white text-brand-navy/80 hover:border-brand-navy/30 hover:text-brand-navy"
               }`}
             >
-              {/* The icon sits in its own tile so each category is
-                  distinguishable at a glance rather than all reading alike. */}
-              <span
-                className={`grid h-6 w-6 shrink-0 place-items-center rounded-full transition-colors sm:h-7 sm:w-7 ${
-                  isActive
-                    ? "bg-white/15 text-white"
-                    : "bg-brand-surface text-brand-orange group-hover:bg-brand-orange/10"
-                }`}
-              >
-                <Icon className="h-4 w-4" strokeWidth={2.4} />
+              <span className={`grid h-5 w-5 shrink-0 place-items-center rounded transition-colors ${
+                !activeSlug ? "bg-white/15 text-white" : "bg-brand-surface text-brand-orange group-hover:bg-brand-orange/10"
+              }`}>
+                <Package className="h-3 w-3" strokeWidth={2.2} />
               </span>
-              {c.name}
+              <span>All Categories</span>
+              <span className={`text-[9px] font-extrabold px-1.5 py-0.2 rounded-full ${
+                !activeSlug ? "bg-white/20 text-white" : "bg-brand-navy/8 text-brand-navy/60"
+              }`}>
+                {products.length}
+              </span>
             </button>
-          );
-        })}
+
+            {categories.map((c) => {
+              const Icon = categoryIcon(c.icon);
+              const isActive = activeSlug === c.slug;
+              const catCount = products.filter(p => p.category_id === c.id).length;
+
+              return (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => onSelect(isActive ? null : c.slug)}
+                  className={`group inline-flex shrink-0 items-center gap-2 rounded-md border px-2.5 py-1.5 text-xs font-bold transition-all ${
+                    isActive
+                      ? "border-brand-navy bg-brand-navy text-white shadow-xs"
+                      : "border-brand-navy/12 bg-white text-brand-navy/80 hover:border-brand-navy/30 hover:text-brand-navy"
+                  }`}
+                >
+                  <span className={`grid h-5 w-5 shrink-0 place-items-center rounded transition-colors ${
+                    isActive ? "bg-white/15 text-white" : "bg-brand-surface text-brand-orange group-hover:bg-brand-orange/10"
+                  }`}>
+                    <Icon className="h-3 w-3" strokeWidth={2.2} />
+                  </span>
+                  <span className="whitespace-nowrap">{c.name}</span>
+                  {catCount > 0 && (
+                    <span className={`text-[9px] font-extrabold px-1.5 py-0.2 rounded-full ${
+                      isActive ? "bg-white/20 text-white" : "bg-brand-navy/8 text-brand-navy/60"
+                    }`}>
+                      {catCount}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
       </div>
     </section>
   );
@@ -650,7 +694,7 @@ function ProductCard({ product }: { product: Product }) {
     <Link
       to="/shop/$slug"
       params={{ slug: product.slug }}
-      className="group flex flex-col rounded-xl border border-brand-navy/12 bg-white overflow-hidden transition-all duration-300 hover:border-brand-navy/25 hover:shadow-[0_16px_36px_-12px_rgba(30,41,89,0.2)] hover:-translate-y-1"
+      className="group flex flex-col rounded-lg border border-brand-navy/12 bg-white overflow-hidden transition-all duration-300 hover:border-brand-navy/25 hover:shadow-md hover:-translate-y-0.5"
     >
       <div className="relative aspect-4/3 bg-brand-surface grid place-items-center overflow-hidden">
         {hasImage ? (
@@ -661,63 +705,63 @@ function ProductCard({ product }: { product: Product }) {
             loading="lazy"
           />
         ) : (
-          <Icon className="h-12 w-12 text-brand-navy/12" />
+          <Icon className="h-10 w-10 text-brand-navy/15 shrink-0" />
         )}
 
         {product.badge && (
-          <span className="absolute top-3 left-3 rounded-md bg-brand-navy px-2.5 py-1.5 text-[9px] font-black uppercase tracking-wider text-white shadow-sm">
+          <span className="absolute top-2 left-2 rounded bg-brand-navy px-1.5 py-0.5 text-[8px] font-extrabold uppercase tracking-wider text-white shadow-xs max-w-[70%] truncate">
             {product.badge}
           </span>
         )}
         {discount !== null && (
-          <span className="absolute top-3 right-3 rounded-md bg-brand-orange px-2.5 py-1.5 text-[9px] font-black tracking-wider tabular-nums text-white shadow-sm">
+          <span className="absolute top-2 right-2 rounded bg-brand-orange px-1.5 py-0.5 text-[8px] font-extrabold tracking-wider tabular-nums text-white shadow-xs">
             SAVE {discount}%
           </span>
         )}
       </div>
 
-      <div className="flex flex-1 flex-col p-4 sm:p-5">
+      <div className="flex flex-1 flex-col p-3.5 min-w-0">
         {product.categories && (
-          <span className="text-[10px] font-bold uppercase tracking-widest text-brand-orange">
+          <span className="text-[9px] font-extrabold uppercase tracking-widest text-brand-orange truncate block">
             {product.categories.name}
           </span>
         )}
 
-        <h3 className="mt-2 text-[15px] font-extrabold leading-snug text-brand-navy transition-colors line-clamp-2 group-hover:text-brand-orange sm:text-[16px]">
+        <h3 className="mt-1 text-xs font-bold leading-snug text-brand-navy transition-colors line-clamp-2 group-hover:text-brand-orange wrap-break-word">
           {product.name}
         </h3>
 
-        <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] font-semibold text-brand-navy/55 sm:text-xs">
-          <span className="inline-flex items-center gap-1 text-brand-navy">
-            <Star className="h-3.5 w-3.5 fill-brand-orange text-brand-orange shrink-0" />
-            {product.rating > 0 ? product.rating.toFixed(1) : "New Run"}
+        <div className="mt-2 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[10px] font-medium text-brand-navy/55">
+          <span className="inline-flex items-center gap-0.5 text-brand-navy shrink-0 font-semibold">
+            <Star className="h-3 w-3 fill-brand-orange text-brand-orange shrink-0" />
+            {product.rating > 0 ? product.rating.toFixed(1) : "New"}
           </span>
-          <span className="h-1 w-1 rounded-full bg-brand-navy/20 shrink-0" />
-          <span>MOQ: {product.moq} units</span>
+          <span className="h-0.5 w-0.5 rounded-full bg-brand-navy/20 shrink-0" />
+          <span className="truncate">MOQ: {product.moq}</span>
           {product.lead_time && (
             <>
-              <span className="h-1 w-1 rounded-full bg-brand-navy/20 shrink-0" />
-              <span>{product.lead_time}</span>
+              <span className="h-0.5 w-0.5 rounded-full bg-brand-navy/20 shrink-0" />
+              <span className="truncate">{product.lead_time}</span>
             </>
           )}
         </div>
 
-        <div className="mt-5 flex items-center justify-between border-t border-brand-navy/8 pt-3.5 sm:mt-6 sm:pt-4">
-          <div className="flex flex-col">
-            <span className="text-[9px] font-extrabold uppercase tracking-widest text-brand-navy/40">From</span>
-            <div className="flex items-baseline gap-1.5 mt-0.5">
-              <span className="text-[17px] font-black leading-none tabular-nums text-brand-navy sm:text-[19px]">
+        <div className="mt-auto pt-3 border-t border-brand-navy/8 flex items-center justify-between gap-1.5">
+          <div className="flex flex-col min-w-0">
+            <span className="text-[8px] font-bold uppercase tracking-widest text-brand-navy/40">From</span>
+            <div className="flex items-baseline gap-1 mt-0.5 flex-wrap">
+              <span className="text-sm font-extrabold leading-none tabular-nums text-brand-navy">
                 {KSH.format(product.price)}
               </span>
               {onSale && (
-                <span className="text-xs text-brand-navy/35 line-through tabular-nums">
+                <span className="text-[10px] text-brand-navy/35 line-through tabular-nums">
                   {KSH.format(product.compare_at_price!)}
                 </span>
               )}
             </div>
           </div>
-          <span className="inline-flex items-center gap-1.5 rounded-lg bg-brand-surface px-3 py-2 text-xs font-extrabold text-brand-navy transition-all group-hover:bg-brand-navy group-hover:text-white">
-            Shop Now <ArrowRight className="h-3.5 w-3.5" />
+          <span className="inline-flex items-center gap-0.5 rounded-md bg-brand-surface px-2 py-1 text-[11px] font-bold text-brand-navy transition-all group-hover:bg-brand-navy group-hover:text-white shrink-0">
+            Shop <ArrowRight className="h-3 w-3" />
           </span>
         </div>
       </div>
@@ -727,14 +771,14 @@ function ProductCard({ product }: { product: Product }) {
 
 function GridSkeleton() {
   return (
-    <div className="grid gap-4 sm:grid-cols-2 sm:gap-5 lg:gap-6 2xl:grid-cols-3">
-      {Array.from({ length: 6 }).map((_, i) => (
+    <div className="grid gap-3.5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      {Array.from({ length: 8 }).map((_, i) => (
         <div key={i} className="rounded-lg border border-brand-navy/10 bg-white overflow-hidden">
           <div className="aspect-4/3 bg-brand-surface animate-pulse" />
-          <div className="p-4 sm:p-5 space-y-3">
-            <div className="h-3 w-1/4 bg-brand-surface animate-pulse rounded" />
-            <div className="h-5 w-3/4 bg-brand-surface animate-pulse rounded" />
-            <div className="h-6 w-1/2 bg-brand-surface animate-pulse rounded" />
+          <div className="p-3.5 space-y-2">
+            <div className="h-2.5 w-1/4 bg-brand-surface animate-pulse rounded" />
+            <div className="h-4 w-3/4 bg-brand-surface animate-pulse rounded" />
+            <div className="h-5 w-1/2 bg-brand-surface animate-pulse rounded" />
           </div>
         </div>
       ))}
@@ -744,13 +788,13 @@ function GridSkeleton() {
 
 function LoadError() {
   return (
-    <div className="rounded-lg border border-dashed border-brand-navy/20 bg-brand-surface/50 p-8 text-center sm:p-12">
-      <div className="mx-auto h-12 w-12 grid place-items-center rounded-full bg-white shadow-sm">
-        <AlertCircle className="h-5 w-5 text-brand-orange" />
+    <div className="rounded-lg border border-dashed border-brand-navy/20 bg-brand-surface/50 p-6 text-center sm:p-8">
+      <div className="mx-auto h-9 w-9 grid place-items-center rounded-full bg-white shadow-xs">
+        <AlertCircle className="h-4 w-4 text-brand-orange shrink-0" />
       </div>
-      <h3 className="mt-5 text-base font-semibold text-brand-navy">Could not sync catalog</h3>
-      <p className="mt-1.5 text-sm text-brand-navy/60 max-w-sm mx-auto leading-relaxed">
-        Our database cluster is currently offline. Your active connection has expired. Please refresh the window.
+      <h3 className="mt-3 text-sm font-semibold text-brand-navy">Could not sync catalog</h3>
+      <p className="mt-1 text-xs text-brand-navy/60 max-w-xs mx-auto leading-relaxed">
+        Our database cluster is currently offline or unreachable. Please refresh the page to retry.
       </p>
     </div>
   );
@@ -758,27 +802,27 @@ function LoadError() {
 
 function EmptyState({ onClear }: { onClear: () => void }) {
   return (
-    <div className="rounded-lg border border-dashed border-brand-navy/20 bg-brand-surface/50 p-8 text-center sm:p-12">
-      <div className="mx-auto h-12 w-12 grid place-items-center rounded-full bg-white shadow-sm">
-        <SearchX className="h-5 w-5 text-brand-orange" />
+    <div className="rounded-lg border border-dashed border-brand-navy/20 bg-brand-surface/50 p-6 text-center sm:p-8">
+      <div className="mx-auto h-9 w-9 grid place-items-center rounded-full bg-white shadow-xs">
+        <SearchX className="h-4 w-4 text-brand-orange shrink-0" />
       </div>
-      <h3 className="mt-5 text-base font-semibold text-brand-navy">No products match filters</h3>
-      <p className="mt-1.5 text-sm text-brand-navy/60 max-w-sm mx-auto leading-relaxed">
-        We run custom layout builds for parameters outside our standard ranges. Try clearing filters or submit a specs document directly.
+      <h3 className="mt-3 text-sm font-semibold text-brand-navy">No products match filters</h3>
+      <p className="mt-1 text-xs text-brand-navy/60 max-w-xs mx-auto leading-relaxed">
+        Try clearing selected filters or submit custom specs if you need bespoke production.
       </p>
-      <div className="mt-6 flex flex-wrap gap-3 justify-center">
+      <div className="mt-4 flex flex-wrap gap-2 justify-center">
         <button
           type="button"
           onClick={onClear}
-          className="rounded-md bg-brand-navy px-5 py-3 text-sm font-bold text-white hover:bg-brand-navy/90 transition-colors"
+          className="rounded-md bg-brand-navy px-3 py-2 text-xs font-bold text-white hover:bg-brand-navy/90 transition-colors"
         >
           Clear filters
         </button>
         <Link
           to="/request-quote"
-          className="inline-flex items-center gap-1.5 rounded-md border border-brand-navy/15 bg-white px-5 py-3 text-sm font-bold text-brand-navy hover:border-brand-navy/40 transition-colors"
+          className="inline-flex items-center gap-1 rounded-md border border-brand-navy/15 bg-white px-3 py-2 text-xs font-bold text-brand-navy hover:border-brand-navy/40 transition-colors"
         >
-          Request Custom Layout <ArrowRight className="h-4 w-4" />
+          Request Custom Layout <ArrowRight className="h-3 w-3 shrink-0" />
         </Link>
       </div>
     </div>
@@ -789,46 +833,45 @@ function ShopHelpGuides() {
   const faqs = [
     {
       q: "How does the digital layout proof work?",
-      a: "After selecting raw product specifications and uploading branding coordinates, our graphics team runs a full architectural proof in PDF/vector format. We match pantones precisely to align with your corporate style guidelines before printing."
+      a: "After selecting specs and uploading artwork, our graphics team runs an architectural PDF vector proof. We match pantones precisely to align with your brand."
     },
     {
       q: "Can I order samples before running massive quantities?",
-      a: "Yes. Simply submit your sample selection layout via our Request Quote tool. Samples are processed at regular rates, which are subsequently refunded when the full production run transitions into active status."
+      a: "Yes. Submit your sample selection via our Request Quote tool. Sample charges are refunded when full production runs transition into active status."
     },
     {
       q: "What printing options exist for heavy outdoor displays?",
-      a: "For banners, promotional pop-ups, and canopy setups, we rely on heavy weather-resistant UV-cured digital layouts. They are completely guaranteed against cracking and color fade for up to 36 months of active continuous outdoor deployment."
+      a: "For banners and pop-up displays, we rely on heavy weather-resistant UV digital layouts guaranteed against fade and cracking under outdoor exposure."
     }
   ];
 
   return (
-    <section className="mb-12 border-y border-brand-navy/5 bg-brand-surface/30 py-10 sm:py-12 md:mb-24 md:py-16">
-      <div className="container-page">
-        <div className="flex items-center gap-3 mb-10">
-          <div className="h-10 w-10 rounded-xl bg-brand-orange/10 flex items-center justify-center shrink-0 transition-all duration-300">
-            <HelpCircle className="h-5 w-5 text-brand-orange" />
+    <section className="mb-6 border-y border-brand-navy/10 bg-brand-surface/30 py-6 sm:py-8 md:mb-10 md:py-10">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center gap-2 mb-4">
+          <div className="h-7 w-7 rounded-md bg-brand-orange/10 flex items-center justify-center shrink-0">
+            <HelpCircle className="h-3.5 w-3.5 text-brand-orange" />
           </div>
-          <h2 className="text-base font-black uppercase tracking-wider text-brand-navy sm:text-lg">Corporate Procurement Guide</h2>
+          <h2 className="text-xs font-black uppercase tracking-wider text-brand-navy sm:text-sm">
+            Corporate Procurement Guide
+          </h2>
         </div>
-        <div className="grid gap-4 sm:gap-6 md:grid-cols-3">
+        <div className="grid gap-3 sm:gap-4 md:grid-cols-3">
           {faqs.map((f, i) => (
             <div 
               key={i} 
-              className="group bg-white p-6 rounded-xl border border-brand-navy/8 hover:border-brand-orange/30 hover:shadow-[0_12px_30px_-10px_rgba(249,115,22,0.15)] hover:-translate-y-1 transition-all duration-300 ease-out flex flex-col"
+              className="bg-white p-4 rounded-lg border border-brand-navy/8 hover:border-brand-orange/30 transition-all duration-200 flex flex-col justify-between"
             >
-              <div className="space-y-4">
-                {/* Clean, high-contrast container with real, scalable icon and active hover effects */}
-                <div className="h-10 w-10 rounded-xl bg-brand-orange/5 border border-brand-orange/10 flex items-center justify-center shrink-0 transition-all duration-300 group-hover:bg-brand-orange group-hover:border-brand-orange group-hover:shadow-[0_0_12px_rgba(249,115,22,0.25)]">
-                  <CheckCircle2 className="h-5 w-5 text-brand-orange group-hover:text-white transition-colors duration-300" />
-                </div>
-                <div className="space-y-2">
-                  <h3 className="text-[15px] font-extrabold text-brand-navy leading-snug group-hover:text-brand-orange transition-colors duration-300">
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-1.5 text-brand-orange">
+                  <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
+                  <h3 className="text-xs font-extrabold text-brand-navy leading-snug">
                     {f.q}
                   </h3>
-                  <p className="text-xs text-brand-navy/65 leading-relaxed font-medium">
-                    {f.a}
-                  </p>
                 </div>
+                <p className="text-[11px] text-brand-navy/65 leading-relaxed font-normal pt-0.5">
+                  {f.a}
+                </p>
               </div>
             </div>
           ))}
@@ -840,28 +883,30 @@ function ShopHelpGuides() {
 
 function ShopCTA() {
   return (
-    <section className="container-page pb-16 md:pb-24">
-      <div className="rounded-xl bg-brand-navy p-6 text-white sm:p-8 md:p-12">
-        <div className="grid items-center gap-6 sm:gap-8 lg:grid-cols-[1.3fr_1fr]">
-          <div>
-            <div className="text-xs font-bold uppercase tracking-wider text-brand-orange mb-2">
-              Looking for custom sizing?
+    <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pb-8 sm:pb-12">
+      <div className="rounded-xl bg-brand-navy p-5 text-white sm:p-6 md:p-8">
+        <div className="grid items-center gap-4 lg:grid-cols-[1.3fr_1fr]">
+          <div className="min-w-0">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-brand-orange mb-0.5">
+              Bespoke Production
             </div>
-            <h2 className="text-xl font-bold tracking-tight sm:text-2xl md:text-3xl">Need custom layout configurations?</h2>
-            <p className="mt-3 text-sm text-white/70 max-w-lg leading-relaxed">
-              Our engineering workshops handle complex substrate combinations, specialized shapes, customized promotional bundles, and specific brand alignments outside our core collection bounds.
+            <h2 className="text-base font-extrabold tracking-tight sm:text-lg md:text-xl wrap-break-word">
+              Need custom layout configurations?
+            </h2>
+            <p className="mt-1 text-xs text-white/70 leading-relaxed">
+              Our engineering workshops handle complex substrate combinations, specialized shapes, and custom promotional bundles.
             </p>
           </div>
-          <div className="flex flex-wrap gap-3 lg:justify-end">
+          <div className="flex flex-wrap gap-2 lg:justify-end">
             <Link
               to="/request-quote"
-              className="inline-flex items-center justify-center w-full sm:w-auto gap-2 rounded-md bg-brand-orange px-6 py-3.5 text-sm font-bold text-white hover:bg-brand-orange/90 transition-colors"
+              className="inline-flex items-center justify-center w-full sm:w-auto gap-1.5 rounded-md bg-brand-orange px-4 py-2 text-xs font-bold text-white hover:bg-brand-orange/90 transition-colors"
             >
-              Request custom layout <ArrowRight className="h-4 w-4" />
+              Request Custom Layout <ArrowRight className="h-3.5 w-3.5 shrink-0" />
             </Link>
             <Link
               to="/bulk-orders"
-              className="inline-flex items-center justify-center w-full sm:w-auto gap-2 rounded-md border border-white/20 px-6 py-3.5 text-sm font-bold text-white hover:bg-white/10 transition-colors"
+              className="inline-flex items-center justify-center w-full sm:w-auto gap-1.5 rounded-md border border-white/20 px-4 py-2 text-xs font-bold text-white hover:bg-white/10 transition-colors"
             >
               Enterprise Portals
             </Link>
@@ -882,24 +927,24 @@ function FilterGroup({
   onToggle: (value: string) => void;
 }) {
   return (
-    <div className="space-y-3.5">
-      <div className="text-[11px] font-bold uppercase tracking-widest text-brand-navy/50 flex items-center gap-1.5">
-        <IconComponent className="h-3.5 w-3.5 text-brand-orange" /> {title}
+    <div className="space-y-2">
+      <div className="text-[10px] font-bold uppercase tracking-widest text-brand-navy/50 flex items-center gap-1">
+        <IconComponent className="h-3 w-3 text-brand-orange shrink-0" /> {title}
       </div>
-      <ul className="space-y-2.5">
+      <ul className="space-y-1.5">
         {items.map((it) => {
           const checked = selected.includes(it);
           return (
             <li key={it}>
-              <label className="flex items-center gap-2.5 text-sm cursor-pointer group select-none">
+              <label className="flex items-center gap-2 text-xs cursor-pointer group select-none min-w-0">
                 <input
                   type="checkbox"
                   checked={checked}
                   onChange={() => onToggle(it)}
-                  className="h-4 w-4 rounded border-brand-navy/30 text-brand-navy accent-brand-navy focus:ring-0"
+                  className="h-3 w-3 rounded border-brand-navy/30 text-brand-navy accent-brand-navy focus:ring-0 shrink-0"
                 />
                 <span
-                  className={`transition-colors text-xs ${
+                  className={`transition-colors truncate ${
                     checked ? "text-brand-navy font-bold" : "text-brand-navy/60 group-hover:text-brand-navy"
                   }`}
                 >
