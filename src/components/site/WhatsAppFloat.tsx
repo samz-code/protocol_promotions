@@ -3,8 +3,8 @@ import { X, Send, Sparkles, Check, RefreshCw } from "lucide-react";
 import { FaWhatsapp } from "react-icons/fa";
 
 /* ============================================================
-   Interactive Floating WhatsApp Assistant with dynamic step-based 
-   inputs, pre-fill option chips, and state preservation.
+   Interactive Floating WhatsApp Assistant with persistent state.
+   All scroll-disappearing and hiding behaviors have been removed.
 
    Requires once:  npm install react-icons lucide-react
 
@@ -28,8 +28,6 @@ const QUANTITIES = ["1 - 50", "50 - 200", "200 - 1,000", "1,000+"];
 const TIMELINES = ["Urgent (1-2 days)", "Standard (3-7 days)", "Flexible"];
 
 export function WhatsAppFloat() {
-  const [showTip, setShowTip] = useState(false);
-  const [tipDismissed, setTipDismissed] = useState(false);
   const [nudge, setNudge] = useState(false);
   const [hovered, setHovered] = useState(false);
 
@@ -66,27 +64,7 @@ export function WhatsAppFloat() {
     localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draftState));
   }, [service, quantity, timeline, customDetails, step]);
 
-  // Tooltip popup timer
-  useEffect(() => {
-    if (tipDismissed || isChatOpen) return;
-    const t = setTimeout(() => setShowTip(true), 3500);
-    return () => clearTimeout(t);
-  }, [tipDismissed, isChatOpen]);
-
-  // Auto-hide tooltip on scroll
-  useEffect(() => {
-    const handleScroll = () => {
-      if (window.scrollY > 20) {
-        setShowTip(false);
-        setTipDismissed(true);
-      }
-    };
-
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
-  // Periodic button wiggle
+  // Periodic button wiggle animation
   useEffect(() => {
     const reduced =
       typeof window !== "undefined" &&
@@ -105,11 +83,6 @@ export function WhatsAppFloat() {
       clearTimeout(timeoutId);
     };
   }, []);
-
-  const dismissTip = () => {
-    setShowTip(false);
-    setTipDismissed(true);
-  };
 
   const resetForm = () => {
     setService("");
@@ -172,10 +145,6 @@ export function WhatsAppFloat() {
           0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(74,222,128,0.6); }
           50%      { transform: scale(1.12); box-shadow: 0 0 0 4px rgba(74,222,128,0); }
         }
-        @keyframes waTypingDot {
-          0%, 60%, 100% { opacity: 0.25; transform: translateY(0); }
-          30%           { opacity: 1;    transform: translateY(-2px); }
-        }
 
         .wa-in    { animation: waFloatIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
         .wa-ring  { animation: waPulseRing 2.6s ease-out infinite; }
@@ -183,19 +152,10 @@ export function WhatsAppFloat() {
         .wa-wiggle{ animation: waWiggle 0.9s ease-in-out; }
         .wa-status{ animation: waStatusPulse 2.2s ease-in-out infinite; }
 
-        .wa-typing span {
-          display: inline-block;
-          height: 5px; width: 5px;
-          border-radius: 9999px;
-          background: #25D366;
-          animation: waTypingDot 1.2s ease-in-out infinite;
-        }
-        .wa-typing span:nth-child(2) { animation-delay: 0.18s; }
-        .wa-typing span:nth-child(3) { animation-delay: 0.36s; }
-
         @media (prefers-reduced-motion: reduce) {
-          .wa-in, .wa-ring, .wa-bob, .wa-wiggle,
-          .wa-status, .wa-typing span { animation: none !important; }
+          .wa-in, .wa-ring, .wa-bob, .wa-wiggle, .wa-status {
+            animation: none !important;
+          }
         }
       `}</style>
 
@@ -382,46 +342,10 @@ export function WhatsAppFloat() {
           </div>
         )}
 
-        {/* Floating Tooltip */}
-        {showTip && !tipDismissed && !isChatOpen && (
-          <div className="wa-in relative max-w-[16rem] rounded-2xl rounded-br-sm bg-white px-4 py-3 shadow-lg ring-1 ring-black/5">
-            <button
-              type="button"
-              onClick={dismissTip}
-              className="absolute -right-2 -top-2 grid h-6 w-6 place-items-center rounded-full bg-brand-navy text-white shadow-md transition-transform duration-200 hover:scale-110 hover:brightness-110 active:scale-95"
-              aria-label="Dismiss WhatsApp message"
-            >
-              <X className="h-3.5 w-3.5" />
-            </button>
-
-            <div className="flex items-center gap-2">
-              <p className="text-sm font-semibold text-brand-navy">
-                Interactive Quote Estimator
-              </p>
-              <span className="wa-typing inline-flex items-center gap-0.5" aria-hidden="true">
-                <span />
-                <span />
-                <span />
-              </span>
-            </div>
-            <p className="mt-0.5 text-xs leading-relaxed text-brand-navy/60">
-              Get an interactive estimate in 3 simple steps.
-            </p>
-
-            <span
-              aria-hidden="true"
-              className="absolute -bottom-1.5 right-4 h-3 w-3 rotate-45 bg-white ring-1 ring-black/5"
-            />
-          </div>
-        )}
-
-        {/* Floating Button */}
+        {/* Permanent Floating Toggle Button */}
         <button
           type="button"
-          onClick={() => {
-            dismissTip();
-            setIsChatOpen((prev) => !prev);
-          }}
+          onClick={() => setIsChatOpen((prev) => !prev)}
           aria-label="Chat with us on WhatsApp"
           onMouseEnter={() => setHovered(true)}
           onMouseLeave={() => setHovered(false)}
