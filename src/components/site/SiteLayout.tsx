@@ -37,15 +37,20 @@ export function SiteLayout({ children }: { children: ReactNode }) {
     };
 
   return (
-    <div className="min-h-screen flex flex-col bg-background overflow-x-hidden">
+    // NOTE: overflow-x-hidden was swapped for overflow-x-clip.
+    // Any overflow-x value other than "visible" forces the browser to compute
+    // overflow-y as "auto" when it isn't set explicitly (CSS overflow spec),
+    // which turns this div into a scroll container and breaks `position: sticky`
+    // on the Navbar's <header> below. overflow-x-clip clips the x-axis without
+    // triggering that side effect, so sticky positioning resolves against the
+    // viewport again.
+    <div className="min-h-screen flex flex-col bg-background overflow-x-clip">
       {navSettings.show_top_bar && <TopBar />}
 
       {/*
         Navbar owns its own sticky positioning (sticky top-0 z-50 on its
         <header>), unconditionally, on every breakpoint. No wrapper needed
-        here — a previous CMS-driven wrapper duplicated this with a
-        different z-index and defaulted to "off", which was redundant at
-        best and confusing at worst.
+        here.
       */}
       {navSettings.show_navbar && <Navbar />}
 
