@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useDeferredValue, createContext, useContext } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { SiteLayout } from "@/components/site/SiteLayout";
 import { Preloader, shouldSplash } from "@/components/site/Preloader";
@@ -36,6 +36,12 @@ import {
   Package,
   Gift,
   Shirt,
+  ShoppingCart,
+  Check,
+  X,
+  Plus,
+  Minus,
+  ShoppingBag,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
@@ -44,18 +50,286 @@ export const Route = createFileRoute("/")({
   component: Index,
 });
 
+/* ================================================================
+   Cart State Management & Drawer Context (Shopify Style)
+   ================================================================ */
+
+export type CartItem = {
+  product: LiveProduct;
+  quantity: number;
+};
+
+type CartContextType = {
+  items: CartItem[];
+  addItem: (product: LiveProduct, quantity?: number) => void;
+  removeItem: (productId: string) => void;
+  updateQuantity: (productId: string, quantity: number) => void;
+  isOpen: boolean;
+  openCart: () => void;
+  closeCart: () => void;
+  totalItems: number;
+  subtotal: number;
+};
+
+const CartContext = createContext<CartContextType | undefined>(undefined);
+
+export function CartProvider({ children }: { children: React.ReactNode }) {
+  const [items, setItems] = useState<CartItem[]>(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      const saved = localStorage.getItem("app_cart");
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const [isOpen, setIsOpen] = useState(false);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("app_cart", JSON.stringify(items));
+    } catch {
+      // Storage failure silent handling
+    }
+  }, [items]);
+
+  const addItem = (product: LiveProduct, quantity = 1) => {
+    setItems((prev) => {
+      const existingIndex = prev.findIndex((item) => item.product.id === product.id);
+      if (existingIndex > -1) {
+        const next = [...prev];
+        next[existingIndex] = {
+          ...next[existingIndex],
+          quantity: next[existingIndex].quantity + quantity,
+        };
+        return next;
+      }
+      return [...prev, { product, quantity: Math.max(quantity, product.moq || 1) }];
+    });
+    setIsOpen(true);
+  };
+
+  const removeItem = (productId: string) => {
+    setItems((prev) => prev.filter((item) => item.product.id !== productId));
+  };
+
+  const updateQuantity = (productId: string, quantity: number) => {
+    if (quantity <= 0) {
+      removeItem(productId);
+      return;
+    }
+    setItems((prev) =>
+      prev.map((item) =>
+        item.product.id === productId ? { ...item, quantity } : item
+      )
+    );
+  };
+
+  const openCart = () => setIsOpen(true);
+  const closeCart = () => setIsOpen(false);
+
+  const totalItems = useMemo(
+    () => items.reduce((sum, item) => sum + item.quantity, 0),
+    [items]
+  );
+
+  const subtotal = useMemo(
+    () => items.reduce((sum, item) => sum + item.product.price * item.quantity, 0),
+    [items]
+  );
+
+  return (
+    <CartContext.Provider
+      value={{
+        items,
+        addItem,
+        removeItem,
+        updateQuantity,
+        isOpen,
+        openCart,
+        closeCart,
+        totalItems,
+        subtotal,
+      }}
+    >
+      {children}
+      <CartDrawer />
+    </CartContext.Provider>
+  );
+}
+
+export function useCart() {
+  const context = useContext(CartContext);
+  if (!context) {
+    throw new Error("useCart must be used within a CartProvider");
+  }
+  return context;
+}
+
+/* ================================================================
+   Shopify-Style Slide-over Cart Drawer Component
+   ================================================================ */
+
+function CartDrawer() {
+  const { items, isOpen, closeCart, removeItem, updateQuantity, subtotal, totalItems } = useCart();
+
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isOpen]);
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="relative z-50">
+      <div
+        className="fixed inset-0 bg-brand-navy/60 backdrop-blur-xs transition-opacity"
+        onClick={closeCart}
+      />
+
+      <div className="fixed inset-y-0 right-0 flex max-w-full pl-10">
+        <div className="w-screen max-w-md border-l border-brand-navy/15 bg-white shadow-2xl flex flex-col">
+          <div className="flex items-center justify-between border-b border-brand-navy/10 px-6 py-5">
+            <div className="flex items-center gap-2">
+              <ShoppingBag className="h-5 w-5 text-brand-orange" />
+              <h2 className="text-lg font-extrabold text-brand-navy">Your Cart</h2>
+              <span className="rounded-full bg-brand-surface px-2.5 py-0.5 text-xs font-bold text-brand-navy">
+                {totalItems}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={closeCart}
+              className="rounded-lg p-2 text-brand-navy/60 hover:bg-brand-surface hover:text-brand-navy"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto px-6 py-4">
+            {items.length === 0 ? (
+              <div className="flex h-full flex-col items-center justify-center text-center">
+                <ShoppingBag className="h-16 w-16 stroke-1 text-brand-navy/20" />
+                <p className="mt-4 text-base font-bold text-brand-navy">Your cart is empty</p>
+                <p className="mt-1 text-xs text-brand-navy/60">
+                  Add items to your cart to see them listed here.
+                </p>
+                <button
+                  type="button"
+                  onClick={closeCart}
+                  className="mt-6 border border-brand-navy bg-brand-navy px-6 py-3 text-xs font-bold uppercase tracking-wider text-white transition-colors hover:bg-brand-orange hover:border-brand-orange"
+                >
+                  Continue Shopping
+                </button>
+              </div>
+            ) : (
+              <div className="divide-y divide-brand-navy/10">
+                {items.map(({ product, quantity }) => (
+                  <div key={product.id} className="flex gap-4 py-4">
+                    <div className="h-20 w-20 shrink-0 overflow-hidden rounded-xl border border-brand-navy/10 bg-brand-surface p-1">
+                      <img
+                        src={product.image}
+                        alt={product.name}
+                        className="h-full w-full object-contain"
+                      />
+                    </div>
+
+                    <div className="flex flex-1 flex-col justify-between">
+                      <div>
+                        <div className="flex justify-between text-sm font-bold text-brand-navy">
+                          <h3 className="line-clamp-1">{product.name}</h3>
+                          <p className="ml-2 tabular-nums">{KSH.format(product.price * quantity)}</p>
+                        </div>
+                        <p className="mt-0.5 text-[11px] text-brand-navy/50">{product.category}</p>
+                      </div>
+
+                      <div className="flex items-center justify-between text-xs">
+                        <div className="flex items-center rounded-lg border border-brand-navy/15 bg-white">
+                          <button
+                            type="button"
+                            onClick={() => updateQuantity(product.id, quantity - 1)}
+                            className="p-1.5 text-brand-navy hover:text-brand-orange"
+                          >
+                            <Minus className="h-3 w-3" />
+                          </button>
+                          <span className="w-8 text-center font-bold tabular-nums text-brand-navy">
+                            {quantity}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => updateQuantity(product.id, quantity + 1)}
+                            className="p-1.5 text-brand-navy hover:text-brand-orange"
+                          >
+                            <Plus className="h-3 w-3" />
+                          </button>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => removeItem(product.id)}
+                          className="font-bold text-red-600 hover:underline text-[11px]"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {items.length > 0 && (
+            <div className="border-t border-brand-navy/10 bg-brand-surface p-6">
+              <div className="flex justify-between text-base font-extrabold text-brand-navy">
+                <p>Subtotal</p>
+                <p className="tabular-nums">{KSH.format(subtotal)}</p>
+              </div>
+              <p className="mt-1 text-xs text-brand-navy/60">
+                Taxes, artwork setup, and shipping calculated at checkout.
+              </p>
+              <div className="mt-6 space-y-2">
+                <Link
+                  to="/checkout"
+                  onClick={closeCart}
+                  className="flex w-full items-center justify-center bg-brand-navy py-4 text-xs font-bold uppercase tracking-wider text-white transition-all hover:bg-brand-orange"
+                >
+                  Checkout
+                </Link>
+                <button
+                  type="button"
+                  onClick={closeCart}
+                  className="w-full text-center text-xs font-bold uppercase tracking-wider text-brand-navy/70 hover:underline py-2"
+                >
+                  Continue Shopping
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ================================================================
+   Main Application Entry Point
+   ================================================================ */
+
 function Index() {
-  // Gate the marketing page behind the splash. Decided synchronously so
-  // the header and hero never flash underneath it on first paint.
   const [ready, setReady] = useState(() => !shouldSplash());
 
-  // Warm the product query while the splash is still up, so the hero has
-  // real photography to show the moment the page is revealed rather than
-  // starting its fetch from cold.
   useNewestProducts(48);
 
   return (
-    <>
+    <CartProvider>
       <Preloader onDone={() => setReady(true)} />
 
       {ready ? (
@@ -74,7 +348,7 @@ function Index() {
           <Close />
         </SiteLayout>
       ) : null}
-    </>
+    </CartProvider>
   );
 }
 
@@ -82,10 +356,8 @@ function Index() {
    Shared & Global Configurations
    ================================================================ */
 
-// Since files are in /public, we use the root path directly.
 const LOGOS = ["monawanka.png", "protocol.png", "kazilab.png", "safaricom.png", "Samsung.png"];
 
-// Hero stat strip. Static, brand-level figures shown under the CTAs.
 const HERO_STATS: { value: string; label: string }[] = [];
 
 const KSH = new Intl.NumberFormat("en-KE", {
@@ -99,10 +371,10 @@ function placeholder(seed: string) {
 }
 
 /* ================================================================
-   Live products (admin-editable, from the database)
+   Live products
    ================================================================ */
 
-type LiveProduct = {
+export type LiveProduct = {
   id: string;
   name: string;
   slug: string;
@@ -124,7 +396,6 @@ function firstImage(images: unknown, seedName: string): string {
 }
 
 async function fetchNewestProducts(limit: number): Promise<LiveProduct[]> {
-  // Products first (no embedded join, so a missing FK relationship can't break it).
   const { data: products, error } = await supabase
     .from("products")
     .select("id, name, slug, price, compare_at_price, moq, lead_time, badge, is_featured, images, category_id")
@@ -135,7 +406,6 @@ async function fetchNewestProducts(limit: number): Promise<LiveProduct[]> {
   if (error) throw error;
   const rows = products ?? [];
 
-  // Resolve category names in a second, separate query (also join-free).
   const categoryIds = Array.from(new Set(rows.map((p: any) => p.category_id).filter(Boolean)));
   const catMap = new Map<string, { name: string; slug: string }>();
   if (categoryIds.length > 0) {
@@ -177,13 +447,13 @@ function useNewestProducts(limit: number) {
   return useQuery({
     queryKey: ["home", "newest-products", limit],
     queryFn: () => fetchNewestProducts(limit),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 10 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
   });
 }
 
 /* ================================================================
    Global animation layer
-   Injected once from Index so every section can use the classes.
    ================================================================ */
 
 function MotionStyles() {
@@ -284,8 +554,6 @@ function MotionStyles() {
 
 /* ================================================================
    Scroll reveal
-   IntersectionObserver with a graceful fallback so content is never
-   left invisible when the API is missing.
    ================================================================ */
 
 function useReveal<T extends HTMLElement>(options?: { delay?: number }) {
@@ -333,6 +601,7 @@ function useReveal<T extends HTMLElement>(options?: { delay?: number }) {
 
   return ref;
 }
+
 function Reveal({
   children,
   delay = 0,
@@ -458,6 +727,7 @@ function LogoMarquee() {
                 src={`/${fileName}`}
                 alt="Client logo"
                 loading="lazy"
+                decoding="async"
                 className="max-h-full w-auto object-contain"
               />
             </div>
@@ -468,10 +738,6 @@ function LogoMarquee() {
   );
 }
 
-
-/* ----------------------------------------------------------------
-   Keyword-Rich Offerings Data
-   ---------------------------------------------------------------- */
 const OFFERINGS = [
   {
     icon: Printer,
@@ -523,13 +789,10 @@ const OFFERINGS = [
   },
 ] as const;
 
-/* ----------------------------------------------------------------
-   Offerings Flip Component
-   ---------------------------------------------------------------- */
 export function OfferingsFlip() {
   const [active, setActive] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
-  const DURATION = 3200; // ms per card
+  const DURATION = 3200;
 
   useEffect(() => {
     if (isPaused) return;
@@ -548,7 +811,6 @@ export function OfferingsFlip() {
         onMouseLeave={() => setIsPaused(false)}
         className="group relative min-h-26 overflow-hidden rounded-4xl border border-slate-200/80 bg-white/90 backdrop-blur-md shadow-[0_12px_32px_rgba(8,28,78,0.08)] transition-all duration-300 hover:border-slate-300 hover:shadow-[0_16px_40px_rgba(8,28,78,0.14)] sm:min-h-28"
       >
-        {/* Rotating Cards Stream */}
         {OFFERINGS.map((offer, index) => {
           const OfferIcon = offer.icon;
           const isActive = index === active;
@@ -562,14 +824,12 @@ export function OfferingsFlip() {
                   : "pointer-events-none z-0 translate-x-2 opacity-0"
               }`}
             >
-              {/* Icon Container */}
               <div
                 className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${offer.color} text-white shadow-md sm:h-14 sm:w-14 sm:rounded-2xl`}
               >
                 <OfferIcon className="h-5 w-5 stroke-[2.2] sm:h-6 sm:w-6" />
               </div>
 
-              {/* Card Details */}
               <div className="min-w-0 flex-1">
                 <h3 className="truncate text-sm font-extrabold tracking-tight text-[#783190] sm:text-base">
                   {offer.title}
@@ -582,7 +842,6 @@ export function OfferingsFlip() {
           );
         })}
 
-        {/* Dynamic Progress Timer Bar */}
         {!isPaused && (
           <div
             key={active}
@@ -592,7 +851,6 @@ export function OfferingsFlip() {
         )}
       </div>
 
-      {/* Dot indicators */}
       <div className="mt-2.5 flex items-center justify-center gap-1.5 sm:justify-start">
         {OFFERINGS.map((_, i) => (
           <button
@@ -616,33 +874,56 @@ export function OfferingsFlip() {
     </div>
   );
 }
-/* ----------------------------------------------------------------
-   Right rail-live products, clean vertical conveyor, bottom -> top
-   ---------------------------------------------------------------- */
 
 function ProductCardMini({ p }: { p: LiveProduct }) {
+  const { addItem } = useCart();
+  const [added, setAdded] = useState(false);
+
+  const handleAddToCart = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    addItem(p);
+    setAdded(true);
+    setTimeout(() => setAdded(false), 2000);
+  };
+
   return (
     <Link
-      to="/shop"
-      search={p.categorySlug ? { category: p.categorySlug } : undefined}
+      to="/shop/$slug"
+      params={{ slug: p.slug }}
       className="group block overflow-hidden rounded-[24px] border border-brand-navy/10 bg-white p-2.5 transition-colors hover:bg-brand-surface"
     >
-      <div className="relative aspect-4/5 overflow-hidden rounded-[18px] bg-brand-surface">
+      <div className="relative aspect-4/5 overflow-hidden rounded-[18px] bg-brand-surface p-2">
         <img
           src={p.image}
           alt={p.name}
           loading="lazy"
-          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+          decoding="async"
+          className="h-full w-full rounded-[14px] object-contain transition-transform duration-500 group-hover:scale-105"
         />
         {p.tag ? (
-          <span className="absolute left-1.5 top-1.5 bg-brand-orange px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white">
+          <span className="absolute left-3 top-3 bg-brand-orange px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white">
             {p.tag}
           </span>
         ) : null}
       </div>
       <div className="mt-2.5 min-w-0">
         <p className="line-clamp-1 text-[13px] font-bold text-brand-navy">{p.name}</p>
-        <p className="mt-0.5 text-[12px] font-bold text-brand-orange">{KSH.format(p.price)}</p>
+        <div className="mt-1 flex items-center justify-between gap-1">
+          <p className="text-[12px] font-bold text-brand-orange">{KSH.format(p.price)}</p>
+          <button
+            type="button"
+            onClick={handleAddToCart}
+            aria-label={`Add ${p.name} to cart`}
+            className={`flex h-7 w-7 items-center justify-center rounded-lg transition-all active:scale-95 ${
+              added
+                ? "bg-emerald-600 text-white"
+                : "bg-brand-navy text-white hover:bg-brand-orange"
+            }`}
+          >
+            {added ? <Check className="h-3.5 w-3.5" /> : <ShoppingCart className="h-3.5 w-3.5" />}
+          </button>
+        </div>
       </div>
     </Link>
   );
@@ -656,6 +937,7 @@ function nudgeProductRail(el: HTMLDivElement | null, delta: number) {
 
   el.scrollTo({ top: next, behavior: "smooth" });
 }
+
 function ProductsRail() {
   const { data, isLoading } = useNewestProducts(70);
   const trackRef = useRef<HTMLDivElement>(null);
@@ -758,13 +1040,6 @@ function ProductsRail() {
   );
 }
 
-/* ----------------------------------------------------------------
-   Statement-the hero section itself.
-   Top: CMS-driven badge, heading, description and CTAs (unchanged).
-   Below: the two-rail band-animated offerings on the left,
-   live catalogue products scrolling on the right.
-   ---------------------------------------------------------------- */
-
 function Statement() {
   const { data: blocks } = useCmsBlocks([
     "home.hero_badge",
@@ -790,89 +1065,85 @@ function Statement() {
 
   return (
     <section className="relative overflow-hidden border-b border-brand-navy bg-white">
-      {/* Animated dotted field, masked so it fades out toward the edges */}
       <DotField className="pp-mask-fade opacity-70" />
 
       <div className="container-page relative px-5 py-8 sm:px-6 sm:py-10 md:py-14">
         <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_minmax(360px,0.9fr)] xl:items-start xl:pt-1">
-  {/* Badge — always first, top-left of the left column on desktop */}
-  <div className="order-1 max-w-2xl xl:order-0l-start-1 xl:row-start-1">
-    <Reveal>
-      <p className="inline-flex items-center gap-2 border border-brand-navy/15 bg-white/70 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.25em] text-brand-orange backdrop-blur-sm">
-        <span className="pp-ticker-dot inline-block h-1.5 w-1.5 bg-brand-orange" />
-        {heroBadge}
-      </p>
-    </Reveal>
-  </div>
+          <div className="order-1 max-w-2xl xl:order-0 xl:col-start-1 xl:row-start-1">
+            <Reveal>
+              <p className="inline-flex items-center gap-2 border border-brand-navy/15 bg-white/70 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.25em] text-brand-orange backdrop-blur-sm">
+                <span className="pp-ticker-dot inline-block h-1.5 w-1.5 bg-brand-orange" />
+                {heroBadge}
+              </p>
+            </Reveal>
+          </div>
 
-  {/* Products rail — second on mobile, right column (full height) on desktop */}
-  <div className="order-2 xl:order-0 xl:col-start-2 xl:row-start-1 xl:row-span-2 xl:pt-2">
-    <Reveal delay={280}>
-      <ProductsRail />
-    </Reveal>
-  </div>
+          <div className="order-2 xl:order-0 xl:col-start-2 xl:row-start-1 xl:row-span-2 xl:pt-2">
+            <Reveal delay={280}>
+              <ProductsRail />
+            </Reveal>
+          </div>
 
-  {/* Heading, description, offerings, CTAs, stats — third on mobile, below badge on desktop */}
-  <div className="order-3 max-w-2xl xl:order-0 xl:col-start-1 xl:row-start-2">
-    <Reveal delay={90}>
-      <h1 className="mt-5 text-[2rem] font-extrabold leading-[1.1] tracking-tight text-brand-navy sm:mt-6 sm:text-5xl md:text-6xl lg:text-[4.25rem]">
-        {heroTitle.split("\n").map((line, index) => (
-          <span key={index}>
-            {line}
-            {index < heroTitle.split("\n").length - 1 ? <br /> : null}
-          </span>
-        ))}
-      </h1>
-    </Reveal>
+          <div className="order-3 max-w-2xl xl:order-0 xl:col-start-1 xl:row-start-2">
+            <Reveal delay={90}>
+              <h1 className="mt-5 text-[2rem] font-extrabold leading-[1.1] tracking-tight text-brand-navy sm:mt-6 sm:text-5xl md:text-6xl lg:text-[4.25rem]">
+                {heroTitle.split("\n").map((line, index) => (
+                  <span key={index}>
+                    {line}
+                    {index < heroTitle.split("\n").length - 1 ? <br /> : null}
+                  </span>
+                ))}
+              </h1>
+            </Reveal>
 
-    <Reveal delay={170}>
-      <p className="mt-6 max-w-xl text-base leading-relaxed text-brand-blue sm:mt-9 sm:text-lg">
-        {heroDescription}
-      </p>
-    </Reveal>
+            <Reveal delay={170}>
+              <p className="mt-6 max-w-xl text-base leading-relaxed text-brand-blue sm:mt-9 sm:text-lg">
+                {heroDescription}
+              </p>
+            </Reveal>
 
-    <Reveal delay={220}>
-      <OfferingsFlip />
-    </Reveal>
+            <Reveal delay={220}>
+              <OfferingsFlip />
+            </Reveal>
 
-    <Reveal delay={250}>
-      <div className="mt-8 flex flex-col gap-3 sm:mt-10 sm:flex-row sm:flex-wrap sm:gap-4">
-        <Link
-          to="/shop"
-          className="pp-sheen group inline-flex w-full items-center justify-center gap-2 bg-brand-blue px-8 py-4 text-sm font-bold uppercase tracking-wide text-white transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[6px_6px_0_0_var(--color-brand-navy)] sm:w-auto"
-        >
-          {heroPrimary}
-          <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
-        </Link>
-        <Link
-          to="/request-quote"
-          className="group inline-flex w-full items-center justify-center gap-2 border border-brand-navy px-8 py-4 text-sm font-bold uppercase tracking-wide text-brand-navy transition-all duration-300 hover:-translate-y-0.5 hover:border-brand-orange hover:text-brand-orange sm:w-auto"
-        >
-          {heroSecondary}
-          <ArrowRight className="h-4 w-4 opacity-0 transition-all duration-300 group-hover:translate-x-1 group-hover:opacity-100" />
-        </Link>
-      </div>
-    </Reveal>
+            <Reveal delay={250}>
+              <div className="mt-8 flex flex-col gap-3 sm:mt-10 sm:flex-row sm:flex-wrap sm:gap-4">
+                <Link
+                  to="/shop"
+                  className="pp-sheen group inline-flex w-full items-center justify-center gap-2 bg-brand-blue px-8 py-4 text-sm font-bold uppercase tracking-wide text-white transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[6px_6px_0_0_var(--color-brand-navy)] sm:w-auto"
+                >
+                  {heroPrimary}
+                  <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
+                </Link>
+                <Link
+                  to="/request-quote"
+                  className="group inline-flex w-full items-center justify-center gap-2 border border-brand-navy px-8 py-4 text-sm font-bold uppercase tracking-wide text-brand-navy transition-all duration-300 hover:-translate-y-0.5 hover:border-brand-orange hover:text-brand-orange sm:w-auto"
+                >
+                  {heroSecondary}
+                  <ArrowRight className="h-4 w-4 opacity-0 transition-all duration-300 group-hover:translate-x-1 group-hover:opacity-100" />
+                </Link>
+              </div>
+            </Reveal>
 
-    {HERO_STATS.length > 0 && (
-      <Reveal delay={330}>
-        <dl className="mt-10 grid max-w-lg grid-cols-3 border-t border-brand-navy/12 pt-6 sm:mt-12">
-          {HERO_STATS.map((s) => (
-            <div key={s.label} className="pr-4">
-              <dt className="sr-only">{s.label}</dt>
-              <dd className="text-xl font-extrabold tabular-nums text-brand-navy sm:text-2xl">
-                {s.value}
-              </dd>
-              <span className="mt-1 block text-[10px] font-bold uppercase tracking-widest text-brand-navy/45">
-                {s.label}
-              </span>
-            </div>
-          ))}
-        </dl>
-      </Reveal>
-    )}
-  </div>
-</div>
+            {HERO_STATS.length > 0 && (
+              <Reveal delay={330}>
+                <dl className="mt-10 grid max-w-lg grid-cols-3 border-t border-brand-navy/12 pt-6 sm:mt-12">
+                  {HERO_STATS.map((s) => (
+                    <div key={s.label} className="pr-4">
+                      <dt className="sr-only">{s.label}</dt>
+                      <dd className="text-xl font-extrabold tabular-nums text-brand-navy sm:text-2xl">
+                        {s.value}
+                      </dd>
+                      <span className="mt-1 block text-[10px] font-bold uppercase tracking-widest text-brand-navy/45">
+                        {s.label}
+                      </span>
+                    </div>
+                  ))}
+                </dl>
+              </Reveal>
+            )}
+          </div>
+        </div>
       </div>
     </section>
   );
@@ -880,33 +1151,31 @@ function Statement() {
 
 /* ================================================================
    Showcase
-   Displays real products from the database, grouped by category.
-   Falls back to newest products when categories can't be resolved.
    ================================================================ */
 
 function Showcase() {
   const { data, isLoading, isError } = useNewestProducts(120);
+  const deferredProducts = useDeferredValue(data ?? []);
+
   const { data: blocks } = useCmsBlocks([
     "home.section_catalogue_eyebrow",
     "home.section_catalogue_title",
   ]);
-  const products = data ?? [];
 
   const catalogueEyebrow = getCmsString(blocks, "home.section_catalogue_eyebrow", "In the catalogue");
   const catalogueTitle = getCmsString(blocks, "home.section_catalogue_title", "Products we have");
 
-  // Group products by their resolved category name, preserving first-seen order.
   const groups = useMemo(() => {
     const map = new Map<string, { name: string; slug: string | null; items: LiveProduct[] }>();
-    for (const p of products) {
+    for (const p of deferredProducts) {
       const key = p.category || "Products";
       if (!map.has(key)) {
         map.set(key, { name: key, slug: p.categorySlug, items: [] });
       }
       map.get(key)!.items.push(p);
     }
-    return Array.from(map.values()).map((g) => ({ ...g, items: g.items }));
-  }, [products]);
+    return Array.from(map.values());
+  }, [deferredProducts]);
 
   return (
     <section className="relative overflow-hidden border-b border-brand-navy bg-white">
@@ -929,8 +1198,8 @@ function Showcase() {
           />
         </Reveal>
 
-        {isLoading && !data ? (
-          <div className="mt-8 grid grid-cols-2 gap-4 sm:mt-10 sm:grid-cols-2 sm:gap-6 lg:grid-cols-4">
+        {isLoading && deferredProducts.length === 0 ? (
+          <div className="mt-8 grid grid-cols-1 gap-4 sm:mt-10 sm:grid-cols-2 sm:gap-6 lg:grid-cols-4">
             {Array.from({ length: 4 }).map((_, i) => (
               <ProductSkeleton key={i} />
             ))}
@@ -942,7 +1211,7 @@ function Showcase() {
               Products could not be loaded right now. Please refresh the page.
             </p>
           </div>
-        ) : products.length === 0 ? (
+        ) : deferredProducts.length === 0 ? (
           <p className="mt-10 text-sm font-semibold text-brand-navy/60">
             No products published yet.
           </p>
@@ -966,9 +1235,9 @@ function Showcase() {
                   ) : null}
                 </div>
 
-                <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-4">
+                <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-4">
                   {group.items.map((p, i) => (
-                    <Reveal key={p.id} delay={gi * 40 + i * 70}>
+                    <Reveal key={p.id} delay={gi * 40 + i * 50}>
                       <ProductCard p={p} />
                     </Reveal>
                   ))}
@@ -983,7 +1252,7 @@ function Showcase() {
 }
 
 /* ================================================================
-   Featured products
+   Featured products & Components
    ================================================================ */
 
 function ProductTag({ label }: { label: "Bestseller" | "New" | "Fast track" }) {
@@ -995,7 +1264,7 @@ function ProductTag({ label }: { label: "Bestseller" | "New" | "Fast track" }) {
         : "border border-brand-navy bg-white text-brand-navy";
   return (
     <span
-      className={`absolute left-0 top-0 z-10 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest ${tone}`}
+      className={`absolute left-3 top-3 z-10 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest shadow-sm ${tone}`}
     >
       {label}
     </span>
@@ -1003,21 +1272,32 @@ function ProductTag({ label }: { label: "Bestseller" | "New" | "Fast track" }) {
 }
 
 function ProductCard({ p }: { p: LiveProduct }) {
+  const { addItem } = useCart();
+  const [added, setAdded] = useState(false);
+
   const discount =
     p.compareAt && p.compareAt > p.price
       ? Math.round(((p.compareAt - p.price) / p.compareAt) * 100)
       : null;
 
+  const handleAddToCart = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    addItem(p);
+    setAdded(true);
+    setTimeout(() => setAdded(false), 2000);
+  };
+
   return (
-    <Link
-      to="/shop/$slug"
-      params={{ slug: p.slug }}
-      className="group relative flex flex-col overflow-hidden rounded-[22px] border border-brand-navy/15 bg-white transition-all duration-300 hover:-translate-y-1 hover:border-brand-navy hover:shadow-[8px_8px_0_0_var(--color-brand-navy)]"
-    >
-      <div className="pp-sheen relative overflow-hidden bg-brand-surface">
+    <div className="group relative flex flex-col overflow-hidden rounded-[22px] border border-brand-navy/15 bg-white p-3 transition-all duration-300 ease-out hover:-translate-y-1.5 hover:border-brand-navy hover:shadow-[8px_8px_0_0_var(--color-brand-navy)]">
+      <Link
+        to="/shop/$slug"
+        params={{ slug: p.slug }}
+        className="pp-sheen relative block overflow-hidden rounded-3xl-brand-surface p-3"
+      >
         {p.tag ? <ProductTag label={p.tag} /> : null}
         {discount !== null ? (
-          <span className="absolute right-0 top-0 z-10 bg-brand-navy px-2.5 py-1.5 text-[10px] font-bold tabular-nums text-white">
+          <span className="absolute right-3 top-3 z-10 bg-brand-navy px-2.5 py-1.5 text-[10px] font-bold tabular-nums text-white">
             -{discount}%
           </span>
         ) : null}
@@ -1027,24 +1307,29 @@ function ProductCard({ p }: { p: LiveProduct }) {
           width={800}
           height={800}
           loading="lazy"
-          className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.07]"
+          decoding="async"
+          className="h-full w-full rounded-2xl object-contain transition-transform duration-500 ease-out group-hover:scale-105"
           style={{ aspectRatio: "4 / 5" }}
         />
-        <span className="pointer-events-none absolute inset-x-0 bottom-0 translate-y-full bg-brand-navy py-2.5 text-center text-[11px] font-bold uppercase tracking-widest text-white transition-transform duration-300 group-hover:translate-y-0">
+        <span className="pointer-events-none absolute inset-x-0 bottom-0 translate-y-full bg-brand-navy py-2.5 text-center text-[11px] font-bold uppercase tracking-widest text-white transition-transform duration-300 ease-out group-hover:translate-y-0">
           View product
         </span>
-      </div>
+      </Link>
 
-      <div className="flex flex-1 flex-col p-3 sm:p-5">
+      <div className="flex flex-1 flex-col pt-3 px-1.5 pb-1">
         <div className="text-[10px] font-bold uppercase tracking-widest text-brand-navy/45">
           {p.category}
         </div>
-        <h3 className="mt-1.5 text-sm font-extrabold leading-snug text-brand-navy transition-colors group-hover:text-brand-orange sm:text-base">
+        <Link
+          to="/shop/$slug"
+          params={{ slug: p.slug }}
+          className="mt-1.5 text-base font-extrabold leading-snug text-brand-navy transition-colors hover:text-brand-orange sm:text-base"
+        >
           {p.name}
-        </h3>
+        </Link>
 
         <div className="mt-3 flex items-baseline gap-2 sm:mt-4">
-          <span className="text-base font-extrabold tabular-nums text-brand-navy sm:text-lg">
+          <span className="text-lg font-extrabold tabular-nums text-brand-navy sm:text-lg">
             {KSH.format(p.price)}
           </span>
           {p.compareAt ? (
@@ -1054,23 +1339,45 @@ function ProductCard({ p }: { p: LiveProduct }) {
           ) : null}
         </div>
 
-        <div className="mt-3 flex items-center justify-between border-t border-brand-navy/10 pt-3 text-[11px] font-semibold text-brand-navy/60 sm:mt-4">
+        <button
+          type="button"
+          onClick={handleAddToCart}
+          className={`mt-4 inline-flex w-full items-center justify-center gap-2 px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-white transition-all duration-200 active:scale-98 ${
+            added
+              ? "bg-emerald-600"
+              : "bg-brand-navy hover:bg-brand-orange"
+          }`}
+        >
+          {added ? (
+            <>
+              <Check className="h-4 w-4" />
+              Added to Cart
+            </>
+          ) : (
+            <>
+              <ShoppingCart className="h-4 w-4" />
+              Add To Cart
+            </>
+          )}
+        </button>
+
+        <div className="mt-4 flex items-center justify-between border-t border-brand-navy/10 pt-3 text-[11px] font-semibold text-brand-navy/60">
           <span className="tabular-nums">MOQ {p.moq}</span>
           <span className="tabular-nums">{p.lead}</span>
         </div>
       </div>
-    </Link>
+    </div>
   );
 }
 
 function ProductSkeleton() {
   return (
-    <div className="animate-pulse border border-brand-navy/12 bg-white">
-      <div className="aspect-square w-full bg-brand-navy/8" />
-      <div className="space-y-3 p-5">
+    <div className="animate-pulse rounded-[22px] border border-brand-navy/12 bg-white p-3">
+      <div className="aspect-4/5 w-full rounded-3xl bg-brand-navy/8" />
+      <div className="space-y-3 p-3">
         <div className="h-2 w-1/3 bg-brand-navy/10" />
-        <div className="h-3 w-4/5 bg-brand-navy/12" />
-        <div className="h-4 w-1/2 bg-brand-navy/10" />
+        <div className="h-4 w-4/5 bg-brand-navy/12" />
+        <div className="h-5 w-1/2 bg-brand-navy/10" />
       </div>
     </div>
   );
@@ -1110,7 +1417,7 @@ function FeaturedProducts() {
         </Reveal>
 
         {isLoading ? (
-          <div className="mt-8 grid grid-cols-2 gap-4 sm:mt-10 sm:grid-cols-2 sm:gap-6 lg:grid-cols-4">
+          <div className="mt-8 grid grid-cols-1 gap-4 sm:mt-10 sm:grid-cols-2 sm:gap-6 lg:grid-cols-4">
             {Array.from({ length: 4 }).map((_, i) => (
               <ProductSkeleton key={i} />
             ))}
@@ -1127,9 +1434,9 @@ function FeaturedProducts() {
             No products published yet.
           </p>
         ) : (
-          <div className="mt-8 grid grid-cols-2 gap-4 sm:mt-10 sm:grid-cols-2 sm:gap-6 lg:grid-cols-4">
+          <div className="mt-8 grid grid-cols-1 gap-4 sm:mt-10 sm:grid-cols-2 sm:gap-6 lg:grid-cols-4">
             {products.map((p, i) => (
-              <Reveal key={p.id} delay={i * 70}>
+              <Reveal key={p.id} delay={i * 50}>
                 <ProductCard p={p} />
               </Reveal>
             ))}
@@ -1167,6 +1474,9 @@ function FeaturedProducts() {
 
 function Bestsellers() {
   const { data } = useNewestProducts(25);
+  const { addItem } = useCart();
+  const [addedId, setAddedId] = useState<string | null>(null);
+
   const source = data ?? [];
   const tagged = source.filter((p) => p.tag);
   const picks = tagged.length > 0 ? tagged : source;
@@ -1174,6 +1484,14 @@ function Bestsellers() {
   if (picks.length === 0) return null;
 
   const loop = [...picks, ...picks];
+
+  const handleAddToCart = (e: React.MouseEvent, product: LiveProduct) => {
+    e.preventDefault();
+    e.stopPropagation();
+    addItem(product);
+    setAddedId(product.id);
+    setTimeout(() => setAddedId(null), 2000);
+  };
 
   return (
     <section className="relative overflow-hidden bg-white">
@@ -1204,34 +1522,41 @@ function Bestsellers() {
           style={{ ["--pp-speed" as string]: `${picks.length * 2.5}s` }}
         >
           {loop.map((b, i) => (
-            <Link
+            <div
               key={`${b.id}-${i}`}
-              to="/shop/$slug"
-              params={{ slug: b.slug }}
               tabIndex={i >= picks.length ? -1 : 0}
               aria-hidden={i >= picks.length}
-              className="group w-56 shrink-0 overflow-hidden border border-brand-navy/12 bg-white transition-all duration-300 hover:-translate-y-1.5 hover:border-brand-navy hover:shadow-[8px_8px_0_0_var(--color-brand-orange)] sm:w-64"
+              className="group flex w-56 shrink-0 flex-col overflow-hidden rounded-4xl border border-brand-navy/12 bg-white p-2.5 transition-all duration-300 hover:-translate-y-1.5 hover:border-brand-navy hover:shadow-[8px_8px_0_0_var(--color-brand-orange)] sm:w-64"
             >
-              <div className="pp-sheen relative overflow-hidden border-b border-brand-navy/12 bg-brand-surface">
+              <Link
+                to="/shop/$slug"
+                params={{ slug: b.slug }}
+                className="pp-sheen relative block overflow-hidden rounded-[14px] bg-brand-surface p-2"
+              >
                 <img
                   src={b.image}
                   alt={b.name}
                   width={800}
                   height={900}
                   loading="lazy"
-                  className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.07]"
+                  decoding="async"
+                  className="h-full w-full rounded-[10px] object-contain transition-transform duration-500 ease-out group-hover:scale-105"
                   style={{ aspectRatio: "1 / 1" }}
                 />
                 {b.tag ? (
-                  <span className="absolute left-0 top-0 bg-brand-navy px-2.5 py-1 text-[9px] font-bold uppercase tracking-widest text-white">
+                  <span className="absolute left-2 top-2 bg-brand-navy px-2.5 py-1 text-[9px] font-bold uppercase tracking-widest text-white">
                     {b.tag}
                   </span>
                 ) : null}
-              </div>
-              <div className="p-4">
-                <div className="text-sm font-extrabold leading-snug text-brand-navy transition-colors group-hover:text-brand-orange">
+              </Link>
+              <div className="flex flex-1 flex-col p-2.5">
+                <Link
+                  to="/shop/$slug"
+                  params={{ slug: b.slug }}
+                  className="text-sm font-extrabold leading-snug text-brand-navy transition-colors group-hover:text-brand-orange"
+                >
                   {b.name}
-                </div>
+                </Link>
                 <div className="mt-2 flex items-center justify-between">
                   <span className="text-sm font-bold tabular-nums text-brand-navy">
                     {KSH.format(b.price)}
@@ -1240,14 +1565,36 @@ function Bestsellers() {
                     MOQ {b.moq}
                   </span>
                 </div>
+                <button
+                  type="button"
+                  onClick={(e) => handleAddToCart(e, b)}
+                  className={`mt-3 flex items-center justify-center gap-1.5 px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-white transition-all active:scale-95 ${
+                    addedId === b.id
+                      ? "bg-emerald-600"
+                      : "bg-brand-navy hover:bg-brand-orange"
+                  }`}
+                >
+                  {addedId === b.id ? (
+                    <>
+                      <Check className="h-3.5 w-3.5" />
+                      Added
+                    </>
+                  ) : (
+                    <>
+                      <ShoppingCart className="h-3.5 w-3.5" />
+                      Add To Cart
+                    </>
+                  )}
+                </button>
               </div>
-            </Link>
+            </div>
           ))}
         </div>
       </div>
     </section>
   );
 }
+
 /* ================================================================
    Techniques
    ================================================================ */
@@ -1464,7 +1811,6 @@ function Argument() {
     <section className="relative overflow-hidden border-b border-brand-blue bg-brand-blue text-white">
       <DotField variant="light" className="pp-mask-fade opacity-30" />
 
-      {/* Oversized ghost mark-decorative, sits behind the copy */}
       <span
         aria-hidden="true"
         className="pointer-events-none absolute -right-10 top-1/2 hidden -translate-y-1/2 select-none text-[22rem] font-extrabold leading-none text-white/3 lg:block"
@@ -1616,6 +1962,7 @@ function Sectors() {
     </section>
   );
 }
+
 /* ================================================================
    Reviews
    ================================================================ */
@@ -1685,8 +2032,6 @@ function GoogleIcon({ className }: { className?: string }) {
     </svg>
   );
 }
-
-/* ---- New: review submission form ---- */
 
 function StarPicker({ value, onChange }: { value: number; onChange: (n: number) => void }) {
   return (
@@ -1837,12 +2182,9 @@ function SubmittedReviews({ reviews }: { reviews: (Review & { rating: number })[
   );
 }
 
-/* ---- Main section ---- */
-
 function Reviews() {
   const [userReviews, setUserReviews] = useState<(Review & { rating: number })[]>([]);
 
-  // New submissions ride along at the front of the marquee too
   const loop = [...userReviews, ...REVIEWS, ...userReviews, ...REVIEWS];
 
   return (
@@ -1930,7 +2272,6 @@ function Reviews() {
         </div>
       </div>
 
-      {/* New: write + view submitted reviews */}
       <div className="container-page relative px-5 pb-14 sm:px-6 sm:pb-16 md:pb-24">
         <div className="grid gap-8 lg:grid-cols-2 lg:items-start">
           <WriteReview onSubmit={(r) => setUserReviews((prev) => [r, ...prev])} />
@@ -1940,8 +2281,6 @@ function Reviews() {
     </section>
   );
 }
-
-
 
 function Close() {
   return (

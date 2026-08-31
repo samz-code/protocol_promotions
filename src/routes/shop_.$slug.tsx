@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { createFileRoute, Link, useParams } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { SiteLayout } from "@/components/site/SiteLayout";
 import { ProductConfigurator } from "@/components/shop/ProductConfigurator";
@@ -9,7 +9,7 @@ import { FaWhatsapp, FaFacebookF, FaLinkedinIn, FaTelegramPlane } from "react-ic
 import { FaXTwitter } from "react-icons/fa6";
 import {
   Star, ChevronRight, ChevronLeft, Package, Loader2, AlertCircle,
-  Check, ShieldCheck, Truck, Layers, Copy, CheckCheck, Share2,
+  Check, ShieldCheck, Truck, Layers, Copy, CheckCheck, Share2, Palette, Send,
 } from "lucide-react";
 
 export const Route = createFileRoute("/shop_/$slug")({
@@ -367,7 +367,7 @@ function ProductView({
               </>
             )}
             <ChevronRight className="h-3 w-3 shrink-0 text-brand-navy/30" />
-            <span className="truncate font-semibold text-brand-navy max-w-35ax-w-xs">{product.name}</span>
+            <span className="truncate font-semibold text-brand-navy max-w-35">{product.name}</span>
           </div>
         </div>
 
@@ -393,7 +393,7 @@ function ProductView({
                     <Star key={i} className={`h-3.5 w-3.5 ${i < Math.round(product.rating) ? "fill-brand-orange text-brand-orange" : "text-brand-navy/20"}`} />
                   ))}
                   <span className="ml-1 font-bold text-brand-navy">{product.rating > 0 ? product.rating.toFixed(1) : "New"}</span>
-                  {product.review_count > 0 && <span className="text-brand-navy/50">({product.review_count})</span>}
+                  <span className="text-brand-navy/50">({reviews.length} reviews)</span>
                 </div>
                 {product.sku && <span className="font-mono text-[11px] text-brand-navy/45 border-l border-brand-navy/15 pl-2.5">SKU: {product.sku}</span>}
               </div>
@@ -554,6 +554,7 @@ function WhatsAppOrderBar({
   productUrl: string;
 }) {
   const [copied, setCopied] = useState(false);
+  const [customColor, setCustomColor] = useState("#ee7b22");
 
   const colors = toArray<string>(product.colors);
   const sizes = toArray<string>(product.sizes);
@@ -660,6 +661,42 @@ function WhatsAppOrderBar({
             withSwatch
           />
         )}
+
+        {/* Custom Brand Color Code Picker Input */}
+        <div className="border-t border-brand-navy/10 pt-2">
+          <div className="mb-1 text-[9px] font-bold uppercase tracking-widest text-brand-navy/50 flex items-center gap-1">
+            <Palette className="h-3 w-3 text-brand-orange shrink-0" /> Custom Color Code (HEX / Pantone)
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="relative flex items-center shrink-0">
+              <input
+                type="color"
+                value={customColor}
+                onChange={(e) => {
+                  const hex = e.target.value;
+                  setCustomColor(hex);
+                  setField({ color: `Custom|${hex}` });
+                }}
+                className="h-7 w-8 cursor-pointer rounded border border-brand-navy/20 bg-white p-0.5"
+                title="Choose color visually"
+              />
+            </div>
+            <input
+              type="text"
+              placeholder="#EE7B22 or Pantone 185 C"
+              value={selection.color?.startsWith("Custom|") ? selection.color.split("|")[1] : ""}
+              onChange={(e) => {
+                const val = e.target.value;
+                if (val.startsWith("#") && /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(val)) {
+                  setCustomColor(val);
+                }
+                setField({ color: val ? `Custom|${val}` : null });
+              }}
+              className="h-7 flex-1 rounded border border-brand-navy/20 bg-white px-2.5 text-xs font-mono text-brand-navy placeholder:text-brand-navy/35 focus:border-brand-navy focus:outline-none"
+            />
+          </div>
+        </div>
+
         {sizes.length > 0 && (
           <ChipRow
             label="Size"
@@ -890,7 +927,7 @@ function ProductTabs({ product, reviews }: { product: Product; reviews: Review[]
 
       <div className="py-4">
         {tab === "description" && (
-          <div className="max-w-2xl whitespace-pre-line text-xs sm:text-sm leading-relaxed text-brand-navy/75 wrap-break-wordword">
+          <div className="max-w-2xl whitespace-pre-line text-xs sm:text-sm leading-relaxed text-brand-navy/75 wrap-break-word">
             {product.long_description || product.short_description || "No detailed description available."}
           </div>
         )}
@@ -923,30 +960,148 @@ function ProductTabs({ product, reviews }: { product: Product; reviews: Review[]
         )}
 
         {tab === "reviews" && (
-          reviews.length > 0 ? (
-            <ul className="max-w-xl space-y-3">
-              {reviews.map((r) => (
-                <li key={r.id} className="border-b border-brand-navy/8 pb-3 last:border-0">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="min-w-0">
-                      <span className="text-xs font-bold text-brand-navy truncate block">{r.author_name}</span>
-                      {r.author_role && <span className="text-[10px] text-brand-navy/45 truncate block">{r.author_role}</span>}
-                    </div>
-                    <div className="flex items-center gap-0.5 shrink-0">
-                      {[...Array(5)].map((_, i) => (
-                        <Star key={i} className={`h-3 w-3 ${i < r.rating ? "fill-brand-orange text-brand-orange" : "text-brand-navy/20"}`} />
-                      ))}
-                    </div>
-                  </div>
-                  <p className="mt-1.5 text-xs leading-relaxed text-brand-navy/70 wrap-break-word">{r.body}</p>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-xs text-brand-navy/50">No reviews yet.</p>
-          )
+          <div className="grid gap-8 md:grid-cols-12 items-start">
+            <div className="md:col-span-7 space-y-4">
+              {reviews.length > 0 ? (
+                <ul className="space-y-3">
+                  {reviews.map((r) => (
+                    <li key={r.id} className="border-b border-brand-navy/8 pb-3 last:border-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="min-w-0">
+                          <span className="text-xs font-bold text-brand-navy truncate block">{r.author_name}</span>
+                          {r.author_role && <span className="text-[10px] text-brand-navy/45 truncate block">{r.author_role}</span>}
+                        </div>
+                        <div className="flex items-center gap-0.5 shrink-0">
+                          {[...Array(5)].map((_, i) => (
+                            <Star key={i} className={`h-3 w-3 ${i < r.rating ? "fill-brand-orange text-brand-orange" : "text-brand-navy/20"}`} />
+                          ))}
+                        </div>
+                      </div>
+                      <p className="mt-1.5 text-xs leading-relaxed text-brand-navy/70 wrap-break-word">{r.body}</p>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-xs text-brand-navy/50">No reviews yet for this product. Be the first to write one!</p>
+              )}
+            </div>
+
+            <div className="md:col-span-5 bg-brand-surface/60 p-4 rounded-xl border border-brand-navy/15">
+              <ReviewForm productId={product.id} />
+            </div>
+          </div>
         )}
       </div>
     </div>
+  );
+}
+
+function ReviewForm({ productId }: { productId: string }) {
+  const queryClient = useQueryClient();
+  const [rating, setRating] = useState(5);
+  const [authorName, setAuthorName] = useState("");
+  const [authorRole, setAuthorRole] = useState("");
+  const [body, setBody] = useState("");
+  const [submitted, setSubmitted] = useState(false);
+
+  const mutation = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.from("reviews").insert({
+        product_id: productId,
+        rating,
+        author_name: authorName,
+        author_role: authorRole || null,
+        body,
+        status: "approved",
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      setSubmitted(true);
+      setAuthorName("");
+      setAuthorRole("");
+      setBody("");
+      queryClient.invalidateQueries({ queryKey: ["product-bundle"] });
+    },
+  });
+
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        mutation.mutate();
+      }}
+      className="space-y-3"
+    >
+      <div>
+        <h3 className="text-xs font-extrabold uppercase tracking-wider text-brand-navy">Rate & Review Product</h3>
+        <p className="text-[10px] text-brand-navy/60">Share your experience with this item.</p>
+      </div>
+
+      {submitted && (
+        <div className="p-2 bg-green-50 text-green-700 text-xs rounded border border-green-200">
+          Thank you! Your review has been successfully submitted.
+        </div>
+      )}
+
+      <div>
+        <label className="text-[10px] font-bold text-brand-navy/60 block mb-1">Your Rating</label>
+        <div className="flex gap-1">
+          {[1, 2, 3, 4, 5].map((star) => (
+            <button
+              key={star}
+              type="button"
+              onClick={() => setRating(star)}
+              className="p-0.5 focus:outline-none transition-transform hover:scale-110"
+            >
+              <Star className={`h-4 w-4 ${star <= rating ? "fill-brand-orange text-brand-orange" : "text-brand-navy/20"}`} />
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <label className="text-[10px] font-bold text-brand-navy/60 block mb-1">Your Name *</label>
+        <input
+          required
+          type="text"
+          value={authorName}
+          onChange={(e) => setAuthorName(e.target.value)}
+          placeholder="e.g. Sarah K."
+          className="w-full text-xs rounded border border-brand-navy/15 px-2.5 py-1.5 focus:outline-none focus:border-brand-navy bg-white"
+        />
+      </div>
+
+      <div>
+        <label className="text-[10px] font-bold text-brand-navy/60 block mb-1">Company / Role (Optional)</label>
+        <input
+          type="text"
+          value={authorRole}
+          onChange={(e) => setAuthorRole(e.target.value)}
+          placeholder="e.g. Marketing Lead, Acme Ltd"
+          className="w-full text-xs rounded border border-brand-navy/15 px-2.5 py-1.5 focus:outline-none focus:border-brand-navy bg-white"
+        />
+      </div>
+
+      <div>
+        <label className="text-[10px] font-bold text-brand-navy/60 block mb-1">Review *</label>
+        <textarea
+          required
+          rows={3}
+          value={body}
+          onChange={(e) => setBody(e.target.value)}
+          placeholder="Tell us about the quality, print result, or delivery..."
+          className="w-full text-xs rounded border border-brand-navy/15 px-2.5 py-1.5 focus:outline-none focus:border-brand-navy bg-white"
+        />
+      </div>
+
+      <button
+        type="submit"
+        disabled={mutation.isPending}
+        className="w-full flex items-center justify-center gap-1.5 bg-brand-navy text-white text-xs font-bold py-2 rounded hover:bg-brand-navy/90 transition-colors"
+      >
+        {mutation.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Send className="h-3 w-3" />} Submit Review
+      </button>
+    </form>
   );
 }

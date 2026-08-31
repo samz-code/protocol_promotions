@@ -1,24 +1,11 @@
-import { useState, type ComponentType } from "react";
+import React, { useState, useMemo } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
+import * as LucideIcons from "lucide-react";
 import {
   Loader2, Plus, Pencil, Trash2, X, AlertCircle, GripVertical, Check,
-  ChevronDown, Search,
-  Shirt, Footprints, HardHat, Watch, Glasses, Umbrella,
-  Printer, FileText, BookOpen, Newspaper, StickyNote, Files,
-  Stamp, Mail, Megaphone, Flag, PanelTop, Presentation,
-  Frame, Tv, Lightbulb, Coffee, CupSoda, Wine,
-  Gift, Award, Trophy, Medal, Cake, ShoppingBag,
-  Package, Box, Briefcase, Backpack, Luggage, Archive,
-  MonitorSmartphone, Laptop, Headphones, Keyboard, Mouse, BatteryCharging,
-  Usb, Calculator, Palette, PenTool, Paintbrush, Scissors,
-  Ruler, Hammer, Wrench, Sparkles, Car, Truck,
-  Bike, Tent, TreePine, Sun, Building2, Store,
-  Factory, Users, Handshake, BadgeCheck, Percent, Tag,
-  Shield, Crown, Gem, Magnet, IdCard, Badge, ShieldAlert,
-  Utensils, Book, Flame, ScissorsLineDashed, Smile, Activity,
-  FileCheck, Scroll, Ticket, Sparkle
+  ChevronDown, Search
 } from "lucide-react";
 
 export const Route = createFileRoute("/admin/categories")({
@@ -36,132 +23,21 @@ type Category = {
   is_active: boolean;
 };
 
-const ICON_REGISTRY: Record<string, ComponentType<{ className?: string; strokeWidth?: number }>> = {
-  Shirt,
-  Footprints,
-  HardHat,
-  Watch,
-  Glasses,
-  Umbrella,
-  Printer,
-  FileText,
-  BookOpen,
-  Newspaper,
-  StickyNote,
-  Files,
-  Stamp,
-  Mail,
-  Megaphone,
-  Flag,
-  PanelTop,
-  Presentation,
-  Frame,
-  Tv,
-  Lightbulb,
-  Coffee,
-  CupSoda,
-  Wine,
-  Gift,
-  Award,
-  Trophy,
-  Medal,
-  Cake,
-  ShoppingBag,
-  Package,
-  Box,
-  Briefcase,
-  Backpack,
-  Luggage,
-  Archive,
-  MonitorSmartphone,
-  Laptop,
-  Headphones,
-  Keyboard,
-  Mouse,
-  BatteryCharging,
-  Usb,
-  Calculator,
-  Palette,
-  PenTool,
-  Paintbrush,
-  Scissors,
-  Ruler,
-  Hammer,
-  Wrench,
-  Sparkles,
-  Car,
-  Truck,
-  Bike,
-  Tent,
-  TreePine,
-  Sun,
-  Building2,
-  Store,
-  Factory,
-  Users,
-  Handshake,
-  BadgeCheck,
-  Percent,
-  Tag,
-  Shield,
-  Crown,
-  Gem,
-  Magnet,
-  IdCard,
-  Badge,
-  ShieldAlert,
-  Utensils,
-  Book,
-  Flame,
-  ScissorsLineDashed,
-  Smile,
-  Activity,
-  FileCheck,
-  Scroll,
-  Ticket,
-  Sparkle,
-};
-
-const ICON_GROUPS: { group: string; icons: string[] }[] = [
-  {
-    group: "Apparel",
-    icons: ["Shirt", "Footprints", "HardHat", "Watch", "Glasses", "Umbrella"],
-  },
-  {
-    group: "Print",
-    icons: ["Printer", "FileText", "BookOpen", "Newspaper", "StickyNote", "Files", "Stamp", "Mail", "FileCheck", "Scroll", "Book"],
-  },
-  {
-    group: "Signage and display",
-    icons: ["Megaphone", "Flag", "PanelTop", "Presentation", "Frame", "Tv", "Lightbulb"],
-  },
-  {
-    group: "Drinkware and gifts",
-    icons: ["Coffee", "CupSoda", "Wine", "Gift", "Award", "Trophy", "Medal", "Cake", "Flame", "Utensils", "Crown", "Gem"],
-  },
-  {
-    group: "Bags and packaging",
-    icons: ["ShoppingBag", "Package", "Box", "Briefcase", "Backpack", "Luggage", "Archive", "ScissorsLineDashed"],
-  },
-  {
-    group: "Tech and office",
-    icons: ["MonitorSmartphone", "Laptop", "Headphones", "Keyboard", "Mouse", "BatteryCharging", "Usb", "Calculator", "IdCard"],
-  },
-  {
-    group: "Design and tools",
-    icons: ["Palette", "PenTool", "Paintbrush", "Scissors", "Ruler", "Hammer", "Wrench", "Sparkles", "Sparkle"],
-  },
-  {
-    group: "Vehicles and outdoor",
-    icons: ["Car", "Truck", "Bike", "Tent", "TreePine", "Sun"],
-  },
-  {
-    group: "Business and accessories",
-    icons: ["Building2", "Store", "Factory", "Users", "Handshake", "BadgeCheck", "Percent", "Tag", "Shield", "Magnet", "Badge", "Ticket", "Smile", "Activity"],
-  },
-];
-
-const ICON_OPTIONS = ICON_GROUPS.flatMap((g) => g.icons);
+// Safe icon component getter that extracts and validates React components from Lucide exports
+function getLucideIcon(iconName: string): React.ComponentType<{ className?: string; strokeWidth?: number }> | null {
+  if (!iconName) return null;
+  const raw = (LucideIcons as Record<string, unknown>)[iconName];
+  if (!raw) return null;
+  
+  // If it's a valid React element, component function, or forwardRef object
+  if (
+    typeof raw === "function" ||
+    (typeof raw === "object" && raw !== null && "$$typeof" in raw)
+  ) {
+    return raw as React.ComponentType<{ className?: string; strokeWidth?: number }>;
+  }
+  return null;
+}
 
 function slugify(s: string) {
   return s
@@ -259,7 +135,7 @@ function CategoriesPage() {
             Categories
           </h1>
           <p className="mt-2 text-sm text-brand-navy/60">
-            {categories.length} {categories.length === 1 ? "category" : "categories"}. Sorted alphabetically by name.
+            {categories.length} {categories.length === 1 ? "category" : "categories"}.
           </p>
         </div>
         <button
@@ -302,7 +178,7 @@ function CategoriesPage() {
         </div>
       ) : categories.length === 0 ? (
         <p className="py-16 text-sm text-brand-navy/45">
-          No categories yet. Create one and it becomes available in the shop immediately.
+          No categories found.
         </p>
       ) : (
         <table className="w-full border-collapse text-left">
@@ -369,7 +245,6 @@ function CategoriesPage() {
                         ? "justify-end border-brand-navy bg-brand-navy"
                         : "justify-start border-brand-navy/25 bg-white"
                     }`}
-                    aria-label={c.is_active ? "Deactivate" : "Activate"}
                   >
                     <span
                       className={`m-0.5 h-3.5 w-3.5 ${
@@ -387,7 +262,6 @@ function CategoriesPage() {
                         setCreating(false);
                       }}
                       className="grid h-8 w-8 place-items-center text-brand-navy transition-colors hover:text-brand-orange"
-                      aria-label={`Edit ${c.name}`}
                     >
                       <Pencil className="h-3.5 w-3.5" />
                     </button>
@@ -395,7 +269,6 @@ function CategoriesPage() {
                       type="button"
                       onClick={() => setConfirmDelete(c)}
                       className="grid h-8 w-8 place-items-center text-brand-navy transition-colors hover:text-brand-orange"
-                      aria-label={`Delete ${c.name}`}
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>
@@ -410,7 +283,7 @@ function CategoriesPage() {
       {confirmDelete && (
         <ConfirmDialog
           title={`Delete ${confirmDelete.name}?`}
-          body="Products in this category will be left uncategorised, not deleted. This cannot be undone."
+          body="Products in this category will be left uncategorised. This action cannot be undone."
           confirmLabel="Delete category"
           isPending={deleteMutation.isPending}
           onCancel={() => setConfirmDelete(null)}
@@ -437,7 +310,6 @@ function CategoryForm({
   const [parentId, setParentId] = useState(category?.parent_id ?? "");
   const [sortOrder, setSortOrder] = useState(category?.sort_order ?? categories.length + 1);
   const [isActive, setIsActive] = useState(category?.is_active ?? true);
-
   const [slugTouched, setSlugTouched] = useState(Boolean(category));
 
   function handleNameChange(v: string) {
@@ -471,7 +343,6 @@ function CategoryForm({
           type="button"
           onClick={onCancel}
           className="grid h-8 w-8 place-items-center text-brand-navy/50 hover:text-brand-navy"
-          aria-label="Close"
         >
           <X className="h-4 w-4" />
         </button>
@@ -655,18 +526,29 @@ function IconPicker({
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
 
-  const groups = query.trim()
-    ? [
-        {
-          group: "Matches",
-          icons: ICON_OPTIONS.filter((n) =>
-            n.toLowerCase().includes(query.trim().toLowerCase())
-          ),
-        },
-      ]
-    : ICON_GROUPS;
+  // Memoize all valid Lucide icon names to avoid recalculating on every render
+  const availableIcons = useMemo(() => {
+    return Object.keys(LucideIcons).filter((key) => {
+      if (
+        key === "default" ||
+        key === "createLucideIcon" ||
+        key.endsWith("Icon") ||
+        key.startsWith("use")
+      ) {
+        return false;
+      }
+      return getLucideIcon(key) !== null;
+    }).sort();
+  }, []);
 
-  const Selected = value ? ICON_REGISTRY[value] : null;
+  const filteredIcons = useMemo(() => {
+    if (!query.trim()) return availableIcons.slice(0, 120); // Render first 120 for instant load
+    return availableIcons
+      .filter((name) => name.toLowerCase().includes(query.trim().toLowerCase()))
+      .slice(0, 120);
+  }, [availableIcons, query]);
+
+  const SelectedIcon = getLucideIcon(value);
 
   return (
     <div>
@@ -675,7 +557,7 @@ function IconPicker({
           Icon
         </label>
         <span className="text-[11px] text-brand-navy/45">
-          Shown on the shop and in the nav
+          Shown on the shop and in the nav ({availableIcons.length} available)
         </span>
       </div>
 
@@ -686,8 +568,8 @@ function IconPicker({
       >
         <span className="flex items-center gap-2.5">
           <span className="grid h-11 w-11 place-items-center border-2 border-brand-navy/15 bg-brand-surface">
-            {Selected ? (
-              <Selected className="h-6 w-6 text-brand-navy" strokeWidth={2.25} />
+            {SelectedIcon ? (
+              <SelectedIcon className="h-6 w-6 text-brand-navy" strokeWidth={2.25} />
             ) : (
               <span className="text-[10px] font-bold text-brand-navy/35">None</span>
             )}
@@ -708,7 +590,7 @@ function IconPicker({
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search icons"
+              placeholder="Search icons (e.g., KeyRound, Compass, Wrench)..."
               className={`${inputCls} pl-9`}
             />
           </div>
@@ -726,42 +608,32 @@ function IconPicker({
               No icon
             </button>
 
-            {groups.map((g) => {
-              if (g.icons.length === 0) return null;
-              return (
-                <div key={g.group} className="mb-4 last:mb-0">
-                  <div className="mb-2 text-[10px] font-black uppercase tracking-widest text-brand-navy/40">
-                    {g.group}
-                  </div>
-                  <div className="grid grid-cols-4 gap-2 sm:grid-cols-5">
-                    {g.icons.map((name) => {
-                      const Icon = ICON_REGISTRY[name];
-                      if (!Icon) return null;
-                      const active = value === name;
-                      return (
-                        <button
-                          key={name}
-                          type="button"
-                          title={name}
-                          onClick={() => { onChange(name); setOpen(false); }}
-                          className={`grid aspect-square place-items-center border-2 transition-all ${
-                            active
-                              ? "border-brand-navy bg-brand-navy text-white shadow-[2px_2px_0_0_var(--color-brand-orange)]"
-                              : "border-brand-navy/15 text-brand-navy hover:border-brand-navy hover:bg-brand-surface"
-                          }`}
-                        >
-                          <Icon className="h-6 w-6" strokeWidth={2.25} />
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })}
+            <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
+              {filteredIcons.map((name) => {
+                const IconComp = getLucideIcon(name);
+                if (!IconComp) return null;
+                const active = value === name;
+                return (
+                  <button
+                    key={name}
+                    type="button"
+                    title={name}
+                    onClick={() => { onChange(name); setOpen(false); }}
+                    className={`grid aspect-square place-items-center border-2 transition-all ${
+                      active
+                        ? "border-brand-navy bg-brand-navy text-white shadow-[2px_2px_0_0_var(--color-brand-orange)]"
+                        : "border-brand-navy/15 text-brand-navy hover:border-brand-navy hover:bg-brand-surface"
+                    }`}
+                  >
+                    <IconComp className="h-5 w-5" strokeWidth={2} />
+                  </button>
+                );
+              })}
+            </div>
 
-            {groups.every((g) => g.icons.length === 0) && (
+            {filteredIcons.length === 0 && (
               <p className="py-6 text-center text-xs text-brand-navy/45">
-                Nothing matches that search.
+                No matching icon found.
               </p>
             )}
           </div>
@@ -772,11 +644,11 @@ function IconPicker({
 }
 
 function CategoryGlyph({ name }: { name: string }) {
-  const Icon = ICON_REGISTRY[name];
+  const IconComp = getLucideIcon(name);
 
-  if (!Icon) {
+  if (!IconComp) {
     return <span className="text-[9px] font-bold text-brand-navy/30">?</span>;
   }
 
-  return <Icon className="h-5 w-5 text-brand-navy" strokeWidth={2.25} />;
+  return <IconComp className="h-5 w-5 text-brand-navy" strokeWidth={2.25} />;
 }

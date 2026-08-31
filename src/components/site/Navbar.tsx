@@ -53,54 +53,65 @@ export function Navbar() {
       onMouseLeave={close}
     >
       {/* min-w-0 lets the flex children actually shrink instead of overflowing */}
-      <div className="container-page flex h-20 min-w-0 items-center gap-2 px-4 sm:gap-3 sm:px-6 md:h-24 lg:gap-5 2xl:gap-8">
+      {/* lg:px is intentionally larger than sm:px and 2xl:px — at laptop widths
+          the container was using full available width with only a small side
+          inset, leaving a large unclaimed gap between the logo and the nav
+          group. Extra padding here insets both sides so they sit closer
+          together, without touching the (already fine) phone/desktop layout. */}
+      <div className="container-page flex h-20 min-w-0 items-center gap-2 px-4 sm:gap-3 sm:px-6 md:h-24 lg:px-16 2xl:px-6">
         {/* Logo renders its own link and caps its own height per breakpoint */}
         <Logo className="shrink" imgClassName="h-10 md:h-14" priority />
 
-        {/* Desktop nav. Was gated behind xl (1280px), which pushed real laptop
-            viewports (zoom, devtools, non-maximized windows) into the mobile
-            layout. lg (1024px) is a safer floor for "laptop" screens. */}
-        <nav className="hidden items-center gap-0 whitespace-nowrap text-[15px] font-bold tracking-[-0.01em] lg:flex 2xl:gap-0.5 2xl:text-[16.5px]">
-          <NavTrigger label="Shop" active={panel === "shop"} onEnter={() => setPanel("shop")} />
-          <NavTrigger label="Services" active={panel === "services"} onEnter={() => setPanel("services")} />
-          <NavTrigger label="Industries" active={panel === "industries"} onEnter={() => setPanel("industries")} />
-          <NavLink to="/bulk-orders" onEnter={close}>Bulk Orders</NavLink>
-          <NavLink to="/track-order" onEnter={close}>Track Order</NavLink>
-          <NavLink to="/about" onEnter={close}>About</NavLink>
-          <NavLink to="/contact" onEnter={close}>Contact</NavLink>
-        </nav>
+        {/* nav + icons travel together as one group so they stay a fixed
+            distance apart, instead of the icon cluster being pushed to the
+            container's far edge regardless of where the nav links end.
+            That mismatch was what caused the big empty gap on laptop widths. */}
+        <div className="ml-auto flex min-w-0 items-center gap-3 sm:gap-4 lg:gap-6 2xl:gap-10">
+          {/* Desktop nav. Was gated behind xl (1280px), which pushed real laptop
+              viewports (zoom, devtools, non-maximized windows) into the mobile
+              layout. lg (1024px) is a safer floor for "laptop" screens. */}
+          <nav className="hidden items-center gap-0 whitespace-nowrap text-[15px] font-bold tracking-[-0.01em] lg:flex 2xl:gap-0.5 2xl:text-[16.5px]">
+            <NavTrigger label="Shop" active={panel === "shop"} onEnter={() => setPanel("shop")} />
+            <NavTrigger label="Services" active={panel === "services"} onEnter={() => setPanel("services")} />
+            <NavTrigger label="Industries" active={panel === "industries"} onEnter={() => setPanel("industries")} />
+            <NavLink to="/bulk-orders" onEnter={close}>Bulk Orders</NavLink>
+            <NavLink to="/track-order" onEnter={close}>Track Order</NavLink>
+            <NavLink to="/about" onEnter={close}>About</NavLink>
+            <NavLink to="/contact" onEnter={close}>Contact</NavLink>
+          </nav>
 
-        <div className="ml-auto flex shrink-0 items-center gap-0.5 sm:gap-1.5 md:gap-2 lg:gap-1.5 2xl:gap-2.5">
-          <button
-            type="button"
-            onClick={() => setSearchOpen(true)}
-            aria-label="Search products"
-            className="inline-flex h-11 w-11 items-center justify-center rounded-sm text-brand-navy transition-colors hover:bg-brand-navy/6"
-          >
-            <Search className="h-5 w-5" />
-          </button>
-          <IconLink to="/cart" label="Cart">
-            <span className="relative">
-              <ShoppingCart className="h-5 w-5" />
-              {count > 0 && (
-                <span className="absolute -right-1.5 -top-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-brand-orange px-1 text-[10px] font-bold tabular-nums text-white">
-                  {count > 99 ? "99+" : count}
-                </span>
-              )}
-            </span>
-          </IconLink>
-          <IconLink to="/login" label="Login" className="hidden sm:inline-flex">
-            <User className="h-5 w-5" />
-          </IconLink>
-          <button
-            type="button"
-            className="inline-flex h-11 w-11 items-center justify-center rounded-sm text-brand-navy hover:bg-brand-navy/6 lg:hidden"
-            onClick={() => setMobileOpen(true)}
-            aria-label="Open menu"
-            aria-expanded={mobileOpen}
-          >
-            <Menu className="h-6 w-6" />
-          </button>
+          <div className="flex shrink-0 items-center gap-0.5 sm:gap-1.5 md:gap-2 lg:gap-1.5 2xl:gap-2.5">
+            <button
+              type="button"
+              onClick={() => setSearchOpen(true)}
+              aria-label="Search products"
+              className="inline-flex h-11 w-11 items-center justify-center rounded-sm text-brand-navy transition-colors hover:bg-brand-navy/6"
+            >
+              <Search className="h-5 w-5" />
+            </button>
+            <IconLink to="/cart" label="Cart">
+              <span className="relative">
+                <ShoppingCart className="h-5 w-5" />
+                {count > 0 && (
+                  <span className="absolute -right-1.5 -top-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-brand-orange px-1 text-[10px] font-bold tabular-nums text-white">
+                    {count > 99 ? "99+" : count}
+                  </span>
+                )}
+              </span>
+            </IconLink>
+            <IconLink to="/login" label="Login" className="hidden sm:inline-flex">
+              <User className="h-5 w-5" />
+            </IconLink>
+            <button
+              type="button"
+              className="inline-flex h-11 w-11 items-center justify-center rounded-sm text-brand-navy hover:bg-brand-navy/6 lg:hidden"
+              onClick={() => setMobileOpen(true)}
+              aria-label="Open menu"
+              aria-expanded={mobileOpen}
+            >
+              <Menu className="h-6 w-6" />
+            </button>
+          </div>
         </div>
       </div>
 

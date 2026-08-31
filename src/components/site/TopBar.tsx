@@ -72,7 +72,10 @@ const KSH = new Intl.NumberFormat("en-KE", {
 export function TopBar() {
   return (
     <div className="relative z-60 hidden border-b border-white/5 bg-brand-navy text-sm text-white md:block">
-      <div className="container-page flex h-12 items-center justify-between">
+      {/* px matches the Navbar's responsive inset (including the laptop-only
+          lg:px-16 bump) so this bar's left/right edges line up exactly with
+          the nav below it instead of appearing wider. */}
+      <div className="container-page flex h-12 items-center justify-between px-4 sm:px-6 lg:px-16 2xl:px-6">
         {/* Left: free-delivery + contact */}
         <div className="flex items-center gap-6">
           <span className="group inline-flex items-center gap-2 font-medium text-white">
