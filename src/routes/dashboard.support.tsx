@@ -250,7 +250,7 @@ function TicketThread({ ticketId, onBack }: { ticketId: string; onBack: () => vo
       const { error } = await supabase.from("ticket_replies").insert({
         ticket_id: ticketId,
         author_id: session?.user?.id ?? null,
-        author_name: profile?.full_name ?? "You",
+        author_name: profile?.full_name ?? session?.user?.email ?? "You",
         from_staff: false,
         is_internal: false,
         body: reply.trim(),
@@ -396,12 +396,19 @@ function NewTicketForm({
   onClose: () => void;
   onSaved: () => void;
 }) {
-  const { profile } = useAuth();
+  const { profile, session } = useAuth();
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
   const [orderId, setOrderId] = useState("");
+  const [name, setName] = useState(profile?.full_name ?? "");
+  const [email, setEmail] = useState(profile?.email ?? session?.user?.email ?? "");
   const [err, setErr] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
+
+  // Show editable fields only when the profile doesn't already have these,
+  // so a complete profile sees no extra UI.
+  const needsName = !profile?.full_name;
+  const needsEmail = !(profile?.email ?? session?.user?.email);
 
   const orders = useQuery({
     queryKey: ["my-orders", userId],
@@ -410,14 +417,22 @@ function NewTicketForm({
 
   const save = useMutation({
     mutationFn: async () => {
+      const finalName = (name || profile?.full_name || "").trim();
+      const finalEmail = (email || profile?.email || session?.user?.email || "").trim();
+
+      // These four columns are NOT NULL in the DB schema. Validate here so
+      // a missing/incomplete profile fails fast with a readable message
+      // instead of throwing a raw Postgres constraint violation.
+      if (!finalName) throw new Error("Please enter your name.");
+      if (!finalEmail) throw new Error("Please enter your email.");
       if (!subject.trim()) throw new Error("Give your ticket a subject.");
       if (!body.trim()) throw new Error("Tell us what you need help with.");
 
       const { error } = await supabase.from("support_tickets").insert({
         user_id: userId,
         order_id: orderId || null,
-        name: profile?.full_name ?? null,
-        email: profile?.email ?? null,
+        name: finalName,
+        email: finalEmail,
         phone: profile?.phone ?? null,
         subject: subject.trim(),
         body: body.trim(),
@@ -465,6 +480,46 @@ function NewTicketForm({
           </div>
         ) : (
           <div className="space-y-4 p-5">
+            {(needsName || needsEmail) && (
+              <div className="grid gap-3 sm:grid-cols-2">
+                {needsName && (
+                  <div>
+                    <label
+                      htmlFor="tk-name"
+                      className="mb-1.5 block text-[11px] font-bold uppercase tracking-wide text-brand-navy/60"
+                    >
+                      Your name
+                    </label>
+                    <input
+                      id="tk-name"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="Jane Doe"
+                      className="w-full rounded-md border border-brand-navy/20 bg-white px-3 py-2.5 text-sm text-brand-navy outline-none transition focus:border-brand-navy"
+                    />
+                  </div>
+                )}
+                {needsEmail && (
+                  <div>
+                    <label
+                      htmlFor="tk-email"
+                      className="mb-1.5 block text-[11px] font-bold uppercase tracking-wide text-brand-navy/60"
+                    >
+                      Your email
+                    </label>
+                    <input
+                      id="tk-email"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="jane@example.com"
+                      className="w-full rounded-md border border-brand-navy/20 bg-white px-3 py-2.5 text-sm text-brand-navy outline-none transition focus:border-brand-navy"
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+
             {(orders.data ?? []).length > 0 && (
               <div>
                 <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wide text-brand-navy/60">
