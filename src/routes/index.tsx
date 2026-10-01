@@ -166,6 +166,17 @@ function MotionStyles() {
 
       .pp-ticker-dot { animation: ppTicker 1.8s ease-in-out infinite; }
 
+      @keyframes ppWordIn {
+        from { opacity: 0; transform: translate3d(0, 0.45em, 0); }
+        to   { opacity: 1; transform: translate3d(0, 0, 0); }
+      }
+      @keyframes ppWordOut {
+        from { opacity: 1; transform: translate3d(0, 0, 0); }
+        to   { opacity: 0; transform: translate3d(0, -0.45em, 0); }
+      }
+      .pp-word-in  { animation: ppWordIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both; }
+      .pp-word-out { animation: ppWordOut 0.35s ease-in both; }
+
       .pp-underline {
         background-image: linear-gradient(var(--color-brand-orange), var(--color-brand-orange));
         background-repeat: no-repeat;
@@ -183,6 +194,8 @@ function MotionStyles() {
         .pp-sheen:hover::after { animation: none !important; }
         .pp-rise { opacity: 1 !important; }
         .pp-rise.pp-in { animation: none !important; }
+        .pp-word-in,
+        .pp-word-out { animation: none !important; }
       }
     `}</style>
   );
@@ -516,6 +529,59 @@ export function OfferingsFlip() {
 }
 
 /* ================================================================
+   Rotating headline word
+   ================================================================ */
+
+const ROTATING_WORDS = ["real", "iconic", "personal", "memorable", "bold"] as const;
+
+function RotatingWord({
+  words = ROTATING_WORDS,
+  interval = 2600,
+}: {
+  words?: readonly string[];
+  interval?: number;
+}) {
+  const [index, setIndex] = useState(0);
+  const [leaving, setLeaving] = useState(false);
+
+  useEffect(() => {
+    if (words.length < 2) return;
+
+    const reduced =
+      typeof window !== "undefined" &&
+      typeof window.matchMedia === "function" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduced) return;
+
+    let swap: number | undefined;
+    const id = window.setInterval(() => {
+      setLeaving(true);
+      swap = window.setTimeout(() => {
+        setIndex((i) => (i + 1) % words.length);
+        setLeaving(false);
+      }, 350);
+    }, interval);
+
+    return () => {
+      window.clearInterval(id);
+      if (swap !== undefined) window.clearTimeout(swap);
+    };
+  }, [words, interval]);
+
+  return (
+    <>
+      <span className="sr-only">{words[0]}</span>
+      <span
+        aria-hidden="true"
+        className={`inline-block text-brand-orange ${leaving ? "pp-word-out" : "pp-word-in"}`}
+      >
+        {words[index]}
+      </span>
+    </>
+  );
+}
+
+/* ================================================================
    Hero statement
    ================================================================ */
 
@@ -539,6 +605,7 @@ function Statement() {
     "home.hero_description",
     "We deliver branding, custom apparel, and corporate merchandise across East Africa with sharp finishes, clear timelines, and reliable execution."
   );
+  const rotating = /^([\s\S]*\bmade\s)real(\.?)\s*$/i.exec(heroTitle);
   const heroPrimary = getCmsString(blocks, "home.hero_cta_primary", "Browse products");
   const heroSecondary = getCmsString(blocks, "home.hero_cta_secondary", "Request a quote");
 
@@ -566,12 +633,20 @@ function Statement() {
           <div className="order-3 max-w-2xl xl:order-0 xl:col-start-1 xl:row-start-2">
             <Reveal delay={90}>
               <h1 className="mt-5 text-[2rem] font-extrabold leading-[1.1] tracking-tight text-brand-navy sm:mt-6 sm:text-5xl md:text-6xl lg:text-[4.25rem]">
-                {heroTitle.split("\n").map((line, index) => (
-                  <span key={index}>
-                    {line}
-                    {index < heroTitle.split("\n").length - 1 ? <br /> : null}
-                  </span>
-                ))}
+                {rotating ? (
+                  <>
+                    {rotating[1]}
+                    <RotatingWord />
+                    {rotating[2]}
+                  </>
+                ) : (
+                  heroTitle.split("\n").map((line, index) => (
+                    <span key={index}>
+                      {line}
+                      {index < heroTitle.split("\n").length - 1 ? <br /> : null}
+                    </span>
+                  ))
+                )}
               </h1>
             </Reveal>
 

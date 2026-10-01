@@ -387,7 +387,15 @@ function CartDrawer() {
    Product card (clean, Shopify-style)
    ================================================================ */
 
-function QuickAdd({ product, className = "" }: { product: LiveProduct; className?: string }) {
+function QuickAdd({
+  product,
+  className = "",
+  solid = false,
+}: {
+  product: LiveProduct;
+  className?: string;
+  solid?: boolean;
+}) {
   const quickAdd = useQuickAdd();
   const [added, setAdded] = useState(false);
 
@@ -408,15 +416,23 @@ function QuickAdd({ product, className = "" }: { product: LiveProduct; className
       type="button"
       onClick={handleClick}
       aria-label={`Add ${product.name} to cart`}
-      className={`inline-flex items-center justify-center gap-2 rounded-full px-4 py-2.5 text-xs font-semibold transition-colors ${
+      className={`inline-flex items-center justify-center gap-2 rounded-full text-xs font-semibold transition-colors ${
+        solid ? "px-3.5 py-2" : "px-4 py-2.5"
+      } ${
         added
           ? "bg-emerald-600 text-white"
-          : "bg-white text-brand-navy shadow-sm ring-1 ring-brand-navy/15 hover:bg-brand-navy hover:text-white"
+          : solid
+            ? "bg-brand-navy text-white hover:bg-brand-orange"
+            : "bg-white text-brand-navy shadow-sm ring-1 ring-brand-navy/15 hover:bg-brand-navy hover:text-white"
       } ${className}`}
     >
       {added ? (
         <>
           <Check className="h-4 w-4" /> Added
+        </>
+      ) : solid ? (
+        <>
+          <ShoppingCart className="h-4 w-4" /> Add
         </>
       ) : (
         <>
@@ -485,32 +501,35 @@ export function ProductCard({ p }: { p: LiveProduct }) {
         </Link>
 
         {badge ? (
-          <span className="pointer-events-none absolute left-3 top-3 rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold text-brand-navy shadow-sm">
+          <span className="pointer-events-none absolute left-3 top-3 rounded-full bg-brand-orange px-2.5 py-1 text-[11px] font-bold text-white shadow-sm">
             {badge}
           </span>
         ) : null}
 
-        <div className="absolute inset-x-3 bottom-3 transition-all duration-300 md:translate-y-2 md:opacity-0 md:group-focus-within:translate-y-0 md:group-focus-within:opacity-100 md:group-hover:translate-y-0 md:group-hover:opacity-100">
+        <div className="absolute inset-x-3 bottom-3 hidden transition-all duration-300 md:block md:translate-y-2 md:opacity-0 md:group-focus-within:translate-y-0 md:group-focus-within:opacity-100 md:group-hover:translate-y-0 md:group-hover:opacity-100">
           <QuickAdd product={p} className="w-full" />
         </div>
       </div>
 
-      <div className="mt-3 px-0.5">
-        <Link
-          to="/shop/$slug"
-          params={{ slug: p.slug }}
-          className="line-clamp-2 text-sm font-semibold leading-snug text-brand-navy transition-colors hover:text-brand-orange"
-        >
-          {p.name}
-        </Link>
-        <p className="mt-1 flex items-baseline gap-2 text-sm">
-          <span className="font-bold tabular-nums text-brand-navy">{kes(p.price)}</span>
-          {p.compareAt && p.compareAt > p.price ? (
-            <span className="text-xs tabular-nums text-brand-navy/40 line-through">
-              {kes(p.compareAt)}
-            </span>
-          ) : null}
-        </p>
+      <div className="mt-3 flex items-start justify-between gap-3 px-0.5">
+        <div className="min-w-0">
+          <Link
+            to="/shop/$slug"
+            params={{ slug: p.slug }}
+            className="line-clamp-2 text-sm font-semibold leading-snug text-brand-navy transition-colors hover:text-brand-orange"
+          >
+            {p.name}
+          </Link>
+          <p className="mt-1 flex items-baseline gap-2 text-sm">
+            <span className="font-bold tabular-nums text-brand-navy">{kes(p.price)}</span>
+            {p.compareAt && p.compareAt > p.price ? (
+              <span className="text-xs tabular-nums text-brand-navy/40 line-through">
+                {kes(p.compareAt)}
+              </span>
+            ) : null}
+          </p>
+        </div>
+        <QuickAdd product={p} solid className="shrink-0 md:hidden" />
       </div>
     </article>
   );
@@ -533,7 +552,7 @@ function ProductCardMini({ p }: { p: LiveProduct }) {
           className="h-full w-full object-contain p-2 transition-transform duration-500 group-hover:scale-[1.04]"
         />
         {p.tag ? (
-          <span className="absolute left-2 top-2 rounded-full bg-white px-2 py-0.5 text-[10px] font-semibold text-brand-navy shadow-sm">
+          <span className="absolute left-2 top-2 rounded-full bg-brand-orange px-2 py-0.5 text-[10px] font-bold text-white shadow-sm">
             {p.tag}
           </span>
         ) : null}
@@ -567,7 +586,7 @@ function ProductSkeleton() {
   );
 }
 
-const GRID = "grid grid-cols-2 gap-x-4 gap-y-6 sm:gap-x-5 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5";
+const GRID = "grid grid-cols-1 gap-x-4 gap-y-8 sm:grid-cols-2 sm:gap-x-5 sm:gap-y-6 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5";
 
 function ProductGrid({ products }: { products: LiveProduct[] }) {
   return (
