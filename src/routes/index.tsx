@@ -1,7 +1,15 @@
-import { useState, useEffect, useMemo, useRef, useDeferredValue, createContext, useContext } from "react";
+import { useState, useEffect, useRef } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { SiteLayout } from "@/components/site/SiteLayout";
 import { Preloader, shouldSplash } from "@/components/site/Preloader";
+import {
+  CartDrawerProvider,
+  ProductsRail,
+  Showcase,
+  FeaturedProducts,
+  Bestsellers,
+  useNewestProducts,
+} from "@/components/site/storefront";
 import { useCmsBlocks, getCmsString } from "@/lib/cms";
 import {
   ArrowRight,
@@ -27,297 +35,17 @@ import {
   Truck,
   PackageCheck,
   ClipboardList,
-  Loader2,
-  ChevronUp,
-  ChevronDown,
   Printer,
   Presentation,
   Palette,
   Package,
   Gift,
   Shirt,
-  ShoppingCart,
-  Check,
-  X,
-  Plus,
-  Minus,
-  ShoppingBag,
 } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/lib/supabase";
 
 export const Route = createFileRoute("/")({
   component: Index,
 });
-
-/* ================================================================
-   Cart State Management & Drawer Context (Shopify Style)
-   ================================================================ */
-
-export type CartItem = {
-  product: LiveProduct;
-  quantity: number;
-};
-
-type CartContextType = {
-  items: CartItem[];
-  addItem: (product: LiveProduct, quantity?: number) => void;
-  removeItem: (productId: string) => void;
-  updateQuantity: (productId: string, quantity: number) => void;
-  isOpen: boolean;
-  openCart: () => void;
-  closeCart: () => void;
-  totalItems: number;
-  subtotal: number;
-};
-
-const CartContext = createContext<CartContextType | undefined>(undefined);
-
-export function CartProvider({ children }: { children: React.ReactNode }) {
-  const [items, setItems] = useState<CartItem[]>(() => {
-    if (typeof window === "undefined") return [];
-    try {
-      const saved = localStorage.getItem("app_cart");
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
-
-  const [isOpen, setIsOpen] = useState(false);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem("app_cart", JSON.stringify(items));
-    } catch {
-      // Storage failure silent handling
-    }
-  }, [items]);
-
-  const addItem = (product: LiveProduct, quantity = 1) => {
-    setItems((prev) => {
-      const existingIndex = prev.findIndex((item) => item.product.id === product.id);
-      if (existingIndex > -1) {
-        const next = [...prev];
-        next[existingIndex] = {
-          ...next[existingIndex],
-          quantity: next[existingIndex].quantity + quantity,
-        };
-        return next;
-      }
-      return [...prev, { product, quantity: Math.max(quantity, product.moq || 1) }];
-    });
-    setIsOpen(true);
-  };
-
-  const removeItem = (productId: string) => {
-    setItems((prev) => prev.filter((item) => item.product.id !== productId));
-  };
-
-  const updateQuantity = (productId: string, quantity: number) => {
-    if (quantity <= 0) {
-      removeItem(productId);
-      return;
-    }
-    setItems((prev) =>
-      prev.map((item) =>
-        item.product.id === productId ? { ...item, quantity } : item
-      )
-    );
-  };
-
-  const openCart = () => setIsOpen(true);
-  const closeCart = () => setIsOpen(false);
-
-  const totalItems = useMemo(
-    () => items.reduce((sum, item) => sum + item.quantity, 0),
-    [items]
-  );
-
-  const subtotal = useMemo(
-    () => items.reduce((sum, item) => sum + item.product.price * item.quantity, 0),
-    [items]
-  );
-
-  return (
-    <CartContext.Provider
-      value={{
-        items,
-        addItem,
-        removeItem,
-        updateQuantity,
-        isOpen,
-        openCart,
-        closeCart,
-        totalItems,
-        subtotal,
-      }}
-    >
-      {children}
-      <CartDrawer />
-    </CartContext.Provider>
-  );
-}
-
-export function useCart() {
-  const context = useContext(CartContext);
-  if (!context) {
-    throw new Error("useCart must be used within a CartProvider");
-  }
-  return context;
-}
-
-/* ================================================================
-   Shopify-Style Slide-over Cart Drawer Component
-   ================================================================ */
-
-function CartDrawer() {
-  const { items, isOpen, closeCart, removeItem, updateQuantity, subtotal, totalItems } = useCart();
-
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [isOpen]);
-
-  if (!isOpen) return null;
-
-  return (
-    <div className="relative z-50">
-      <div
-        className="fixed inset-0 bg-brand-navy/60 backdrop-blur-xs transition-opacity"
-        onClick={closeCart}
-      />
-
-      <div className="fixed inset-y-0 right-0 flex max-w-full pl-10">
-        <div className="w-screen max-w-md border-l border-brand-navy/15 bg-white shadow-2xl flex flex-col">
-          <div className="flex items-center justify-between border-b border-brand-navy/10 px-6 py-5">
-            <div className="flex items-center gap-2">
-              <ShoppingBag className="h-5 w-5 text-brand-orange" />
-              <h2 className="text-lg font-extrabold text-brand-navy">Your Cart</h2>
-              <span className="rounded-full bg-brand-surface px-2.5 py-0.5 text-xs font-bold text-brand-navy">
-                {totalItems}
-              </span>
-            </div>
-            <button
-              type="button"
-              onClick={closeCart}
-              className="rounded-lg p-2 text-brand-navy/60 hover:bg-brand-surface hover:text-brand-navy"
-            >
-              <X className="h-5 w-5" />
-            </button>
-          </div>
-
-          <div className="flex-1 overflow-y-auto px-6 py-4">
-            {items.length === 0 ? (
-              <div className="flex h-full flex-col items-center justify-center text-center">
-                <ShoppingBag className="h-16 w-16 stroke-1 text-brand-navy/20" />
-                <p className="mt-4 text-base font-bold text-brand-navy">Your cart is empty</p>
-                <p className="mt-1 text-xs text-brand-navy/60">
-                  Add items to your cart to see them listed here.
-                </p>
-                <button
-                  type="button"
-                  onClick={closeCart}
-                  className="mt-6 border border-brand-navy bg-brand-navy px-6 py-3 text-xs font-bold uppercase tracking-wider text-white transition-colors hover:bg-brand-orange hover:border-brand-orange"
-                >
-                  Continue Shopping
-                </button>
-              </div>
-            ) : (
-              <div className="divide-y divide-brand-navy/10">
-                {items.map(({ product, quantity }) => (
-                  <div key={product.id} className="flex gap-4 py-4">
-                    <div className="h-20 w-20 shrink-0 overflow-hidden rounded-xl border border-brand-navy/10 bg-brand-surface p-1">
-                      <img
-                        src={product.image}
-                        alt={product.name}
-                        className="h-full w-full object-contain"
-                      />
-                    </div>
-
-                    <div className="flex flex-1 flex-col justify-between">
-                      <div>
-                        <div className="flex justify-between text-sm font-bold text-brand-navy">
-                          <h3 className="line-clamp-1">{product.name}</h3>
-                          <p className="ml-2 tabular-nums">{KSH.format(product.price * quantity)}</p>
-                        </div>
-                        <p className="mt-0.5 text-[11px] text-brand-navy/50">{product.category}</p>
-                      </div>
-
-                      <div className="flex items-center justify-between text-xs">
-                        <div className="flex items-center rounded-lg border border-brand-navy/15 bg-white">
-                          <button
-                            type="button"
-                            onClick={() => updateQuantity(product.id, quantity - 1)}
-                            className="p-1.5 text-brand-navy hover:text-brand-orange"
-                          >
-                            <Minus className="h-3 w-3" />
-                          </button>
-                          <span className="w-8 text-center font-bold tabular-nums text-brand-navy">
-                            {quantity}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => updateQuantity(product.id, quantity + 1)}
-                            className="p-1.5 text-brand-navy hover:text-brand-orange"
-                          >
-                            <Plus className="h-3 w-3" />
-                          </button>
-                        </div>
-
-                        <button
-                          type="button"
-                          onClick={() => removeItem(product.id)}
-                          className="font-bold text-red-600 hover:underline text-[11px]"
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {items.length > 0 && (
-            <div className="border-t border-brand-navy/10 bg-brand-surface p-6">
-              <div className="flex justify-between text-base font-extrabold text-brand-navy">
-                <p>Subtotal</p>
-                <p className="tabular-nums">{KSH.format(subtotal)}</p>
-              </div>
-              <p className="mt-1 text-xs text-brand-navy/60">
-                Taxes, artwork setup, and shipping calculated at checkout.
-              </p>
-              <div className="mt-6 space-y-2">
-                <Link
-                  to="/checkout"
-                  onClick={closeCart}
-                  className="flex w-full items-center justify-center bg-brand-navy py-4 text-xs font-bold uppercase tracking-wider text-white transition-all hover:bg-brand-orange"
-                >
-                  Checkout
-                </Link>
-                <button
-                  type="button"
-                  onClick={closeCart}
-                  className="w-full text-center text-xs font-bold uppercase tracking-wider text-brand-navy/70 hover:underline py-2"
-                >
-                  Continue Shopping
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
 
 /* ================================================================
    Main Application Entry Point
@@ -326,10 +54,10 @@ function CartDrawer() {
 function Index() {
   const [ready, setReady] = useState(() => !shouldSplash());
 
-  useNewestProducts(48);
+  useNewestProducts(120);
 
   return (
-    <CartProvider>
+    <CartDrawerProvider>
       <Preloader onDone={() => setReady(true)} />
 
       {ready ? (
@@ -348,7 +76,7 @@ function Index() {
           <Close />
         </SiteLayout>
       ) : null}
-    </CartProvider>
+    </CartDrawerProvider>
   );
 }
 
@@ -359,98 +87,6 @@ function Index() {
 const LOGOS = ["monawanka.png", "protocol.png", "kazilab.png", "safaricom.png", "Samsung.png"];
 
 const HERO_STATS: { value: string; label: string }[] = [];
-
-const KSH = new Intl.NumberFormat("en-KE", {
-  style: "currency",
-  currency: "KES",
-  maximumFractionDigits: 0,
-});
-
-function placeholder(seed: string) {
-  return `https://picsum.photos/seed/${encodeURIComponent(seed)}/800/900`;
-}
-
-/* ================================================================
-   Live products
-   ================================================================ */
-
-export type LiveProduct = {
-  id: string;
-  name: string;
-  slug: string;
-  category: string;
-  categorySlug: string | null;
-  price: number;
-  compareAt?: number;
-  moq: number;
-  lead: string;
-  tag?: "Bestseller" | "New" | "Fast track";
-  image: string;
-};
-
-function firstImage(images: unknown, seedName: string): string {
-  if (Array.isArray(images) && images.length > 0 && typeof images[0] === "string" && images[0]) {
-    return images[0];
-  }
-  return placeholder(seedName);
-}
-
-async function fetchNewestProducts(limit: number): Promise<LiveProduct[]> {
-  const { data: products, error } = await supabase
-    .from("products")
-    .select("id, name, slug, price, compare_at_price, moq, lead_time, badge, is_featured, images, category_id")
-    .eq("is_active", true)
-    .order("created_at", { ascending: false })
-    .limit(limit);
-
-  if (error) throw error;
-  const rows = products ?? [];
-
-  const categoryIds = Array.from(new Set(rows.map((p: any) => p.category_id).filter(Boolean)));
-  const catMap = new Map<string, { name: string; slug: string }>();
-  if (categoryIds.length > 0) {
-    const { data: cats } = await supabase
-      .from("categories")
-      .select("id, name, slug")
-      .in("id", categoryIds);
-    for (const c of cats ?? []) catMap.set(c.id, { name: c.name, slug: c.slug });
-  }
-
-  return rows.map((p: any) => {
-    const badge = (p.badge ?? "").toLowerCase();
-    const tag: LiveProduct["tag"] | undefined =
-      badge.includes("best") ? "Bestseller"
-      : badge.includes("new") ? "New"
-      : badge.includes("fast") || badge.includes("track") ? "Fast track"
-      : p.is_featured ? "Bestseller"
-      : undefined;
-
-    const cat = p.category_id ? catMap.get(p.category_id) : undefined;
-
-    return {
-      id: p.id,
-      name: p.name,
-      slug: p.slug,
-      category: cat?.name ?? "Products",
-      categorySlug: cat?.slug ?? null,
-      price: Number(p.price),
-      compareAt: p.compare_at_price != null ? Number(p.compare_at_price) : undefined,
-      moq: p.moq ?? 1,
-      lead: p.lead_time || "3 to 5 days",
-      tag,
-      image: firstImage(p.images, p.slug ?? p.name),
-    };
-  });
-}
-
-function useNewestProducts(limit: number) {
-  return useQuery({
-    queryKey: ["home", "newest-products", limit],
-    queryFn: () => fetchNewestProducts(limit),
-    staleTime: 10 * 60 * 1000,
-    gcTime: 30 * 60 * 1000,
-  });
-}
 
 /* ================================================================
    Global animation layer
@@ -738,6 +374,10 @@ function LogoMarquee() {
   );
 }
 
+/* ================================================================
+   Offerings flip card
+   ================================================================ */
+
 const OFFERINGS = [
   {
     icon: Printer,
@@ -875,170 +515,9 @@ export function OfferingsFlip() {
   );
 }
 
-function ProductCardMini({ p }: { p: LiveProduct }) {
-  const { addItem } = useCart();
-  const [added, setAdded] = useState(false);
-
-  const handleAddToCart = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    addItem(p);
-    setAdded(true);
-    setTimeout(() => setAdded(false), 2000);
-  };
-
-  return (
-    <Link
-      to="/shop/$slug"
-      params={{ slug: p.slug }}
-      className="group block overflow-hidden rounded-[24px] border border-brand-navy/10 bg-white p-2.5 transition-colors hover:bg-brand-surface"
-    >
-      <div className="relative aspect-4/5 overflow-hidden rounded-[18px] bg-brand-surface p-2">
-        <img
-          src={p.image}
-          alt={p.name}
-          loading="lazy"
-          decoding="async"
-          className="h-full w-full rounded-[14px] object-contain transition-transform duration-500 group-hover:scale-105"
-        />
-        {p.tag ? (
-          <span className="absolute left-3 top-3 bg-brand-orange px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white">
-            {p.tag}
-          </span>
-        ) : null}
-      </div>
-      <div className="mt-2.5 min-w-0">
-        <p className="line-clamp-1 text-[13px] font-bold text-brand-navy">{p.name}</p>
-        <div className="mt-1 flex items-center justify-between gap-1">
-          <p className="text-[12px] font-bold text-brand-orange">{KSH.format(p.price)}</p>
-          <button
-            type="button"
-            onClick={handleAddToCart}
-            aria-label={`Add ${p.name} to cart`}
-            className={`flex h-7 w-7 items-center justify-center rounded-lg transition-all active:scale-95 ${
-              added
-                ? "bg-emerald-600 text-white"
-                : "bg-brand-navy text-white hover:bg-brand-orange"
-            }`}
-          >
-            {added ? <Check className="h-3.5 w-3.5" /> : <ShoppingCart className="h-3.5 w-3.5" />}
-          </button>
-        </div>
-      </div>
-    </Link>
-  );
-}
-
-function nudgeProductRail(el: HTMLDivElement | null, delta: number) {
-  if (!el) return;
-
-  const maxScroll = Math.max(el.scrollHeight - el.clientHeight, 0);
-  const next = Math.min(Math.max(el.scrollTop + delta, 0), maxScroll);
-
-  el.scrollTo({ top: next, behavior: "smooth" });
-}
-
-function ProductsRail() {
-  const { data, isLoading } = useNewestProducts(70);
-  const trackRef = useRef<HTMLDivElement>(null);
-  const pausedUntilRef = useRef(0);
-
-  const products = data ?? [];
-  const ready = products.length > 0;
-  const items = ready ? [...products, ...products] : [];
-
-  useEffect(() => {
-    const el = trackRef.current;
-    if (!el || !ready) return;
-
-    const half = el.scrollHeight / 2;
-    el.scrollTop = half;
-
-    const targetDuration = 160;
-    const speed = Math.max(12, half / targetDuration);
-
-    let raf = 0;
-    let last = performance.now();
-
-    const tick = (now: number) => {
-      const dt = (now - last) / 1000;
-      last = now;
-
-      if (half > 0 && now >= pausedUntilRef.current) {
-        el.scrollTop += speed * dt;
-        if (el.scrollTop >= half) {
-          el.scrollTop -= half;
-        }
-      }
-
-      raf = requestAnimationFrame(tick);
-    };
-
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [ready]);
-
-  function pauseAutoScroll(ms = 1800) {
-    pausedUntilRef.current = performance.now() + ms;
-  }
-
-  function handleNudge(delta: number) {
-    pauseAutoScroll();
-    nudgeProductRail(trackRef.current, delta);
-  }
-
-  return (
-    <div
-      className="relative overflow-hidden bg-white"
-      onWheel={(event) => {
-        event.preventDefault();
-        handleNudge(event.deltaY > 0 ? 160 : -160);
-      }}
-    >
-      <button
-        type="button"
-        onClick={() => handleNudge(-160)}
-        aria-label="Scroll products up"
-        className="absolute left-1/2 top-3 z-20 flex h-8 w-8 -translate-x-1/2 items-center justify-center rounded-full border border-brand-navy/15 bg-white text-brand-navy shadow-sm transition-all duration-200 hover:scale-110 hover:border-brand-orange hover:text-brand-orange hover:shadow-md active:scale-95"
-      >
-        <ChevronUp className="h-4 w-4" />
-      </button>
-
-      <button
-        type="button"
-        onClick={() => handleNudge(160)}
-        aria-label="Scroll products down"
-        className="absolute bottom-3 left-1/2 z-20 flex h-8 w-8 -translate-x-1/2 items-center justify-center rounded-full border border-brand-navy/15 bg-white text-brand-navy shadow-sm transition-all duration-200 hover:scale-110 hover:border-brand-orange hover:text-brand-orange hover:shadow-md active:scale-95"
-      >
-        <ChevronDown className="h-4 w-4" />
-      </button>
-
-      <div
-        ref={trackRef}
-        className="h-130 overflow-y-hidden sm:h-140 lg:h-155"
-        style={{ scrollBehavior: "auto" }}
-      >
-        {isLoading && !ready ? (
-          <div className="grid grid-cols-2 gap-3 p-3">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="h-24 animate-pulse bg-brand-surface" />
-            ))}
-          </div>
-        ) : !ready ? (
-          <p className="p-5 text-sm font-semibold text-brand-navy/60">
-            No products published yet.
-          </p>
-        ) : (
-          <div className="grid grid-cols-2 gap-3 p-3">
-            {items.map((p, i) => (
-              <ProductCardMini key={`${p.id}-${i}`} p={p} />
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
+/* ================================================================
+   Hero statement
+   ================================================================ */
 
 function Statement() {
   const { data: blocks } = useCmsBlocks([
@@ -1067,8 +546,8 @@ function Statement() {
     <section className="relative overflow-hidden border-b border-brand-navy bg-white">
       <DotField className="pp-mask-fade opacity-70" />
 
-      <div className="container-page relative px-5 py-8 sm:px-6 sm:py-10 md:py-14">
-        <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_minmax(360px,0.9fr)] xl:items-start xl:pt-1">
+      <div className="mx-auto w-full max-w-360 lg:px-10 relative px-5 py-8 sm:px-6 sm:py-10 md:py-14">
+        <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_minmax(360px,0.9fr)] xl:gap-x-14 xl:items-start xl:pt-1">
           <div className="order-1 max-w-2xl xl:order-0 xl:col-start-1 xl:row-start-1">
             <Reveal>
               <p className="inline-flex items-center gap-2 border border-brand-navy/15 bg-white/70 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.25em] text-brand-orange backdrop-blur-sm">
@@ -1150,452 +629,6 @@ function Statement() {
 }
 
 /* ================================================================
-   Showcase
-   ================================================================ */
-
-function Showcase() {
-  const { data, isLoading, isError } = useNewestProducts(120);
-  const deferredProducts = useDeferredValue(data ?? []);
-
-  const { data: blocks } = useCmsBlocks([
-    "home.section_catalogue_eyebrow",
-    "home.section_catalogue_title",
-  ]);
-
-  const catalogueEyebrow = getCmsString(blocks, "home.section_catalogue_eyebrow", "In the catalogue");
-  const catalogueTitle = getCmsString(blocks, "home.section_catalogue_title", "Products we have");
-
-  const groups = useMemo(() => {
-    const map = new Map<string, { name: string; slug: string | null; items: LiveProduct[] }>();
-    for (const p of deferredProducts) {
-      const key = p.category || "Products";
-      if (!map.has(key)) {
-        map.set(key, { name: key, slug: p.categorySlug, items: [] });
-      }
-      map.get(key)!.items.push(p);
-    }
-    return Array.from(map.values());
-  }, [deferredProducts]);
-
-  return (
-    <section className="relative overflow-hidden border-b border-brand-navy bg-white">
-      <DotField className="pp-mask-fade-center opacity-25" />
-
-      <div className="container-page relative px-5 py-14 sm:px-6 sm:py-16 md:py-24">
-        <Reveal>
-          <SectionHeading
-            eyebrow={catalogueEyebrow}
-            title={catalogueTitle}
-            action={
-              <Link
-                to="/shop"
-                className="group inline-flex items-center gap-1.5 text-sm font-bold text-brand-navy transition-colors hover:text-brand-orange"
-              >
-                <span className="pp-underline">{catalogueTitle}</span>
-                <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
-              </Link>
-            }
-          />
-        </Reveal>
-
-        {isLoading && deferredProducts.length === 0 ? (
-          <div className="mt-8 grid grid-cols-1 gap-4 sm:mt-10 sm:grid-cols-2 sm:gap-6 lg:grid-cols-4">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <ProductSkeleton key={i} />
-            ))}
-          </div>
-        ) : isError ? (
-          <div className="mt-10 flex items-center gap-3 border border-brand-navy/15 bg-white p-5">
-            <Loader2 className="h-4 w-4 text-brand-orange" />
-            <p className="text-sm font-semibold text-brand-navy/70">
-              Products could not be loaded right now. Please refresh the page.
-            </p>
-          </div>
-        ) : deferredProducts.length === 0 ? (
-          <p className="mt-10 text-sm font-semibold text-brand-navy/60">
-            No products published yet.
-          </p>
-        ) : (
-          <div className="mt-10 space-y-14 sm:space-y-16">
-            {groups.map((group, gi) => (
-              <div key={group.name}>
-                <div className="flex flex-wrap items-end justify-between gap-3 border-b border-brand-navy/12 pb-3">
-                  <h3 className="text-lg font-extrabold tracking-tight text-brand-navy sm:text-xl">
-                    {group.name}
-                  </h3>
-                  {group.slug ? (
-                    <Link
-                      to="/shop"
-                      search={{ category: group.slug }}
-                      className="group inline-flex items-center gap-1.5 text-[13px] font-bold text-brand-navy/60 transition-colors hover:text-brand-orange"
-                    >
-                      <span className="pp-underline">Shop {group.name}</span>
-                      <ArrowRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-1" />
-                    </Link>
-                  ) : null}
-                </div>
-
-                <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-4">
-                  {group.items.map((p, i) => (
-                    <Reveal key={p.id} delay={gi * 40 + i * 50}>
-                      <ProductCard p={p} />
-                    </Reveal>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </section>
-  );
-}
-
-/* ================================================================
-   Featured products & Components
-   ================================================================ */
-
-function ProductTag({ label }: { label: "Bestseller" | "New" | "Fast track" }) {
-  const tone =
-    label === "Bestseller"
-      ? "bg-brand-orange text-white"
-      : label === "New"
-        ? "bg-brand-navy text-white"
-        : "border border-brand-navy bg-white text-brand-navy";
-  return (
-    <span
-      className={`absolute left-3 top-3 z-10 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest shadow-sm ${tone}`}
-    >
-      {label}
-    </span>
-  );
-}
-
-function ProductCard({ p }: { p: LiveProduct }) {
-  const { addItem } = useCart();
-  const [added, setAdded] = useState(false);
-
-  const discount =
-    p.compareAt && p.compareAt > p.price
-      ? Math.round(((p.compareAt - p.price) / p.compareAt) * 100)
-      : null;
-
-  const handleAddToCart = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    addItem(p);
-    setAdded(true);
-    setTimeout(() => setAdded(false), 2000);
-  };
-
-  return (
-    <div className="group relative flex flex-col overflow-hidden rounded-[22px] border border-brand-navy/15 bg-white p-3 transition-all duration-300 ease-out hover:-translate-y-1.5 hover:border-brand-navy hover:shadow-[8px_8px_0_0_var(--color-brand-navy)]">
-      <Link
-        to="/shop/$slug"
-        params={{ slug: p.slug }}
-        className="pp-sheen relative block overflow-hidden rounded-3xl-brand-surface p-3"
-      >
-        {p.tag ? <ProductTag label={p.tag} /> : null}
-        {discount !== null ? (
-          <span className="absolute right-3 top-3 z-10 bg-brand-navy px-2.5 py-1.5 text-[10px] font-bold tabular-nums text-white">
-            -{discount}%
-          </span>
-        ) : null}
-        <img
-          src={p.image}
-          alt={p.name}
-          width={800}
-          height={800}
-          loading="lazy"
-          decoding="async"
-          className="h-full w-full rounded-2xl object-contain transition-transform duration-500 ease-out group-hover:scale-105"
-          style={{ aspectRatio: "4 / 5" }}
-        />
-        <span className="pointer-events-none absolute inset-x-0 bottom-0 translate-y-full bg-brand-navy py-2.5 text-center text-[11px] font-bold uppercase tracking-widest text-white transition-transform duration-300 ease-out group-hover:translate-y-0">
-          View product
-        </span>
-      </Link>
-
-      <div className="flex flex-1 flex-col pt-3 px-1.5 pb-1">
-        <div className="text-[10px] font-bold uppercase tracking-widest text-brand-navy/45">
-          {p.category}
-        </div>
-        <Link
-          to="/shop/$slug"
-          params={{ slug: p.slug }}
-          className="mt-1.5 text-base font-extrabold leading-snug text-brand-navy transition-colors hover:text-brand-orange sm:text-base"
-        >
-          {p.name}
-        </Link>
-
-        <div className="mt-3 flex items-baseline gap-2 sm:mt-4">
-          <span className="text-lg font-extrabold tabular-nums text-brand-navy sm:text-lg">
-            {KSH.format(p.price)}
-          </span>
-          {p.compareAt ? (
-            <span className="text-sm tabular-nums text-brand-navy/40 line-through">
-              {KSH.format(p.compareAt)}
-            </span>
-          ) : null}
-        </div>
-
-        <button
-          type="button"
-          onClick={handleAddToCart}
-          className={`mt-4 inline-flex w-full items-center justify-center gap-2 px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-white transition-all duration-200 active:scale-98 ${
-            added
-              ? "bg-emerald-600"
-              : "bg-brand-navy hover:bg-brand-orange"
-          }`}
-        >
-          {added ? (
-            <>
-              <Check className="h-4 w-4" />
-              Added to Cart
-            </>
-          ) : (
-            <>
-              <ShoppingCart className="h-4 w-4" />
-              Add To Cart
-            </>
-          )}
-        </button>
-
-        <div className="mt-4 flex items-center justify-between border-t border-brand-navy/10 pt-3 text-[11px] font-semibold text-brand-navy/60">
-          <span className="tabular-nums">MOQ {p.moq}</span>
-          <span className="tabular-nums">{p.lead}</span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function ProductSkeleton() {
-  return (
-    <div className="animate-pulse rounded-[22px] border border-brand-navy/12 bg-white p-3">
-      <div className="aspect-4/5 w-full rounded-3xl bg-brand-navy/8" />
-      <div className="space-y-3 p-3">
-        <div className="h-2 w-1/3 bg-brand-navy/10" />
-        <div className="h-4 w-4/5 bg-brand-navy/12" />
-        <div className="h-5 w-1/2 bg-brand-navy/10" />
-      </div>
-    </div>
-  );
-}
-
-function FeaturedProducts() {
-  const { data, isLoading, isError } = useNewestProducts(8);
-  const products = data ?? [];
-
-  return (
-    <section className="relative overflow-hidden border-b border-brand-navy bg-brand-surface">
-      <DotField className="pp-mask-fade-center opacity-20" />
-
-      <div className="container-page relative px-5 py-14 sm:px-6 sm:py-16 md:py-24">
-        <Reveal>
-          <SectionHeading
-            eyebrow="Off the shelf"
-            title="Ready to brand today"
-            action={
-              <Link
-                to="/shop"
-                className="group inline-flex items-center gap-1.5 text-sm font-bold text-brand-navy transition-colors hover:text-brand-orange"
-              >
-                <span className="pp-underline">See all products</span>
-                <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
-              </Link>
-            }
-          />
-        </Reveal>
-
-        <Reveal delay={80}>
-          <p className="mt-5 max-w-2xl text-[15px] leading-relaxed text-brand-navy/70 sm:mt-6 sm:text-base">
-            Stocked lines we hold in the Nairobi warehouse. Prices are per unit at the stated
-            minimum order quantity, before artwork setup. Volume brackets drop the unit price
-            further.
-          </p>
-        </Reveal>
-
-        {isLoading ? (
-          <div className="mt-8 grid grid-cols-1 gap-4 sm:mt-10 sm:grid-cols-2 sm:gap-6 lg:grid-cols-4">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <ProductSkeleton key={i} />
-            ))}
-          </div>
-        ) : isError ? (
-          <div className="mt-10 flex items-center gap-3 border border-brand-navy/15 bg-white p-5">
-            <Loader2 className="h-4 w-4 text-brand-orange" />
-            <p className="text-sm font-semibold text-brand-navy/70">
-              Products could not be loaded right now. Please refresh the page.
-            </p>
-          </div>
-        ) : products.length === 0 ? (
-          <p className="mt-10 text-sm font-semibold text-brand-navy/60">
-            No products published yet.
-          </p>
-        ) : (
-          <div className="mt-8 grid grid-cols-1 gap-4 sm:mt-10 sm:grid-cols-2 sm:gap-6 lg:grid-cols-4">
-            {products.map((p, i) => (
-              <Reveal key={p.id} delay={i * 50}>
-                <ProductCard p={p} />
-              </Reveal>
-            ))}
-          </div>
-        )}
-
-        <Reveal delay={120}>
-          <div className="relative mt-12 flex flex-wrap items-center justify-between gap-6 overflow-hidden border border-brand-navy bg-white p-6 md:p-8">
-            <DotField className="opacity-25" />
-            <div className="relative">
-              <h3 className="text-xl font-extrabold text-brand-navy">
-                Need something not listed here?
-              </h3>
-              <p className="mt-1.5 text-sm text-brand-navy/70">
-                We source and brand to spec. Send the item, the quantity and the deadline.
-              </p>
-            </div>
-            <Link
-              to="/request-quote"
-              className="pp-sheen group relative inline-flex items-center gap-2 bg-brand-orange px-8 py-4 text-sm font-bold uppercase tracking-wide text-white transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[6px_6px_0_0_var(--color-brand-navy)]"
-            >
-              Request a quote
-              <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
-            </Link>
-          </div>
-        </Reveal>
-      </div>
-    </section>
-  );
-}
-
-/* ================================================================
-   Bestsellers
-   ================================================================ */
-
-function Bestsellers() {
-  const { data } = useNewestProducts(25);
-  const { addItem } = useCart();
-  const [addedId, setAddedId] = useState<string | null>(null);
-
-  const source = data ?? [];
-  const tagged = source.filter((p) => p.tag);
-  const picks = tagged.length > 0 ? tagged : source;
-
-  if (picks.length === 0) return null;
-
-  const loop = [...picks, ...picks];
-
-  const handleAddToCart = (e: React.MouseEvent, product: LiveProduct) => {
-    e.preventDefault();
-    e.stopPropagation();
-    addItem(product);
-    setAddedId(product.id);
-    setTimeout(() => setAddedId(null), 2000);
-  };
-
-  return (
-    <section className="relative overflow-hidden bg-white">
-      <div className="container-page relative px-5 pt-14 sm:px-6 sm:pt-16 md:pt-24">
-        <Reveal>
-          <SectionHeading
-            eyebrow="Moving fastest this quarter"
-            title="Bestsellers"
-            action={
-              <Link
-                to="/shop"
-                className="group inline-flex items-center gap-1.5 text-sm font-bold text-brand-navy transition-colors hover:text-brand-orange"
-              >
-                <span className="pp-underline">Shop bestsellers</span>
-                <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
-              </Link>
-            }
-          />
-        </Reveal>
-      </div>
-
-      <div className="relative mt-8 overflow-hidden pb-14 sm:mt-10 sm:pb-16 md:pb-24">
-        <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-12 bg-linear-to-r from-white to-transparent sm:w-24" />
-        <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-12 bg-linear-to-l from-white to-transparent sm:w-24" />
-
-        <div
-          className="pp-track flex w-max gap-5 px-5 hover:paused sm:gap-6 sm:px-6"
-          style={{ ["--pp-speed" as string]: `${picks.length * 2.5}s` }}
-        >
-          {loop.map((b, i) => (
-            <div
-              key={`${b.id}-${i}`}
-              tabIndex={i >= picks.length ? -1 : 0}
-              aria-hidden={i >= picks.length}
-              className="group flex w-56 shrink-0 flex-col overflow-hidden rounded-4xl border border-brand-navy/12 bg-white p-2.5 transition-all duration-300 hover:-translate-y-1.5 hover:border-brand-navy hover:shadow-[8px_8px_0_0_var(--color-brand-orange)] sm:w-64"
-            >
-              <Link
-                to="/shop/$slug"
-                params={{ slug: b.slug }}
-                className="pp-sheen relative block overflow-hidden rounded-[14px] bg-brand-surface p-2"
-              >
-                <img
-                  src={b.image}
-                  alt={b.name}
-                  width={800}
-                  height={900}
-                  loading="lazy"
-                  decoding="async"
-                  className="h-full w-full rounded-[10px] object-contain transition-transform duration-500 ease-out group-hover:scale-105"
-                  style={{ aspectRatio: "1 / 1" }}
-                />
-                {b.tag ? (
-                  <span className="absolute left-2 top-2 bg-brand-navy px-2.5 py-1 text-[9px] font-bold uppercase tracking-widest text-white">
-                    {b.tag}
-                  </span>
-                ) : null}
-              </Link>
-              <div className="flex flex-1 flex-col p-2.5">
-                <Link
-                  to="/shop/$slug"
-                  params={{ slug: b.slug }}
-                  className="text-sm font-extrabold leading-snug text-brand-navy transition-colors group-hover:text-brand-orange"
-                >
-                  {b.name}
-                </Link>
-                <div className="mt-2 flex items-center justify-between">
-                  <span className="text-sm font-bold tabular-nums text-brand-navy">
-                    {KSH.format(b.price)}
-                  </span>
-                  <span className="text-[11px] font-semibold tabular-nums text-brand-navy/50">
-                    MOQ {b.moq}
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  onClick={(e) => handleAddToCart(e, b)}
-                  className={`mt-3 flex items-center justify-center gap-1.5 px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-white transition-all active:scale-95 ${
-                    addedId === b.id
-                      ? "bg-emerald-600"
-                      : "bg-brand-navy hover:bg-brand-orange"
-                  }`}
-                >
-                  {addedId === b.id ? (
-                    <>
-                      <Check className="h-3.5 w-3.5" />
-                      Added
-                    </>
-                  ) : (
-                    <>
-                      <ShoppingCart className="h-3.5 w-3.5" />
-                      Add To Cart
-                    </>
-                  )}
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* ================================================================
    Techniques
    ================================================================ */
 
@@ -1643,7 +676,7 @@ function Techniques() {
     <section className="relative overflow-hidden border-b border-brand-navy bg-brand-navy text-white">
       <DotField variant="light" className="pp-mask-fade-center opacity-30" />
 
-      <div className="container-page relative px-5 py-14 sm:px-6 sm:py-16 md:py-24">
+      <div className="mx-auto w-full max-w-360 lg:px-10 relative px-5 py-12 sm:px-6 sm:py-14 md:py-16">
         <Reveal>
           <SectionHeading
             tone="light"
@@ -1745,7 +778,7 @@ function Process() {
     <section className="relative overflow-hidden border-b border-brand-navy bg-white">
       <DotField className="pp-mask-fade-center opacity-20" />
 
-      <div className="container-page relative px-5 py-14 sm:px-6 sm:py-16 md:py-24">
+      <div className="mx-auto w-full max-w-360 lg:px-10 relative px-5 py-12 sm:px-6 sm:py-14 md:py-16">
         <Reveal>
           <div className="border-b-2 border-brand-navy pb-6">
             <p className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.25em] text-brand-orange">
@@ -1818,7 +851,7 @@ function Argument() {
         OK
       </span>
 
-      <div className="container-page relative px-5 py-14 sm:px-6 sm:py-16 md:py-24">
+      <div className="mx-auto w-full max-w-360 lg:px-10 relative px-5 py-12 sm:px-6 sm:py-14 md:py-16">
         <div className="grid gap-12 lg:grid-cols-[minmax(0,24rem)_1fr] lg:gap-20">
           <Reveal className="lg:sticky lg:top-24 lg:self-start">
             <h2 className="text-3xl font-extrabold leading-tight tracking-tight md:text-4xl">
@@ -1906,7 +939,7 @@ function Sectors() {
     <section className="relative overflow-hidden border-b border-brand-navy bg-white">
       <DotField className="pp-mask-fade opacity-20" />
 
-      <div className="container-page relative px-5 py-14 sm:px-6 sm:py-16 md:py-24">
+      <div className="mx-auto w-full max-w-360 lg:px-10 relative px-5 py-12 sm:px-6 sm:py-14 md:py-16">
         <div className="grid gap-10 lg:grid-cols-[minmax(0,22rem)_1fr] lg:gap-16">
           <Reveal>
             <div>
@@ -2191,7 +1224,7 @@ function Reviews() {
     <section className="relative overflow-hidden border-b border-brand-navy bg-brand-surface">
       <DotField className="pp-mask-fade-center opacity-20" />
 
-      <div className="container-page relative px-5 pt-14 sm:px-6 sm:pt-16 md:pt-24">
+      <div className="mx-auto w-full max-w-360 lg:px-10 relative px-5 pt-12 sm:px-6 sm:pt-14 md:pt-16">
         <Reveal>
           <div className="flex flex-wrap items-end justify-between gap-4 border-b border-brand-navy/12 pb-5 sm:gap-6">
             <div className="flex items-start gap-4">
@@ -2227,7 +1260,7 @@ function Reviews() {
         </Reveal>
       </div>
 
-      <div className="relative mt-8 overflow-hidden pb-14 sm:mt-10 sm:pb-16 md:pb-24">
+      <div className="relative mt-8 overflow-hidden pb-14 sm:mt-10 sm:pb-14 md:pb-16">
         <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-12 bg-linear-to-r from-brand-surface to-transparent sm:w-24" />
         <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-12 bg-linear-to-l from-brand-surface to-transparent sm:w-24" />
 
@@ -2272,7 +1305,7 @@ function Reviews() {
         </div>
       </div>
 
-      <div className="container-page relative px-5 pb-14 sm:px-6 sm:pb-16 md:pb-24">
+      <div className="mx-auto w-full max-w-360 lg:px-10 relative px-5 pb-14 sm:px-6 sm:pb-14 md:pb-16">
         <div className="grid gap-8 lg:grid-cols-2 lg:items-start">
           <WriteReview onSubmit={(r) => setUserReviews((prev) => [r, ...prev])} />
           <SubmittedReviews reviews={userReviews} />
@@ -2282,13 +1315,17 @@ function Reviews() {
   );
 }
 
+/* ================================================================
+   Closing call to action
+   ================================================================ */
+
 function Close() {
   return (
     <section className="relative overflow-hidden bg-brand-blue text-white">
       <PressGrid />
       <DotField variant="light" className="pp-mask-fade-center opacity-35" />
 
-      <div className="container-page relative px-5 py-14 sm:px-6 sm:py-20 md:py-28">
+      <div className="mx-auto w-full max-w-360 lg:px-10 relative px-5 py-14 sm:px-6 sm:py-16 md:py-20">
         <div className="grid gap-10 lg:grid-cols-2 lg:items-end">
           <Reveal>
             <div className="text-center lg:text-left">
