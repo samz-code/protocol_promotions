@@ -944,7 +944,7 @@ export default function SiteChatbot({
         )}
       </div>
 
-      {/* Launcher. The fade animation lives here, never on the outer wrapper. */}
+      
       <div
         className={`transition-all duration-300 ${
           launcherHidden
