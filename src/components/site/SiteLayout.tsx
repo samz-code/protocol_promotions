@@ -3,7 +3,8 @@ import { useCmsBlocks } from "@/lib/cms";
 import { TopBar } from "./TopBar";
 import { Navbar } from "./Navbar";
 import { Footer } from "./Footer";
-import { WhatsAppFloat } from "./WhatsAppFloat";
+import WhatsAppFloat from "./WhatsAppFloat";
+import SiteChatbot from "@/components/chat/SiteChatbot";
 
 /* ------------------------------------------------------------------ types */
 
@@ -58,6 +59,7 @@ export function SiteLayout({ children }: { children: ReactNode }) {
 
       <Footer />
 
+      <SiteChatbot whatsappPhone={whatsAppSettings.enabled ? whatsAppSettings.phone_number : ""} />
       {whatsAppSettings.enabled && <WhatsAppFloat />}
     </div>
   );

@@ -50,6 +50,7 @@ import { Route as AdminReportsRouteImport } from './routes/admin.reports'
 import { Route as AdminQuotesRouteImport } from './routes/admin.quotes'
 import { Route as AdminProductsRouteImport } from './routes/admin.products'
 import { Route as AdminProductionRouteImport } from './routes/admin.production'
+import { Route as AdminPopupsRouteImport } from './routes/admin.popups'
 import { Route as AdminPaymentsRouteImport } from './routes/admin.payments'
 import { Route as AdminOrdersRouteImport } from './routes/admin.orders'
 import { Route as AdminNotificationsRouteImport } from './routes/admin.notifications'
@@ -270,6 +271,11 @@ const AdminProductionRoute = AdminProductionRouteImport.update({
   path: '/production',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminPopupsRoute = AdminPopupsRouteImport.update({
+  id: '/popups',
+  path: '/popups',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminPaymentsRoute = AdminPaymentsRouteImport.update({
   id: '/payments',
   path: '/payments',
@@ -368,6 +374,7 @@ export interface FileRoutesByFullPath {
   '/admin/notifications': typeof AdminNotificationsRoute
   '/admin/orders': typeof AdminOrdersRoute
   '/admin/payments': typeof AdminPaymentsRoute
+  '/admin/popups': typeof AdminPopupsRoute
   '/admin/production': typeof AdminProductionRoute
   '/admin/products': typeof AdminProductsRoute
   '/admin/quotes': typeof AdminQuotesRoute
@@ -422,6 +429,7 @@ export interface FileRoutesByTo {
   '/admin/notifications': typeof AdminNotificationsRoute
   '/admin/orders': typeof AdminOrdersRoute
   '/admin/payments': typeof AdminPaymentsRoute
+  '/admin/popups': typeof AdminPopupsRoute
   '/admin/production': typeof AdminProductionRoute
   '/admin/products': typeof AdminProductsRoute
   '/admin/quotes': typeof AdminQuotesRoute
@@ -478,6 +486,7 @@ export interface FileRoutesById {
   '/admin/notifications': typeof AdminNotificationsRoute
   '/admin/orders': typeof AdminOrdersRoute
   '/admin/payments': typeof AdminPaymentsRoute
+  '/admin/popups': typeof AdminPopupsRoute
   '/admin/production': typeof AdminProductionRoute
   '/admin/products': typeof AdminProductsRoute
   '/admin/quotes': typeof AdminQuotesRoute
@@ -536,6 +545,7 @@ export interface FileRouteTypes {
     | '/admin/notifications'
     | '/admin/orders'
     | '/admin/payments'
+    | '/admin/popups'
     | '/admin/production'
     | '/admin/products'
     | '/admin/quotes'
@@ -590,6 +600,7 @@ export interface FileRouteTypes {
     | '/admin/notifications'
     | '/admin/orders'
     | '/admin/payments'
+    | '/admin/popups'
     | '/admin/production'
     | '/admin/products'
     | '/admin/quotes'
@@ -645,6 +656,7 @@ export interface FileRouteTypes {
     | '/admin/notifications'
     | '/admin/orders'
     | '/admin/payments'
+    | '/admin/popups'
     | '/admin/production'
     | '/admin/products'
     | '/admin/quotes'
@@ -983,6 +995,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminProductionRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/popups': {
+      id: '/admin/popups'
+      path: '/popups'
+      fullPath: '/admin/popups'
+      preLoaderRoute: typeof AdminPopupsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/payments': {
       id: '/admin/payments'
       path: '/payments'
@@ -1089,6 +1108,7 @@ interface AdminRouteChildren {
   AdminNotificationsRoute: typeof AdminNotificationsRoute
   AdminOrdersRoute: typeof AdminOrdersRoute
   AdminPaymentsRoute: typeof AdminPaymentsRoute
+  AdminPopupsRoute: typeof AdminPopupsRoute
   AdminProductionRoute: typeof AdminProductionRoute
   AdminProductsRoute: typeof AdminProductsRoute
   AdminQuotesRoute: typeof AdminQuotesRoute
@@ -1111,6 +1131,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminNotificationsRoute: AdminNotificationsRoute,
   AdminOrdersRoute: AdminOrdersRoute,
   AdminPaymentsRoute: AdminPaymentsRoute,
+  AdminPopupsRoute: AdminPopupsRoute,
   AdminProductionRoute: AdminProductionRoute,
   AdminProductsRoute: AdminProductsRoute,
   AdminQuotesRoute: AdminQuotesRoute,

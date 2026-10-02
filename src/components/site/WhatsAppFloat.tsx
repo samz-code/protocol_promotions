@@ -1,379 +1,925 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { X, Send, Sparkles, Check, RefreshCw } from "lucide-react";
 import { FaWhatsapp } from "react-icons/fa";
 
-/* ============================================================
-   Interactive Floating WhatsApp Assistant with persistent state.
-   All scroll-disappearing and hiding behaviors have been removed.
-
-   Requires once:  npm install react-icons lucide-react
-
-   Usage: render <WhatsAppFloat /> once inside SiteLayout.
-   ============================================================ */
-
 const WHATSAPP_NUMBER = "254762446077";
-const DEFAULT_MESSAGE =
-  "Hello Protocol Promotions, I would like to enquire about your branding and printing services.";
 
-const DRAFT_STORAGE_KEY = "protocol_chat_interactive_draft";
+const STORAGE_KEY = "protocol_promotion_quote_draft_v2";
+
+type Step = 1 | 2 | 3;
+
+type FormData = {
+  service: string;
+  quantity: string;
+  timeline: string;
+  artwork: string;
+  details: string;
+};
 
 const SERVICES = [
-  { id: "branding", name: "Corporate Branding" },
-  { id: "printing", name: "Printing Services" },
-  { id: "merch", name: "Custom Merchandise" },
-  { id: "other", name: "General Enquiry" },
+  "Branding & Identity",
+  "Printing Services",
+  "Signage & Large Format",
+  "Product & Packaging",
+  "Promotional Merchandise",
+  "Graphic Design",
+  "General Enquiry",
 ];
 
-const QUANTITIES = ["1 - 50", "50 - 200", "200 - 1,000", "1,000+"];
-const TIMELINES = ["Urgent (1-2 days)", "Standard (3-7 days)", "Flexible"];
+const QUANTITIES = [
+  "1 - 50",
+  "50 - 200",
+  "200 - 1,000",
+  "1,000+",
+  "Not sure",
+];
+
+const TIMELINES = [
+  "Urgent - confirm availability",
+  "Standard",
+  "Flexible",
+];
+
+const ARTWORK_OPTIONS = [
+  "I have print-ready artwork",
+  "I need design assistance",
+  "Not sure",
+];
+
+const DEFAULT_MESSAGE =
+  "Hello Protocol Promotion, I would like to enquire about your printing, branding or graphic design services.";
 
 export function WhatsAppFloat() {
-  const [nudge, setNudge] = useState(false);
-  const [hovered, setHovered] = useState(false);
-
-  // Chat window visibility & interactive steps state
   const [isChatOpen, setIsChatOpen] = useState(false);
-  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [step, setStep] = useState<Step>(1);
+  const [hovered, setHovered] = useState(false);
+  const [nudge, setNudge] = useState(true);
 
-  // Interactive selections state
-  const [service, setService] = useState<string>("");
-  const [quantity, setQuantity] = useState<string>("");
-  const [timeline, setTimeline] = useState<string>("");
-  const [customDetails, setCustomDetails] = useState<string>("");
+  const [formData, setFormData] = useState<FormData>({
+    service: "",
+    quantity: "",
+    timeline: "",
+    artwork: "",
+    details: "",
+  });
 
-  // Restore interactive state from localStorage draft on mount
+  /* Load saved enquiry */
   useEffect(() => {
-    const rawDraft = localStorage.getItem(DRAFT_STORAGE_KEY);
-    if (rawDraft) {
-      try {
-        const parsed = JSON.parse(rawDraft);
-        if (parsed.service) setService(parsed.service);
-        if (parsed.quantity) setQuantity(parsed.quantity);
-        if (parsed.timeline) setTimeline(parsed.timeline);
-        if (parsed.customDetails) setCustomDetails(parsed.customDetails);
-        if (parsed.step) setStep(parsed.step);
-      } catch (err) {
-        console.error("Failed to parse draft chat state", err);
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+
+      if (!saved) return;
+
+      const parsed = JSON.parse(saved);
+
+      if (parsed?.formData) {
+        setFormData((current) => ({
+          ...current,
+          ...parsed.formData,
+        }));
       }
+
+      if (
+        parsed?.step === 1 ||
+        parsed?.step === 2 ||
+        parsed?.step === 3
+      ) {
+        setStep(parsed.step);
+      }
+    } catch {
+      // Ignore invalid localStorage data
     }
   }, []);
 
-  // Sync draft state to localStorage
+  /* Save enquiry */
   useEffect(() => {
-    const draftState = { service, quantity, timeline, customDetails, step };
-    localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draftState));
-  }, [service, quantity, timeline, customDetails, step]);
+    try {
+      localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({
+          step,
+          formData,
+        })
+      );
+    } catch {
+      // Ignore localStorage errors
+    }
+  }, [step, formData]);
 
-  // Periodic button wiggle animation
+  /* Hide the small notification after a few seconds */
   useEffect(() => {
-    const reduced =
-      typeof window !== "undefined" &&
-      typeof window.matchMedia === "function" &&
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (reduced) return;
+    const timer = window.setTimeout(() => {
+      setNudge(false);
+    }, 7000);
 
-    let timeoutId: ReturnType<typeof setTimeout>;
-    const interval = setInterval(() => {
-      setNudge(true);
-      timeoutId = setTimeout(() => setNudge(false), 900);
-    }, 8000);
-
-    return () => {
-      clearInterval(interval);
-      clearTimeout(timeoutId);
-    };
+    return () => window.clearTimeout(timer);
   }, []);
 
-  const resetForm = () => {
-    setService("");
-    setQuantity("");
-    setTimeline("");
-    setCustomDetails("");
-    setStep(1);
-    localStorage.removeItem(DRAFT_STORAGE_KEY);
+  const updateField = (
+    field: keyof FormData,
+    value: string
+  ) => {
+    setFormData((current) => ({
+      ...current,
+      [field]: value,
+    }));
   };
 
-  const handleSendMessage = (e: React.FormEvent) => {
-    e.preventDefault();
+  const resetForm = () => {
+    setFormData({
+      service: "",
+      quantity: "",
+      timeline: "",
+      artwork: "",
+      details: "",
+    });
 
-    let formattedMsg = "*New Quote Enquiry*\n";
-    if (service) formattedMsg += `• *Service:* ${service}\n`;
-    if (quantity) formattedMsg += `• *Quantity:* ${quantity}\n`;
-    if (timeline) formattedMsg += `• *Timeline:* ${timeline}\n`;
-    if (customDetails.trim()) formattedMsg += `• *Note:* ${customDetails.trim()}`;
+    setStep(1);
 
-    if (!service && !customDetails.trim()) {
-      formattedMsg = DEFAULT_MESSAGE;
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+    } catch {
+      // Ignore localStorage errors
     }
+  };
 
-    const waUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(
-      formattedMsg
+  const openWhatsApp = (message: string) => {
+    const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(
+      message
     )}`;
+
+    window.open(url, "_blank", "noopener,noreferrer");
+  };
+
+  const handleQuickWhatsApp = () => {
+    openWhatsApp(DEFAULT_MESSAGE);
+  };
+
+  const handleSendEnquiry = () => {
+    const message = [
+      "*NEW QUOTE ENQUIRY - PROTOCOL PROMOTION*",
+      "",
+      `*Service:* ${formData.service || "Not specified"}`,
+      `*Quantity:* ${formData.quantity || "Not specified"}`,
+      `*Timeline:* ${formData.timeline || "Not specified"}`,
+      `*Artwork:* ${formData.artwork || "Not specified"}`,
+      "",
+      "*Project Details:*",
+      formData.details.trim() || "Not provided",
+      "",
+      "Please confirm pricing, availability and production timeline.",
+    ].join("\n");
+
+    openWhatsApp(message);
 
     resetForm();
     setIsChatOpen(false);
+  };
 
-    window.open(waUrl, "_blank", "noopener,noreferrer");
+  const canContinueFromStep1 = Boolean(formData.service);
+
+  const goNext = () => {
+    if (step === 1 && !canContinueFromStep1) return;
+
+    if (step < 3) {
+      setStep((current) => (current + 1) as Step);
+    }
+  };
+
+  const goBack = () => {
+    if (step > 1) {
+      setStep((current) => (current - 1) as Step);
+    }
   };
 
   return (
     <>
       <style>{`
         @keyframes waFloatIn {
-          0%   { opacity: 0; transform: translateY(14px) scale(0.85); }
-          60%  { opacity: 1; transform: translateY(-3px) scale(1.02); }
-          100% { opacity: 1; transform: translateY(0) scale(1); }
-        }
-        @keyframes waPulseRing {
-          0%   { transform: scale(1);   opacity: 0.5; }
-          70%  { transform: scale(1.7); opacity: 0; }
-          100% { transform: scale(1.7); opacity: 0; }
-        }
-        @keyframes waBob {
-          0%, 100% { transform: translateY(0); }
-          50%      { transform: translateY(-4px); }
-        }
-        @keyframes waWiggle {
-          0%, 100% { transform: rotate(0deg); }
-          15% { transform: rotate(-11deg); }
-          30% { transform: rotate(9deg); }
-          45% { transform: rotate(-7deg); }
-          60% { transform: rotate(5deg); }
-          75% { transform: rotate(-3deg); }
-        }
-        @keyframes waStatusPulse {
-          0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(74,222,128,0.6); }
-          50%      { transform: scale(1.12); box-shadow: 0 0 0 4px rgba(74,222,128,0); }
+          from {
+            opacity: 0;
+            transform: translateY(20px) scale(0.95);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
         }
 
-        .wa-in    { animation: waFloatIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
-        .wa-ring  { animation: waPulseRing 2.6s ease-out infinite; }
-        .wa-bob   { animation: waBob 3.6s ease-in-out infinite; }
-        .wa-wiggle{ animation: waWiggle 0.9s ease-in-out; }
-        .wa-status{ animation: waStatusPulse 2.2s ease-in-out infinite; }
+        @keyframes waPulseRing {
+          0% {
+            transform: scale(1);
+            opacity: 0.55;
+          }
+          70% {
+            transform: scale(1.35);
+            opacity: 0;
+          }
+          100% {
+            transform: scale(1.35);
+            opacity: 0;
+          }
+        }
+
+        @keyframes waBob {
+          0%, 100% {
+            transform: translateY(0);
+          }
+          50% {
+            transform: translateY(-4px);
+          }
+        }
+
+        @keyframes waWiggle {
+          0%, 100% {
+            transform: rotate(0deg);
+          }
+          25% {
+            transform: rotate(-5deg);
+          }
+          75% {
+            transform: rotate(5deg);
+          }
+        }
+
+        @keyframes waStatusPulse {
+          0%, 100% {
+            opacity: 1;
+          }
+          50% {
+            opacity: 0.45;
+          }
+        }
+
+        .wa-float-in {
+          animation: waFloatIn 0.3s ease-out both;
+        }
+
+        .wa-pulse-ring {
+          animation: waPulseRing 2s ease-out infinite;
+        }
+
+        .wa-bob {
+          animation: waBob 2.8s ease-in-out infinite;
+        }
+
+        .wa-wiggle {
+          animation: waWiggle 0.45s ease-in-out;
+        }
+
+        .wa-status-pulse {
+          animation: waStatusPulse 2s ease-in-out infinite;
+        }
 
         @media (prefers-reduced-motion: reduce) {
-          .wa-in, .wa-ring, .wa-bob, .wa-wiggle, .wa-status {
+          .wa-float-in,
+          .wa-pulse-ring,
+          .wa-bob,
+          .wa-wiggle,
+          .wa-status-pulse {
             animation: none !important;
           }
         }
       `}</style>
 
-      <div className="fixed bottom-5 right-5 z-50 flex flex-col items-end gap-3 sm:bottom-6 sm:right-6">
-        {/* Interactive Multi-step Chat Assistant */}
-        {isChatOpen && (
-          <div className="wa-in w-80 rounded-2xl bg-white p-4 shadow-2xl ring-1 ring-black/10 sm:w-88">
-            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-              <div className="flex items-center gap-2">
-                <div className="relative">
-                  <FaWhatsapp className="h-6 w-6 text-[#25D366]" />
-                  <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-green-500 ring-2 ring-white" />
+      {/* Assistant panel */}
+      {isChatOpen && (
+        <div
+          className="
+            fixed
+            bottom-24
+            right-4
+            z-9998
+            w-[calc(100vw-2rem)]
+            max-w-sm
+            overflow-hidden
+            rounded-2xl
+            border
+            border-slate-200
+            bg-white
+            shadow-2xl
+            wa-float-in
+            sm:right-6
+            sm:bottom-28
+          "
+        >
+          {/* Header */}
+          <div className="bg-brand-navy px-4 py-4 text-white">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10">
+                  <Sparkles className="h-5 w-5" />
                 </div>
+
                 <div>
-                  <h4 className="text-sm font-semibold text-brand-navy">
+                  <p className="text-sm font-semibold">
                     Protocol Assistant
-                  </h4>
-                  <p className="text-[11px] text-green-600">
-                    Step {step} of 3 • Quick Estimator
+                  </p>
+
+                  <p className="mt-0.5 text-xs text-white/70">
+                    Get your printing & branding enquiry ready
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-1">
-                {(service || customDetails) && (
-                  <button
-                    type="button"
-                    onClick={resetForm}
-                    title="Reset Form"
-                    className="rounded-full p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-                  >
-                    <RefreshCw className="h-3.5 w-3.5" />
-                  </button>
-                )}
-                <button
-                  type="button"
-                  onClick={() => setIsChatOpen(false)}
-                  className="rounded-full p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsChatOpen(false)}
+                className="
+                  rounded-full
+                  p-1.5
+                  text-white/70
+                  transition
+                  hover:bg-white/10
+                  hover:text-white
+                "
+                aria-label="Close assistant"
+              >
+                <X className="h-5 w-5" />
+              </button>
             </div>
 
-            <form onSubmit={handleSendMessage} className="mt-3 flex flex-col gap-3">
-              {/* Step 1: Select Service */}
-              {step === 1 && (
-                <div className="flex flex-col gap-2">
-                  <label className="flex items-center gap-1 text-[11px] font-medium text-gray-600">
-                    <Sparkles className="h-3 w-3 text-[#25D366]" /> What service are
-                    you interested in?
+            {/* Progress */}
+            <div className="mt-4 flex items-center gap-2">
+              {[1, 2, 3].map((item) => (
+                <div
+                  key={item}
+                  className={`h-1.5 flex-1 rounded-full transition ${
+                    item <= step
+                      ? "bg-white"
+                      : "bg-white/20"
+                  }`}
+                />
+              ))}
+            </div>
+
+            <p className="mt-2 text-[11px] text-white/60">
+              Step {step} of 3
+            </p>
+          </div>
+
+          {/* Body */}
+          <div className="max-h-[65vh] overflow-y-auto p-4">
+            {/* STEP 1 */}
+            {step === 1 && (
+              <div>
+                <div className="mb-4">
+                  <h3 className="text-base font-semibold text-slate-900">
+                    What do you need?
+                  </h3>
+
+                  <p className="mt-1 text-xs leading-5 text-slate-500">
+                    Select the service that best describes your project.
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  {SERVICES.map((service) => {
+                    const selected =
+                      formData.service === service;
+
+                    return (
+                      <button
+                        key={service}
+                        type="button"
+                        onClick={() =>
+                          updateField("service", service)
+                        }
+                        className={`
+                          flex
+                          w-full
+                          items-center
+                          justify-between
+                          rounded-xl
+                          border
+                          px-3.5
+                          py-3
+                          text-left
+                          text-sm
+                          transition
+                          ${
+                            selected
+                              ? "border-brand-navy bg-brand-navy/5 text-brand-navy"
+                              : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50"
+                          }
+                        `}
+                      >
+                        <span>{service}</span>
+
+                        {selected && (
+                          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-brand-navy text-white">
+                            <Check className="h-3.5 w-3.5" />
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* STEP 2 */}
+            {step === 2 && (
+              <div>
+                <div className="mb-4">
+                  <h3 className="text-base font-semibold text-slate-900">
+                    Quantity & deadline
+                  </h3>
+
+                  <p className="mt-1 text-xs leading-5 text-slate-500">
+                    This helps the team understand the scale and urgency
+                    of your project.
+                  </p>
+                </div>
+
+                <div className="mb-5">
+                  <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Quantity
                   </label>
-                  <div className="grid grid-cols-2 gap-1.5">
-                    {SERVICES.map((s) => {
-                      const selected = service === s.name;
+
+                  <div className="grid grid-cols-2 gap-2">
+                    {QUANTITIES.map((quantity) => {
+                      const selected =
+                        formData.quantity === quantity;
+
                       return (
                         <button
-                          key={s.id}
+                          key={quantity}
                           type="button"
-                          onClick={() => {
-                            setService(s.name);
-                            setStep(2);
-                          }}
-                          className={`flex items-center justify-between rounded-xl px-2.5 py-2 text-left text-xs transition-all ${
-                            selected
-                              ? "bg-[#25D366]/15 font-semibold text-[#1ba14e] ring-1 ring-[#25D366]"
-                              : "bg-gray-50 text-gray-700 hover:bg-gray-100"
-                          }`}
+                          onClick={() =>
+                            updateField("quantity", quantity)
+                          }
+                          className={`
+                            rounded-xl
+                            border
+                            px-3
+                            py-3
+                            text-sm
+                            transition
+                            ${
+                              selected
+                                ? "border-brand-navy bg-brand-navy text-white"
+                                : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                            }
+                          `}
                         >
-                          <span>{s.name}</span>
-                          {selected && <Check className="h-3.5 w-3.5" />}
+                          {quantity}
                         </button>
                       );
                     })}
                   </div>
                 </div>
-              )}
 
-              {/* Step 2: Select Quantity & Timeline */}
-              {step === 2 && (
-                <div className="flex flex-col gap-2.5">
-                  <div>
-                    <label className="text-[11px] font-medium text-gray-600">
-                      Estimated Quantity:
-                    </label>
-                    <div className="mt-1 flex flex-wrap gap-1">
-                      {QUANTITIES.map((q) => (
-                        <button
-                          key={q}
-                          type="button"
-                          onClick={() => setQuantity(q)}
-                          className={`rounded-lg px-2 py-1 text-[11px] transition-all ${
-                            quantity === q
-                              ? "bg-[#25D366] text-white font-medium"
-                              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                          }`}
-                        >
-                          {q}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="text-[11px] font-medium text-gray-600">
-                      Turnaround urgency:
-                    </label>
-                    <div className="mt-1 flex flex-col gap-1">
-                      {TIMELINES.map((t) => (
-                        <button
-                          key={t}
-                          type="button"
-                          onClick={() => setTimeline(t)}
-                          className={`rounded-lg px-2.5 py-1 text-left text-[11px] transition-all ${
-                            timeline === t
-                              ? "bg-[#25D366]/15 text-[#1ba14e] font-medium ring-1 ring-[#25D366]/40"
-                              : "bg-gray-50 text-gray-700 hover:bg-gray-100"
-                          }`}
-                        >
-                          {t}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="flex gap-2 pt-1">
-                    <button
-                      type="button"
-                      onClick={() => setStep(1)}
-                      className="w-1/3 rounded-xl border border-gray-200 py-2 text-xs font-medium text-gray-600 hover:bg-gray-50"
-                    >
-                      Back
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setStep(3)}
-                      className="w-2/3 rounded-xl bg-brand-navy py-2 text-xs font-semibold text-white transition-all hover:opacity-90"
-                    >
-                      Next Step
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Step 3: Notes & Final Send */}
-              {step === 3 && (
-                <div className="flex flex-col gap-2">
-                  <label className="text-[11px] font-medium text-gray-600">
-                    Additional notes or specifications:
+                <div>
+                  <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Timeline
                   </label>
-                  <textarea
-                    rows={2}
-                    value={customDetails}
-                    onChange={(e) => setCustomDetails(e.target.value)}
-                    placeholder="e.g. Color preferences, size, delivery location..."
-                    className="w-full resize-none rounded-xl border border-gray-200 p-2.5 text-xs text-brand-navy outline-none focus:border-[#25D366] focus:ring-1 focus:ring-[#25D366]"
-                  />
 
-                  <div className="rounded-xl bg-gray-50 p-2 text-[11px] text-gray-500">
-                    <p className="font-medium text-gray-700">Summary:</p>
-                    <p>• Service: {service || "Not specified"}</p>
-                    {quantity && <p>• Quantity: {quantity}</p>}
-                    {timeline && <p>• Urgency: {timeline}</p>}
-                  </div>
+                  <div className="space-y-2">
+                    {TIMELINES.map((timeline) => {
+                      const selected =
+                        formData.timeline === timeline;
 
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setStep(2)}
-                      className="w-1/3 rounded-xl border border-gray-200 py-2.5 text-xs font-medium text-gray-600 hover:bg-gray-50"
-                    >
-                      Back
-                    </button>
-                    <button
-                      type="submit"
-                      className="flex w-2/3 items-center justify-center gap-1.5 rounded-xl bg-[#25D366] py-2.5 text-xs font-semibold text-white transition-all hover:bg-[#20bd5a] active:scale-98"
-                    >
-                      <span>Send to WhatsApp</span>
-                      <Send className="h-3.5 w-3.5" />
-                    </button>
+                      return (
+                        <button
+                          key={timeline}
+                          type="button"
+                          onClick={() =>
+                            updateField("timeline", timeline)
+                          }
+                          className={`
+                            flex
+                            w-full
+                            items-center
+                            justify-between
+                            rounded-xl
+                            border
+                            px-3.5
+                            py-3
+                            text-left
+                            text-sm
+                            transition
+                            ${
+                              selected
+                                ? "border-brand-navy bg-brand-navy/5 text-brand-navy"
+                                : "border-slate-200 text-slate-700 hover:bg-slate-50"
+                            }
+                          `}
+                        >
+                          <span>{timeline}</span>
+
+                          {selected && (
+                            <Check className="h-4 w-4" />
+                          )}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
+              </div>
+            )}
+
+            {/* STEP 3 */}
+            {step === 3 && (
+              <div>
+                <div className="mb-4">
+                  <h3 className="text-base font-semibold text-slate-900">
+                    Tell us about the project
+                  </h3>
+
+                  <p className="mt-1 text-xs leading-5 text-slate-500">
+                    Include sizes, materials, finishing, colours, delivery
+                    location or anything else we should know.
+                  </p>
+                </div>
+
+                <div className="mb-4">
+                  <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Artwork
+                  </label>
+
+                  <div className="space-y-2">
+                    {ARTWORK_OPTIONS.map((option) => {
+                      const selected =
+                        formData.artwork === option;
+
+                      return (
+                        <button
+                          key={option}
+                          type="button"
+                          onClick={() =>
+                            updateField("artwork", option)
+                          }
+                          className={`
+                            flex
+                            w-full
+                            items-center
+                            justify-between
+                            rounded-xl
+                            border
+                            px-3.5
+                            py-3
+                            text-left
+                            text-sm
+                            transition
+                            ${
+                              selected
+                                ? "border-brand-navy bg-brand-navy/5 text-brand-navy"
+                                : "border-slate-200 text-slate-700 hover:bg-slate-50"
+                            }
+                          `}
+                        >
+                          <span>{option}</span>
+
+                          {selected && (
+                            <Check className="h-4 w-4" />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="protocol-project-details"
+                    className="mb-2 block text-xs font-semibold uppercase tracking-wide text-slate-500"
+                  >
+                    Project details
+                  </label>
+
+                  <textarea
+                    id="protocol-project-details"
+                    value={formData.details}
+                    onChange={(event) =>
+                      updateField("details", event.target.value)
+                    }
+                    rows={6}
+                    placeholder="Example: 500 A5 flyers, double-sided, full colour, matte finish. I already have the design. I need them by Friday."
+                    className="
+                      w-full
+                      resize-none
+                      rounded-xl
+                      border
+                      border-slate-200
+                      bg-white
+                      px-3.5
+                      py-3
+                      text-sm
+                      leading-6
+                      text-slate-800
+                      outline-none
+                      transition
+                      placeholder:text-slate-400
+                      focus:border-brand-navy
+                      focus:ring-2
+                      focus:ring-brand-navy/10
+                    "
+                  />
+                </div>
+
+                {/* Summary */}
+                <div className="mt-4 rounded-xl bg-slate-50 p-3.5">
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Enquiry summary
+                  </p>
+
+                  <div className="space-y-1.5 text-xs text-slate-600">
+                    <p>
+                      <span className="font-semibold text-slate-800">
+                        Service:
+                      </span>{" "}
+                      {formData.service || "Not specified"}
+                    </p>
+
+                    <p>
+                      <span className="font-semibold text-slate-800">
+                        Quantity:
+                      </span>{" "}
+                      {formData.quantity || "Not specified"}
+                    </p>
+
+                    <p>
+                      <span className="font-semibold text-slate-800">
+                        Timeline:
+                      </span>{" "}
+                      {formData.timeline || "Not specified"}
+                    </p>
+
+                    <p>
+                      <span className="font-semibold text-slate-800">
+                        Artwork:
+                      </span>{" "}
+                      {formData.artwork || "Not specified"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Footer */}
+          <div className="border-t border-slate-100 bg-white p-4">
+            <div className="flex gap-2">
+              {step > 1 && (
+                <button
+                  type="button"
+                  onClick={goBack}
+                  className="
+                    flex-1
+                    rounded-xl
+                    border
+                    border-slate-200
+                    px-4
+                    py-3
+                    text-sm
+                    font-medium
+                    text-slate-700
+                    transition
+                    hover:bg-slate-50
+                  "
+                >
+                  Back
+                </button>
               )}
-            </form>
+
+              {step < 3 ? (
+                <button
+                  type="button"
+                  onClick={goNext}
+                  disabled={step === 1 && !canContinueFromStep1}
+                  className="
+                    flex
+                    flex-1
+                    items-center
+                    justify-center
+                    gap-2
+                    rounded-xl
+                    bg-brand-navy
+                    px-4
+                    py-3
+                    text-sm
+                    font-semibold
+                    text-white
+                    transition
+                    hover:opacity-90
+                    disabled:cursor-not-allowed
+                    disabled:opacity-40
+                  "
+                >
+                  Continue
+                  <span aria-hidden="true">→</span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleSendEnquiry}
+                  className="
+                    flex
+                    flex-1
+                    items-center
+                    justify-center
+                    gap-2
+                    rounded-xl
+                    bg-[#25D366]
+                    px-4
+                    py-3
+                    text-sm
+                    font-semibold
+                    text-white
+                    transition
+                    hover:bg-[#20bd5a]
+                  "
+                >
+                  <FaWhatsapp className="h-5 w-5" />
+                  Send on WhatsApp
+                </button>
+              )}
+            </div>
+
+            {step === 3 && (
+              <button
+                type="button"
+                onClick={resetForm}
+                className="
+                  mx-auto
+                  mt-3
+                  flex
+                  items-center
+                  gap-1.5
+                  text-xs
+                  text-slate-400
+                  transition
+                  hover:text-slate-600
+                "
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+                Start over
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Floating button */}
+      <div
+        className="
+          fixed
+          bottom-5
+          right-5
+          z-9999
+          sm:bottom-6
+          sm:right-6
+        "
+      >
+        {/* Notification */}
+        {nudge && !isChatOpen && (
+          <div
+            className="
+              absolute
+              bottom-16
+              right-0
+              mb-2
+              w-56
+              rounded-xl
+              border
+              border-slate-200
+              bg-white
+              p-3
+              shadow-xl
+              wa-float-in
+            "
+          >
+            <div className="flex items-start gap-2">
+              <div className="mt-0.5 rounded-full bg-[#25D366]/10 p-1.5 text-[#25D366]">
+                <Sparkles className="h-3.5 w-3.5" />
+              </div>
+
+              <div className="flex-1">
+                <p className="text-xs font-semibold text-slate-900">
+                  Need a quote?
+                </p>
+
+                <p className="mt-0.5 text-[11px] leading-4 text-slate-500">
+                  Tell us what you need and send the details directly to
+                  WhatsApp.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setNudge(false)}
+                className="text-slate-400 hover:text-slate-600"
+                aria-label="Close notification"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
           </div>
         )}
 
-        {/* Permanent Floating Toggle Button */}
+        {/* Pulse ring */}
+        {!isChatOpen && (
+          <span
+            className="
+              pointer-events-none
+              absolute
+              inset-0
+              rounded-full
+              bg-[#25D366]
+              wa-pulse-ring
+            "
+          />
+        )}
+
+        {/* Main button */}
         <button
           type="button"
-          onClick={() => setIsChatOpen((prev) => !prev)}
-          aria-label="Chat with us on WhatsApp"
+          onClick={() => {
+            setIsChatOpen((current) => !current);
+            setNudge(false);
+          }}
           onMouseEnter={() => setHovered(true)}
           onMouseLeave={() => setHovered(false)}
-          className={`group relative grid h-14 w-14 place-items-center rounded-full bg-[#25D366] text-white shadow-lg transition-all duration-300 hover:scale-110 hover:shadow-xl active:scale-95 sm:h-16 sm:w-16 ${
-            hovered || isChatOpen ? "" : "wa-bob"
-          }`}
+          className={`
+            relative
+            flex
+            h-14
+            w-14
+            items-center
+            justify-center
+            rounded-full
+            bg-[#25D366]
+            text-white
+            shadow-lg
+            shadow-black/20
+            transition
+            hover:scale-105
+            active:scale-95
+            sm:h-16
+            sm:w-16
+            ${!hovered && !isChatOpen ? "wa-bob" : ""}
+            ${hovered ? "wa-wiggle" : ""}
+          `}
+          aria-label={
+            isChatOpen
+              ? "Close Protocol Assistant"
+              : "Open Protocol Assistant"
+          }
         >
-          <span
-            className="wa-ring pointer-events-none absolute inset-0 rounded-full bg-[#25D366]"
-            aria-hidden="true"
-          />
-
-          <span
-            className="wa-status pointer-events-none absolute -right-0.5 -top-0.5 h-4 w-4 rounded-full border-2 border-white bg-green-400 sm:h-4.5 sm:w-4.5"
-            aria-hidden="true"
-          />
-
           {isChatOpen ? (
-            <X className="relative h-7 w-7 text-white" />
+            <X className="h-6 w-6 sm:h-7 sm:w-7" />
           ) : (
-            <FaWhatsapp
-              className={`relative h-8 w-8 transition-transform duration-300 group-hover:rotate-6 sm:h-9 sm:w-9 ${
-                nudge ? "wa-wiggle" : ""
-              }`}
+            <FaWhatsapp className="h-7 w-7 sm:h-8 sm:w-8" />
+          )}
+
+          {/* Online indicator */}
+          {!isChatOpen && (
+            <span
+              className="
+                absolute
+                right-0.5
+                top-0.5
+                h-3.5
+                w-3.5
+                rounded-full
+                border-2
+                border-white
+                bg-green-500
+                wa-status-pulse
+              "
+              aria-hidden="true"
             />
           )}
         </button>
+
+        {/* Direct WhatsApp fallback */}
+        {!isChatOpen && (
+          <button
+            type="button"
+            onClick={handleQuickWhatsApp}
+            className="
+              absolute
+              -left-1
+              -top-1
+              h-5
+              w-5
+              rounded-full
+              bg-white
+              text-[#25D366]
+              shadow-md
+              transition
+              hover:scale-110
+            "
+            aria-label="Send a direct WhatsApp enquiry"
+            title="Send direct WhatsApp enquiry"
+          >
+            <Send className="mx-auto h-3 w-3" />
+          </button>
+        )}
       </div>
     </>
   );
 }
+
+export default WhatsAppFloat;
