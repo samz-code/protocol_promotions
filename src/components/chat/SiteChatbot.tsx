@@ -915,11 +915,7 @@ export default function SiteChatbot({
               className="flex shrink-0 items-center gap-2 border-t border-brand-navy/15 bg-white p-2.5"
               style={{ paddingBottom: 'max(0.625rem, env(safe-area-inset-bottom, 0px))' }}
             >
-              {/*
-                Not disabled while the bot replies: disabling a focused input closes the
-                phone keyboard and makes the whole layout jump. sendMessage() already
-                ignores submits while a reply is pending.
-              */}
+              
               <input
                 type="text"
                 value={inputMessage}
