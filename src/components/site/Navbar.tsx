@@ -479,8 +479,7 @@ function SimplePanel({
 function MobileDrawer({ onClose, onSearch }: { onClose: () => void; onSearch: () => void }) {
   const panelRef = useRef<HTMLDivElement>(null);
 
-  // Lock scroll, close on Escape, and move focus into the drawer so
-  // keyboard and screen reader users are not left behind on the page.
+
   useEffect(() => {
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
