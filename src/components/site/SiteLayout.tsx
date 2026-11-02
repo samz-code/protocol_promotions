@@ -3,8 +3,8 @@ import { useCmsBlocks } from "@/lib/cms";
 import { TopBar } from "./TopBar";
 import { Navbar } from "./Navbar";
 import { Footer } from "./Footer";
-import WhatsAppFloat from "./WhatsAppFloat";
 import SiteChatbot from "@/components/chat/SiteChatbot";
+import { FaWhatsapp } from "react-icons/fa6";
 
 /* ------------------------------------------------------------------ types */
 
@@ -45,7 +45,7 @@ export function SiteLayout({ children }: { children: ReactNode }) {
     // on the Navbar's <header> below. overflow-x-clip clips the x-axis without
     // triggering that side effect, so sticky positioning resolves against the
     // viewport again.
-    <div className="min-h-screen flex flex-col bg-background overflow-x-clip">
+    <div className="site-typography min-h-screen flex flex-col bg-background overflow-x-clip">
       {navSettings.show_top_bar && <TopBar />}
 
       {/*
@@ -60,7 +60,17 @@ export function SiteLayout({ children }: { children: ReactNode }) {
       <Footer />
 
       <SiteChatbot whatsappPhone={whatsAppSettings.enabled ? whatsAppSettings.phone_number : ""} />
-      {whatsAppSettings.enabled && <WhatsAppFloat />}
+      {whatsAppSettings.enabled && (
+        <a
+          href={`https://wa.me/${whatsAppSettings.phone_number.replace(/\D/g, "")}?text=${encodeURIComponent(whatsAppSettings.default_message)}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Open WhatsApp chat with Protocol Promotions"
+          className="fixed bottom-3 right-3 z-55 grid h-14 w-14 place-items-center rounded-full bg-[#25D366] text-white shadow-lg transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#25D366]/40 sm:bottom-5 sm:right-5 lg:bottom-6 lg:right-6 lg:h-16 lg:w-16"
+        >
+          <FaWhatsapp className="h-8 w-8" aria-hidden="true" />
+        </a>
+      )}
     </div>
   );
 }

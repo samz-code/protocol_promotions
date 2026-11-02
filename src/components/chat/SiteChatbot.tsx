@@ -1,24 +1,15 @@
-import { useCallback, useEffect, useRef, useState, type ElementType } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useLocation } from '@tanstack/react-router';
-import { useQuery } from '@tanstack/react-query';
+import { Laugh } from 'lucide-react';
 import {
   HiXMark,
   HiPaperAirplane,
   HiChatBubbleLeftEllipsis,
-  HiShieldCheck,
   HiClock,
   HiChevronLeft,
   HiPlus,
   HiTrash,
-  HiDocumentText,
-  HiGift,
-  HiSparkles,
-  HiPrinter,
-  HiTruck,
-  HiBanknotes,
-  HiQuestionMarkCircle,
 } from 'react-icons/hi2';
-import { FaWhatsapp } from 'react-icons/fa6';
 import { supabase } from '@/lib/supabase';
 import { CONSENT_EVENT, hasConsent, hasDecided } from '@/lib/consent';
 
@@ -40,13 +31,6 @@ interface Conversation {
   updated_at: string;
 }
 
-interface QuickAction {
-  id: string;
-  label: string;
-  query: string;
-  icon_key: string;
-}
-
 interface SiteChatbotProps {
   organizationName?: string;
   agentAvatar?: string;
@@ -59,32 +43,15 @@ interface SiteChatbotProps {
 ---------------------------------------------------------------- */
 
 const GUEST_STORAGE_KEY = 'protocol_guest_chat';
-const CONTACT_PHONE = '+254 762 446 077';
-const CONTACT_PHONE_LINK = '+254762446077';
-const CONTACT_EMAIL = 'protocolpromotions@gmail.com';
 const MAX_HISTORY_FOR_AI = 20;
 
 // The chat is for public pages only.
 const HIDDEN_PREFIXES = ['/admin', '/dashboard', '/login', '/register', '/forgot-password'];
 
-const ICONS: Record<string, ElementType> = {
-  quote: HiDocumentText,
-  gift: HiGift,
-  apparel: HiSparkles,
-  print: HiPrinter,
-  delivery: HiTruck,
-  proof: HiShieldCheck,
-  price: HiBanknotes,
-  help: HiQuestionMarkCircle,
-};
-
 const welcomeMessage = (organizationName: string): Message => ({
   id: `welcome-${Date.now()}`,
   sender: 'bot',
-  text:
-    `Karibu! Welcome to ${organizationName}.\n\n` +
-    `Tell me what you need branded or printed and I can point you to the right products, ` +
-    `explain branding methods and timelines, and walk you through how ordering works.`,
+  text: `Hi! Welcome to ${organizationName}. How can we help you today?`,
   timestamp: new Date().toISOString(),
 });
 
@@ -151,16 +118,6 @@ function loadGuestMessages(organizationName: string): Message[] {
 /* ---------------------------------------------------------------
    Supabase helpers
 ---------------------------------------------------------------- */
-
-async function fetchQuickActions(): Promise<QuickAction[]> {
-  const { data, error } = await supabase
-    .from('chat_quick_actions')
-    .select('id, label, query, icon_key')
-    .eq('is_active', true)
-    .order('sort_order', { ascending: true });
-  if (error) throw error;
-  return (data ?? []) as QuickAction[];
-}
 
 async function loadConversations(customerId: string): Promise<Conversation[]> {
   const { data, error } = await supabase
@@ -230,13 +187,6 @@ export default function SiteChatbot({
   const initKeyRef = useRef<string | null>(null);
 
   const cleanPhone = whatsappPhone.replace(/\D/g, '');
-
-  const { data: quickActions = [] } = useQuery({
-    queryKey: ['chat-quick-actions'],
-    queryFn: fetchQuickActions,
-    enabled: isOpen,
-    staleTime: 10 * 60 * 1000,
-  });
 
   /* Close the chat if the visitor navigates into a hidden area. */
   useEffect(() => {
@@ -608,12 +558,6 @@ export default function SiteChatbot({
     await fetchAIResponse(updatedHistory, userId ? currentConversationId : null);
   };
 
-  const openWhatsApp = () => {
-    if (!cleanPhone) return;
-    const text = encodeURIComponent(`Hi ${organizationName}, I would like help with a branding or printing order.`);
-    window.open(`https://wa.me/${cleanPhone}?text=${text}`, '_blank', 'noopener,noreferrer');
-  };
-
   /* -------------------------------------------------------------
      Message formatting: bullets, **bold** and *italic* only
   ------------------------------------------------------------- */
@@ -651,8 +595,6 @@ export default function SiteChatbot({
   if (hiddenRoute) return null;
 
   const launcherHidden = consentPending && !isOpen;
-  const hasUserMessage = messages.some((m) => m.sender === 'user');
-
   /*
    * The outer wrapper must never carry a transform (translate, scale, etc.).
    * A transformed ancestor becomes the containing block for `position: fixed`
@@ -664,7 +606,7 @@ export default function SiteChatbot({
       className="fixed bottom-3 left-3 z-55 font-sans sm:bottom-5 sm:left-5 lg:bottom-6 lg:left-6"
       style={{
         paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-        paddingLeft: 'env(safe-area-inset-left, 0px)',
+        paddingRight: 'env(safe-area-inset-right, 0px)',
       }}
     >
       {/* Chat window: full-screen sheet on phones, floating panel from sm up */}
@@ -690,13 +632,12 @@ export default function SiteChatbot({
               <img
                 src={agentAvatar}
                 alt=""
-                className="h-9 w-9 border border-white/20 bg-white object-contain p-0.5 sm:h-10 sm:w-10"
+                className="h-10 w-10 rounded-full border border-white/25 bg-white object-contain p-1 sm:h-11 sm:w-11"
               />
-              <span className="absolute bottom-0 right-0 h-2.5 w-2.5 border-2 border-brand-navy bg-emerald-400" />
+              <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-brand-navy bg-emerald-400" />
             </div>
             <div className="min-w-0">
-              <h3 className="truncate text-sm font-semibold">Protocol Promotion Assistant</h3>
-              <p className="mt-0.5 truncate text-[11px] text-white/60">Printing and branding assistant</p>
+              <h3 className="truncate text-sm font-semibold">Protocol Assistant</h3>
             </div>
           </div>
 
@@ -810,13 +751,6 @@ export default function SiteChatbot({
                 </div>
               ) : (
                 <>
-                  <div className="mb-4 text-center">
-                    <span className="inline-flex items-center gap-1.5 border border-brand-navy/15 bg-white px-2.5 py-1 text-[10px] text-gray-600">
-                      <HiShieldCheck size={12} />
-                      {userId ? 'Saved to your account' : 'Private conversation'}
-                    </span>
-                  </div>
-
                   <div className="space-y-4">
                     {messages.map((msg) => (
                       <div key={msg.id} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
@@ -851,59 +785,6 @@ export default function SiteChatbot({
                   </div>
                 </>
               )}
-            </div>
-
-            {/* Quick actions: only before the first question, so they stop eating space on phones */}
-            {quickActions.length > 0 && !hasUserMessage && (
-              <div className="shrink-0 border-t border-brand-navy/10 bg-white px-3 py-2.5">
-                <div className="-mx-3 flex snap-x snap-mandatory gap-2 overflow-x-auto px-3 scrollbar-none sm:mx-0 sm:px-0 [&::-webkit-scrollbar]:hidden">
-                  {quickActions.map((action) => {
-                    const Icon = ICONS[action.icon_key] ?? HiChatBubbleLeftEllipsis;
-                    return (
-                      <button
-                        key={action.id}
-                        type="button"
-                        disabled={isTyping || isLoadingConversation}
-                        onClick={() => void sendMessage(action.query)}
-                        className="flex shrink-0 snap-start items-center gap-1.5 border border-brand-navy/20 bg-white px-3 py-2 text-[11px] font-medium text-black transition hover:border-brand-navy hover:bg-brand-navy hover:text-white disabled:opacity-40"
-                      >
-                        <Icon size={13} />
-                        {action.label}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* WhatsApp handoff, shown only when a number is configured */}
-            {cleanPhone && (
-              <div className="flex shrink-0 items-center justify-between gap-3 border-t border-emerald-200 bg-emerald-50 px-3.5 py-2">
-                <div className="flex min-w-0 items-center gap-2">
-                  <HiShieldCheck className="shrink-0 text-emerald-600" size={16} />
-                  <span className="truncate text-[11px] text-emerald-800">Want to speak with our team?</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={openWhatsApp}
-                  className="flex shrink-0 items-center gap-1.5 text-[11px] font-semibold text-emerald-700 hover:text-emerald-900"
-                >
-                  <FaWhatsapp size={14} />
-                  WhatsApp
-                </button>
-              </div>
-            )}
-
-            {/* Contact: one short line on phones, full details from sm up */}
-            <div className="flex shrink-0 items-center justify-between gap-3 border-t border-brand-navy/10 bg-white px-3.5 py-1.5 text-[10px]">
-              <a href={`tel:${CONTACT_PHONE_LINK}`} className="font-medium text-black hover:text-brand-orange">
-                <span className="sm:hidden">Call us</span>
-                <span className="hidden sm:inline">Call {CONTACT_PHONE}</span>
-              </a>
-              <a href={`mailto:${CONTACT_EMAIL}`} className="min-w-0 truncate font-medium text-black hover:text-brand-orange">
-                <span className="sm:hidden">Email us</span>
-                <span className="hidden sm:inline">{CONTACT_EMAIL}</span>
-              </a>
             </div>
 
             {/* Input */}
@@ -960,11 +841,15 @@ export default function SiteChatbot({
           aria-label={isOpen ? 'Close chat' : 'Open chat'}
           aria-expanded={isOpen}
           tabIndex={launcherHidden ? -1 : 0}
-          className={`h-14 w-14 items-center justify-center bg-brand-navy text-white shadow-[0_10px_30px_rgba(15,23,42,0.25)] transition-colors hover:bg-brand-orange active:scale-95 lg:h-16 lg:w-16 ${
+          className={`group relative items-center gap-3 rounded-full border border-brand-navy/10 bg-white p-1.5 pr-5 font-semibold text-brand-navy shadow-[0_10px_30px_rgba(15,23,42,0.2)] transition-all hover:-translate-y-0.5 hover:border-brand-orange/50 hover:shadow-lg active:scale-95 ${
             isOpen ? 'hidden sm:flex' : 'flex'
           }`}
         >
-          {isOpen ? <HiXMark size={23} /> : <HiChatBubbleLeftEllipsis size={25} />}
+          <span className="relative grid h-12 w-12 shrink-0 place-items-center rounded-full bg-brand-navy text-white lg:h-14 lg:w-14">
+            <span className="absolute inset-0 rounded-full bg-brand-orange/30 motion-safe:animate-ping" aria-hidden="true" />
+            {isOpen ? <HiXMark className="relative z-10" size={23} /> : <Laugh className="relative z-10 h-6 w-6" aria-hidden="true" />}
+          </span>
+          <span className="whitespace-nowrap text-sm font-bold">Chat with me</span>
         </button>
       </div>
     </div>

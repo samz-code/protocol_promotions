@@ -3,9 +3,10 @@ import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-r
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { SiteLayout, PageHeader } from "@/components/site/SiteLayout";
+import { QuickAdd } from "@/components/site/storefront";
 import {
   Filter, Shirt, Printer, MonitorSmartphone, Gift, Package, Palette,
-  Star, ArrowRight, X, Truck, Layers, SearchX, AlertCircle,
+  Star, X, Truck, Layers, SearchX, AlertCircle,
   HelpCircle, CheckCircle2, ShoppingBag, Percent, Coins,
   PenTool,
   Footprints, HardHat, Watch, Glasses, Umbrella, FileText,
@@ -15,7 +16,7 @@ import {
   Medal, Cake, Box, Briefcase, Backpack, Luggage,
   Archive, Laptop, Headphones, Keyboard, Mouse, BatteryCharging,
   Usb, Calculator, Paintbrush, Scissors, Ruler, Hammer,
-  Wrench, Sparkles, Car, Bike, Tent, TreePine,
+  Wrench, Car, Bike, Tent, TreePine,
   Sun, Building2, Store, Factory, Users, Handshake,
   BadgeCheck, Tag, ChevronRight, LayoutGrid
 } from "lucide-react";
@@ -48,7 +49,7 @@ const CATEGORY_ICONS: Record<string, typeof Shirt> = {
   Award, Trophy, Medal, Cake, ShoppingBag, Package, Box, Briefcase, Backpack,
   Luggage, Archive, MonitorSmartphone, Laptop, Headphones, Keyboard, Mouse,
   BatteryCharging, Usb, Calculator, Palette, PenTool, Paintbrush, Scissors,
-  Ruler, Hammer, Wrench, Sparkles, Car, Truck, Bike, Tent, TreePine, Sun,
+  Ruler, Hammer, Wrench, Car, Truck, Bike, Tent, TreePine, Sun,
   Building2, Store, Factory, Users, Handshake, BadgeCheck, Percent, Tag,
 };
 
@@ -235,8 +236,8 @@ function ShopPage() {
           />
         )}
 
-        <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-          <div className="lg:hidden mb-4">
+        <section className="w-full px-4 py-6 sm:px-5 sm:py-8 lg:px-6 xl:px-8">
+          <div className="mb-4 xl:hidden">
             <button
               type="button"
               onClick={() => setMobileFiltersOpen(true)}
@@ -246,12 +247,12 @@ function ShopPage() {
             </button>
           </div>
 
-          <div className="grid items-start gap-6 lg:grid-cols-[220px_1fr] xl:grid-cols-[240px_1fr]">
+          <div className="grid items-start gap-5 xl:grid-cols-[240px_minmax(0,1fr)] xl:gap-6">
             <aside className={`
-              space-y-6 fixed inset-y-0 left-0 z-50 w-full max-w-xs transform overflow-y-auto bg-white p-5 shadow-xl transition-transform duration-300 lg:sticky lg:top-4 lg:z-0 lg:max-h-[calc(100vh-2rem)] lg:w-auto lg:translate-x-0 lg:p-0 lg:shadow-none lg:bg-transparent
+              space-y-6 fixed inset-y-0 left-0 z-50 w-full max-w-xs transform overflow-y-auto bg-white p-5 shadow-xl transition-transform duration-300 xl:sticky xl:top-4 xl:z-0 xl:max-h-[calc(100vh-2rem)] xl:w-auto xl:translate-x-0 xl:p-0 xl:shadow-none xl:bg-transparent
               ${mobileFiltersOpen ? "translate-x-0" : "-translate-x-full"}
             `}>
-              <div className="flex items-center justify-between pb-3 lg:pb-0 border-b border-brand-navy/10 lg:border-none">
+              <div className="flex items-center justify-between border-b border-brand-navy/10 pb-3 xl:border-none xl:pb-0">
                 <div className="flex items-center gap-1.5 text-xs font-bold text-brand-navy uppercase tracking-wider">
                   <Filter className="h-3.5 w-3.5 text-brand-navy/60 shrink-0" /> Filter Options
                 </div>
@@ -268,7 +269,7 @@ function ShopPage() {
                   <button
                     type="button"
                     onClick={() => setMobileFiltersOpen(false)}
-                    className="lg:hidden text-brand-navy p-1 rounded hover:bg-brand-surface"
+                    className="rounded p-1 text-brand-navy hover:bg-brand-surface xl:hidden"
                   >
                     <X className="h-4 w-4" />
                   </button>
@@ -350,7 +351,7 @@ function ShopPage() {
 
             {mobileFiltersOpen && (
               <div
-                className="fixed inset-0 z-40 bg-brand-navy/40 backdrop-blur-xs lg:hidden"
+                className="fixed inset-0 z-40 bg-brand-navy/40 backdrop-blur-xs xl:hidden"
                 onClick={() => setMobileFiltersOpen(false)}
               />
             )}
@@ -402,7 +403,7 @@ function ShopPage() {
               ) : results.length === 0 ? (
                 <EmptyState onClear={clearAll} />
               ) : (
-                <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 xl:grid-cols-4">
                   {results.map((p) => (
                     <ProductCard key={p.id} product={p} />
                   ))}
@@ -423,72 +424,79 @@ function ProductCard({ product }: { product: Product }) {
   const discount = onSale ? Math.round(((product.compare_at_price! - product.price) / product.compare_at_price!) * 100) : null;
 
   return (
-    <Link
-      to="/shop/$slug"
-      params={{ slug: product.slug }}
-      className="group flex flex-col rounded-xl border border-brand-navy/10 bg-white overflow-hidden transition-all duration-300 hover:border-brand-navy/25 hover:shadow-lg hover:-translate-y-1"
-    >
-      {/* Product Image Container with Internal Padding so items do not touch edges */}
-      <div className="relative aspect-4/3 bg-brand-surface/40 p-4 flex items-center justify-center overflow-hidden">
+    <article className="group flex h-full min-w-0 flex-col overflow-hidden rounded-2xl border border-brand-navy/10 bg-white transition-all duration-300 hover:-translate-y-1 hover:border-brand-navy/25 hover:shadow-lg">
+      <Link
+        to="/shop/$slug"
+        params={{ slug: product.slug }}
+        className="relative flex aspect-square items-center justify-center overflow-hidden bg-brand-surface/50 p-2.5 sm:p-4"
+        aria-label={`View ${product.name}`}
+      >
         {hasImage ? (
           <img
             src={product.images[0]}
             alt={product.name}
-            className="h-full w-full object-contain transition-transform duration-500 group-hover:scale-105 drop-shadow-xs"
+            width={600}
+            height={600}
+            className="h-full w-full object-contain drop-shadow-xs transition-transform duration-500 group-hover:scale-105"
             loading="lazy"
           />
         ) : (
-          <Icon className="h-10 w-10 text-brand-navy/20" />
+          <Icon className="h-12 w-12 text-brand-navy/20 sm:h-16 sm:w-16" />
         )}
 
         {product.badge && (
-          <span className="absolute top-2 left-2 rounded bg-brand-navy/90 backdrop-blur-xs px-2 py-0.5 text-[8px] font-bold uppercase tracking-wider text-white">
+          <span className="absolute left-2 top-2 max-w-[65%] truncate rounded-full bg-brand-navy/90 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-white backdrop-blur-xs sm:left-3 sm:top-3 sm:text-xs">
             {product.badge}
           </span>
         )}
         {discount !== null && (
-          <span className="absolute top-2 right-2 rounded bg-brand-orange px-2 py-0.5 text-[8px] font-extrabold tracking-wider text-white">
-            SAVE {discount}%
+          <span className="absolute right-2 top-2 rounded-full bg-brand-orange px-2 py-1 text-[10px] font-extrabold tracking-wide text-white sm:right-3 sm:top-3 sm:text-xs">
+            -{discount}%
           </span>
         )}
-      </div>
+      </Link>
 
-      <div className="flex flex-1 flex-col p-3.5 min-w-0">
+      <div className="flex min-w-0 flex-1 flex-col p-3 sm:p-4">
         {product.categories && (
-          <span className="text-[9px] font-bold uppercase tracking-wider text-brand-orange truncate block">
+          <span className="block truncate text-[11px] font-bold uppercase tracking-wide text-brand-orange sm:text-xs">
             {product.categories.name}
           </span>
         )}
 
-        <h3 className="mt-1 text-xs font-bold leading-snug text-brand-navy transition-colors line-clamp-2 group-hover:text-brand-orange">
+        <Link
+          to="/shop/$slug"
+          params={{ slug: product.slug }}
+          className="mt-1 line-clamp-2 min-h-10 text-sm font-bold leading-snug text-brand-navy transition-colors group-hover:text-brand-orange sm:text-base"
+        >
           {product.name}
-        </h3>
+        </Link>
 
-        <div className="mt-2 flex items-center gap-1.5 text-[10px] text-brand-navy/60">
-          <span className="inline-flex items-center gap-0.5 font-bold text-brand-navy">
-            <Star className="h-3 w-3 fill-brand-orange text-brand-orange shrink-0" />
+        <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-brand-navy/70">
+          <span className="inline-flex items-center gap-1 font-bold text-brand-navy">
+            <Star className="h-3.5 w-3.5 shrink-0 fill-brand-orange text-brand-orange" />
             {product.rating > 0 ? product.rating.toFixed(1) : "New"}
           </span>
-          <span>•</span>
           <span>MOQ: {product.moq}</span>
         </div>
 
-        <div className="mt-auto pt-3 border-t border-brand-navy/5 flex items-center justify-between gap-1">
+        <div className="mt-auto border-t border-brand-navy/5 pt-3">
           <div>
-            <span className="text-[8px] font-semibold uppercase tracking-wider text-brand-navy/40 block">From</span>
-            <div className="flex items-baseline gap-1">
-              <span className="text-sm font-extrabold text-brand-navy">{KSH.format(product.price)}</span>
+            <span className="block text-[11px] font-semibold uppercase tracking-wide text-brand-navy/55">From</span>
+            <div className="flex flex-wrap items-baseline gap-x-2">
+              <span className="text-base font-extrabold text-brand-navy sm:text-lg">{KSH.format(product.price)}</span>
               {onSale && (
-                <span className="text-[10px] text-brand-navy/35 line-through">{KSH.format(product.compare_at_price!)}</span>
+                <span className="text-xs text-brand-navy/45 line-through sm:text-sm">{KSH.format(product.compare_at_price!)}</span>
               )}
             </div>
           </div>
-          <span className="inline-flex items-center gap-1 rounded-md bg-brand-surface px-2.5 py-1 text-[11px] font-bold text-brand-navy group-hover:bg-brand-navy group-hover:text-white transition-colors">
-            Shop <ArrowRight className="h-3 w-3" />
-          </span>
+          <QuickAdd
+            product={product}
+            className="mt-3 w-full"
+            solid
+          />
         </div>
       </div>
-    </Link>
+    </article>
   );
 }
 
@@ -583,10 +591,10 @@ function FilterGroup({ title, icon: IconComponent, items, selected, onToggle }: 
 
 function GridSkeleton() {
   return (
-    <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+    <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 xl:grid-cols-4">
       {Array.from({ length: 8 }).map((_, i) => (
         <div key={i} className="rounded-xl border border-brand-navy/10 bg-white overflow-hidden p-3 space-y-3">
-          <div className="aspect-4/3 bg-brand-surface animate-pulse rounded-lg" />
+          <div className="aspect-square bg-brand-surface animate-pulse rounded-lg" />
           <div className="h-3 w-1/3 bg-brand-surface animate-pulse rounded" />
           <div className="h-4 w-2/3 bg-brand-surface animate-pulse rounded" />
         </div>

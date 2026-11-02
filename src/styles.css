@@ -153,6 +153,31 @@
   --sidebar-ring: oklch(0.744 0.167 59.5);
 }
 
+.footer-pattern {
+  background-image:
+    linear-gradient(rgb(120 49 144 / 96%), rgb(120 49 144 / 96%)),
+    url("/pattern.webp");
+  background-position: center, center;
+  background-repeat: no-repeat, repeat;
+  background-size: auto, 420px auto;
+}
+
+.site-typography {
+  --text-xs: 0.8125rem;
+  --text-sm: 0.9375rem;
+  --text-base: 1.0625rem;
+  --text-lg: 1.1875rem;
+  --text-xl: 1.3125rem;
+  --text-2xl: 1.5625rem;
+  --text-3xl: 1.9375rem;
+  --text-4xl: 2.4375rem;
+  --text-5xl: 3.0625rem;
+  --text-6xl: 3.8125rem;
+  --text-7xl: 4.5625rem;
+  --text-8xl: 6.0625rem;
+  --text-9xl: 8.0625rem;
+}
+
 @layer base {
   * {
     border-color: var(--color-border);

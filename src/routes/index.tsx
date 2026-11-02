@@ -1,6 +1,9 @@
 import { useState, useEffect, useRef } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { SiteLayout } from "@/components/site/SiteLayout";
+import { ClientReviews } from "@/components/site/ClientReviews";
+import { PromotionalBannerCarousel } from "@/components/site/PromotionalBannerCarousel";
 import { Preloader, shouldSplash } from "@/components/site/Preloader";
 import {
   CartDrawerProvider,
@@ -11,9 +14,9 @@ import {
   useNewestProducts,
 } from "@/components/site/storefront";
 import { useCmsBlocks, getCmsString } from "@/lib/cms";
+import { fetchTrustedCompanies } from "@/lib/trustedCompanies";
 import {
   ArrowRight,
-  Star,
   Building2,
   GraduationCap,
   Stethoscope,
@@ -29,7 +32,6 @@ import {
   Flame,
   Layers,
   Scissors,
-  Sparkles,
   Paintbrush,
   FileSignature,
   Truck,
@@ -63,6 +65,7 @@ function Index() {
       {ready ? (
         <SiteLayout>
           <MotionStyles />
+          <PromotionalBannerCarousel />
           <Statement />
           <Showcase />
           <FeaturedProducts />
@@ -71,7 +74,7 @@ function Index() {
           <Process />
           <Argument />
           <Sectors />
-          <Reviews />
+          <ClientReviews />
           <LogoMarquee />
           <Close />
         </SiteLayout>
@@ -83,8 +86,6 @@ function Index() {
 /* ================================================================
    Shared & Global Configurations
    ================================================================ */
-
-const LOGOS = ["monawanka.png", "protocol.png", "kazilab.png", "safaricom.png", "Samsung.png"];
 
 const HERO_STATS: { value: string; label: string }[] = [];
 
@@ -349,14 +350,31 @@ function DotField({
    ================================================================ */
 
 function LogoMarquee() {
+  const { data: companies = [], isLoading, isError } = useQuery({
+    queryKey: ["trusted-companies"],
+    queryFn: fetchTrustedCompanies,
+    staleTime: 5 * 60 * 1000,
+  });
+  const visibleCompanies = companies.filter((company) => company.is_active);
+
+  if (isLoading || (!isError && visibleCompanies.length === 0)) return null;
+
+  if (isError) {
+    return (
+      <p role="status" className="border-y border-brand-navy/10 bg-white px-4 py-6 text-center text-sm text-brand-navy/60">
+        Partner logos are unavailable right now.
+      </p>
+    );
+  }
+
   return (
     <div className="relative w-full overflow-hidden border-y border-brand-navy/12 bg-white py-12">
       <div className="pointer-events-none absolute inset-0 opacity-[0.55]">
         <DotField className="pp-mask-fade-center opacity-30" />
       </div>
 
-      <p className="relative mb-18 text-center text-[10px] font-bold uppercase tracking-[0.3em] text-brand-navy/35">
-        Trusted by industry leaders
+      <p className="relative mb-10 text-center text-[10px] font-bold uppercase tracking-[0.3em] text-brand-navy/50 sm:text-xs">
+        Partners &amp; trusted companies
       </p>
 
       <div className="relative">
@@ -367,20 +385,26 @@ function LogoMarquee() {
           className="pp-track flex w-max gap-16 px-8"
           style={{ ["--pp-speed" as string]: "34s" }}
         >
-          {[...LOGOS, ...LOGOS].map((fileName, i) => (
-            <div
-              key={i}
-              className="flex h-16 w-36 shrink-0 items-center justify-center sm:h-20 sm:w-48"
-            >
+          {[...visibleCompanies, ...visibleCompanies].map((company, index) => {
+            const logo = (
               <img
-                src={`/${fileName}`}
-                alt="Client logo"
+                src={company.image_url}
+                alt={company.name}
                 loading="lazy"
                 decoding="async"
-                className="max-h-full w-auto object-contain"
+                className="max-h-full max-w-full object-contain"
               />
-            </div>
-          ))}
+            );
+            return (
+              <div key={`${company.id}-${index}`} className="flex h-16 w-36 shrink-0 items-center justify-center sm:h-20 sm:w-48">
+                {company.href ? (
+                  <a href={company.href} target="_blank" rel="noopener noreferrer" aria-label={company.name}>
+                    {logo}
+                  </a>
+                ) : logo}
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>
@@ -435,7 +459,7 @@ const OFFERINGS = [
     color: "bg-[#783190]",
   },
   {
-    icon: Sparkles,
+    icon: Paintbrush,
     title: "Specialty Finishing & Cut",
     desc: "Laser cutting, embossing, soft-touch lamination, custom die-cutting, and edge gilding.",
     color: "bg-[#de166a]",
@@ -728,7 +752,7 @@ const TECHNIQUES = [
   },
   {
     name: "UV and DTF printing",
-    icon: Sparkles,
+    icon: Printer,
     best: "Bottles, pens, hard surfaces",
     detail: "Cures instantly on curved and coated substrates. Small runs stay viable.",
   },
@@ -1065,325 +1089,6 @@ function Sectors() {
               );
             })}
           </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* ================================================================
-   Reviews
-   ================================================================ */
-
-const GOOGLE_REVIEWS_URL =
-  "https://www.google.com/maps/place/Protocol+Promotions+Ltd./@-1.2803404,36.8252491,1189m/data=!3m2!1e3!4b1!4m6!3m5!1s0x182f11a67bb07663:0x5b54221b99d2823f!8m2!3d-1.2803404!4d36.8252491?hl=en";
-
-type Review = { name: string; meta: string; body: string };
-
-const REVIEWS: Review[] = [
-  {
-    name: "Lynn Ngina",
-    meta: "1 review",
-    body: "Really appreciated the work of the team at Protocol. They are very effective and reliable. They have a great selection of products and merchandise that are delivered with good customer service. Would definitely recommend them.",
-  },
-  {
-    name: "Muthii The Voice",
-    meta: "Local Guide, 41 reviews",
-    body: "Very resourceful suppliers when it comes to promotional merchandise. Keep at it.",
-  },
-  {
-    name: "Fedinard Kitheka",
-    meta: "1 review",
-    body: "Unique products, good customer service and quality branding. My all time first priority shop in merchandise and branding.",
-  },
-  {
-    name: "Dane Waithaka",
-    meta: "6 reviews",
-    body: "Protocol team is very efficient, consistent and observes time frames. They deliver products and branding. Customer care is good. I would recommend them any time of the season.",
-  },
-  {
-    name: "Dynamic Vector",
-    meta: "3 reviews",
-    body: "High quality products, great customer service. Definitely a one-stop shop for all branding items.",
-  },
-  {
-    name: "Racheal Njeri",
-    meta: "1 review",
-    body: "Very professional team. If you ever need gift ideas, especially branded items, this is your go-to vendor. They always understand the assignment.",
-  },
-  {
-    name: "John Wakairi",
-    meta: "2 reviews",
-    body: "Great stuff. Quality branding, up to date technology in practice. Keep up the good work.",
-  },
-];
-
-function GoogleIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" width="100%" height="100%" aria-hidden="true">
-      <path
-        fill="#4285F4"
-        d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v3.92h6.61c-.29 1.5-1.14 2.77-2.4 3.61v3h3.86c2.26-2.09 3.67-5.17 3.67-8.46z"
-      />
-      <path
-        fill="#34A853"
-        d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.86-3c-1.08.72-2.45 1.16-4.07 1.16-3.13 0-5.78-2.11-6.73-4.96H1.29v3.01C3.26 21.3 7.37 24 12 24z"
-      />
-      <path
-        fill="#FBBC05"
-        d="M5.27 14.29c-.25-.72-.38-1.49-.38-2.29s.14-1.57.38-2.29V6.7H1.29C.47 8.32 0 10.11 0 12s.47 3.68 1.29 5.3l3.98-3.01z"
-      />
-      <path
-        fill="#EA4335"
-        d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.37 0 3.26 2.7 1.29 6.7l3.98 3.01c.95-2.85 3.6-4.96 6.73-4.96z"
-      />
-    </svg>
-  );
-}
-
-function StarPicker({ value, onChange }: { value: number; onChange: (n: number) => void }) {
-  return (
-    <div className="flex gap-1">
-      {Array.from({ length: 5 }).map((_, i) => {
-        const n = i + 1;
-        return (
-          <button
-            key={n}
-            type="button"
-            aria-label={`${n} star${n > 1 ? "s" : ""}`}
-            onClick={() => onChange(n)}
-            className="p-0.5"
-          >
-            <Star
-              className={`h-5 w-5 transition-colors ${
-                n <= value ? "fill-brand-orange text-brand-orange" : "fill-none text-brand-navy/25"
-              }`}
-            />
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
-function WriteReview({ onSubmit }: { onSubmit: (r: Review & { rating: number }) => void }) {
-  const [name, setName] = useState("");
-  const [body, setBody] = useState("");
-  const [rating, setRating] = useState(5);
-  const [submitted, setSubmitted] = useState(false);
-
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!name.trim() || !body.trim()) return;
-    onSubmit({ name: name.trim(), meta: "New review", body: body.trim(), rating });
-    setName("");
-    setBody("");
-    setRating(5);
-    setSubmitted(true);
-    setTimeout(() => setSubmitted(false), 3000);
-  }
-
-  return (
-    <form
-      onSubmit={handleSubmit}
-      className="border border-brand-navy/12 bg-white p-5 sm:p-6"
-    >
-      <h3 className="text-lg font-extrabold text-brand-navy">Write a review</h3>
-      <p className="mt-1 text-sm text-brand-navy/55">
-        Share your experience working with us.
-      </p>
-
-      <div className="mt-4 grid gap-4">
-        <div>
-          <label htmlFor="reviewer-name" className="mb-1 block text-xs font-bold uppercase tracking-wide text-brand-navy/60">
-            Your name
-          </label>
-          <input
-            id="reviewer-name"
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Emoni Samuel"
-            className="w-full border border-brand-navy/20 px-3 py-2 text-sm text-brand-navy outline-none focus:border-brand-navy"
-            required
-          />
-        </div>
-
-        <div>
-          <span className="mb-1 block text-xs font-bold uppercase tracking-wide text-brand-navy/60">
-            Rating
-          </span>
-          <StarPicker value={rating} onChange={setRating} />
-        </div>
-
-        <div>
-          <label htmlFor="reviewer-body" className="mb-1 block text-xs font-bold uppercase tracking-wide text-brand-navy/60">
-            Your review
-          </label>
-          <textarea
-            id="reviewer-body"
-            value={body}
-            onChange={(e) => setBody(e.target.value)}
-            placeholder="Tell us what you thought..."
-            rows={4}
-            className="w-full resize-none border border-brand-navy/20 px-3 py-2 text-sm text-brand-navy outline-none focus:border-brand-navy"
-            required
-          />
-        </div>
-
-        <button
-          type="submit"
-          className="inline-flex items-center justify-center gap-1.5 bg-brand-navy px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-brand-orange"
-        >
-          Submit review
-        </button>
-
-        {submitted && (
-          <p className="text-sm font-medium text-brand-orange">Thanks-your review was added below!</p>
-        )}
-      </div>
-    </form>
-  );
-}
-
-function SubmittedReviews({ reviews }: { reviews: (Review & { rating: number })[] }) {
-  if (reviews.length === 0) return null;
-
-  return (
-    <div>
-      <h3 className="text-lg font-extrabold text-brand-navy">Recently submitted</h3>
-      <div className="mt-4 grid gap-4 sm:grid-cols-2">
-        {reviews.map((r, i) => {
-          const initial = r.name.charAt(0);
-          return (
-            <figure
-              key={`${r.name}-${i}`}
-              className="border border-brand-navy/12 bg-white p-5"
-            >
-              <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center bg-brand-navy text-sm font-bold uppercase text-white">
-                  {initial}
-                </div>
-                <div>
-                  <figcaption className="text-sm font-bold text-brand-navy">{r.name}</figcaption>
-                  <div className="text-[11px] text-brand-navy/50">{r.meta}</div>
-                </div>
-              </div>
-
-              <div className="mt-3 flex gap-0.5 text-brand-orange">
-                {Array.from({ length: 5 }).map((_, s) => (
-                  <Star
-                    key={s}
-                    className={`h-3.5 w-3.5 ${s < r.rating ? "fill-current" : "fill-none text-brand-navy/25"}`}
-                  />
-                ))}
-              </div>
-
-              <blockquote className="mt-3 text-sm leading-relaxed text-brand-navy/75">
-                {r.body}
-              </blockquote>
-            </figure>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-function Reviews() {
-  const [userReviews, setUserReviews] = useState<(Review & { rating: number })[]>([]);
-
-  const loop = [...userReviews, ...REVIEWS, ...userReviews, ...REVIEWS];
-
-  return (
-    <section className="relative overflow-hidden border-b border-brand-navy bg-brand-surface">
-      <DotField className="pp-mask-fade-center opacity-20" />
-
-      <div className="mx-auto w-full max-w-360 lg:px-10 relative px-5 pt-12 sm:px-6 sm:pt-14 md:pt-16">
-        <Reveal>
-          <div className="flex flex-wrap items-end justify-between gap-4 border-b border-brand-navy/12 pb-5 sm:gap-6">
-            <div className="flex items-start gap-4">
-              <div className="mt-1 flex h-10 w-10 shrink-0 items-center justify-center border border-brand-navy/15 bg-white p-2">
-                <GoogleIcon />
-              </div>
-              <div>
-                <h2 className="text-2xl font-extrabold tracking-tight text-brand-navy sm:text-3xl md:text-[2.6rem] md:leading-[1.08]">
-                  What clients say on Google
-                </h2>
-                <div className="mt-2 flex items-center gap-2">
-                  <div className="flex gap-0.5 text-brand-orange">
-                    {Array.from({ length: 5 }).map((_, i) => (
-                      <Star key={i} className="h-4 w-4 fill-current" />
-                    ))}
-                  </div>
-                  <span className="text-sm font-bold tabular-nums text-brand-navy">5.0</span>
-                  <span className="text-sm text-brand-navy/55">verified listing metrics</span>
-                </div>
-              </div>
-            </div>
-
-            <a
-              href={GOOGLE_REVIEWS_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="group inline-flex items-center gap-1.5 text-sm font-bold text-brand-navy transition-colors hover:text-brand-orange"
-            >
-              <span className="pp-underline">Read them on Google</span>
-              <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
-            </a>
-          </div>
-        </Reveal>
-      </div>
-
-      <div className="relative mt-8 overflow-hidden pb-14 sm:mt-10 sm:pb-14 md:pb-16">
-        <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-12 bg-linear-to-r from-brand-surface to-transparent sm:w-24" />
-        <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-12 bg-linear-to-l from-brand-surface to-transparent sm:w-24" />
-
-        <div
-          className="pp-track flex w-max gap-4 px-5 sm:gap-5 sm:px-6"
-          style={{ ["--pp-speed" as string]: "64s" }}
-        >
-          {loop.map((r, i) => {
-            const initial = r.name.charAt(0);
-            return (
-              <figure
-                key={`${r.name}-${i}`}
-                aria-hidden={i >= REVIEWS.length + userReviews.length}
-                className="relative w-68 shrink-0 border border-brand-navy/12 bg-white p-5 transition-all duration-300 hover:-translate-y-1 hover:border-brand-navy hover:shadow-[8px_8px_0_0_var(--color-brand-navy)] sm:w-80 sm:p-6"
-              >
-                <div className="absolute right-5 top-5 hidden h-4 w-4 opacity-30 sm:block">
-                  <GoogleIcon />
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <div className="flex h-9 w-9 items-center justify-center bg-brand-navy text-sm font-bold uppercase text-white">
-                    {initial}
-                  </div>
-                  <div>
-                    <figcaption className="text-sm font-bold text-brand-navy">{r.name}</figcaption>
-                    <div className="text-[11px] text-brand-navy/50">{r.meta}</div>
-                  </div>
-                </div>
-
-                <div className="mt-4 flex gap-0.5 text-brand-orange">
-                  {Array.from({ length: 5 }).map((_, s) => (
-                    <Star key={s} className="h-3.5 w-3.5 fill-current" />
-                  ))}
-                </div>
-
-                <blockquote className="mt-3 text-sm leading-relaxed text-brand-navy/75">
-                  {r.body}
-                </blockquote>
-              </figure>
-            );
-          })}
-        </div>
-      </div>
-
-      <div className="mx-auto w-full max-w-360 lg:px-10 relative px-5 pb-14 sm:px-6 sm:pb-14 md:pb-16">
-        <div className="grid gap-8 lg:grid-cols-2 lg:items-start">
-          <WriteReview onSubmit={(r) => setUserReviews((prev) => [r, ...prev])} />
-          <SubmittedReviews reviews={userReviews} />
         </div>
       </div>
     </section>

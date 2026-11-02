@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { SiteLayout, PageHeader } from "@/components/site/SiteLayout";
-import { ArrowRight, Package, Palette, Clock, Truck, CreditCard, Sparkles } from "lucide-react";
+import { ArrowRight, Package, Palette, Clock, Truck, CreditCard } from "lucide-react";
 
 export const Route = createFileRoute("/faqs")({
   head: () => ({
@@ -114,7 +114,7 @@ const GROUPS: FaqGroup[] = [
   },
   {
     title: "Design & branding services",
-    icon: Sparkles,
+    icon: Package,
     items: [
       {
         q: "Can you design my logo or brand identity?",

@@ -10,7 +10,7 @@ import logo from "@/assets/logo.png";
 import {
   LayoutDashboard, Package, Layers, ShoppingCart, FileText, Users, Factory,
   Warehouse, CreditCard, Truck, Star, Globe, Image as ImageIcon, BarChart3,
-  FileBarChart, LifeBuoy, Settings, Bell, LogOut, Menu, X, ShieldOff, Loader2, Megaphone,
+  FileBarChart, LifeBuoy, Settings, Bell, LogOut, Menu, X, ShieldOff, Loader2, Megaphone, Handshake,
 } from "lucide-react";
 
 export const Route = createFileRoute("/admin")({
@@ -46,8 +46,10 @@ const NAV: NavItem[] = [
   { label: "Deliveries",    to: "/admin/deliveries",     icon: Truck,        group: "Operations" },
 
   { label: "Reviews",       to: "/admin/reviews",        icon: Star,         group: "Content" },
+  { label: "Partners",      to: "/admin/partners",       icon: Handshake,    group: "Content" },
   { label: "Website CMS",   to: "/admin/cms",            icon: Globe,        group: "Content" },
   { label: "Popups & banners", to: "/admin/popups",      icon: Megaphone,    group: "Content" },
+  { label: "Ads & offer banners", to: "/admin/banners",  icon: Megaphone,    group: "Content" },
   { label: "Media",         to: "/admin/media",          icon: ImageIcon,    group: "Content" },
 
   { label: "Analytics",     to: "/admin/analytics",      icon: BarChart3,    group: "Insight" },

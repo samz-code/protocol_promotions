@@ -10,7 +10,7 @@ import {
   type MouseEvent,
   type ReactNode,
 } from "react";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import {
   ArrowRight,
@@ -25,7 +25,6 @@ import {
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useCart } from "@/lib/cart";
-import type { CartPayload } from "@/components/shop/ProductConfigurator";
 import { useCmsBlocks, getCmsString } from "@/lib/cms";
 
 /* ================================================================
@@ -169,33 +168,28 @@ export function CartDrawerProvider({ children }: { children: ReactNode }) {
 /** Adds a product to the real site cart. Returns true when it was added. */
 export function useQuickAdd() {
   const { addLine } = useCart();
-  const drawer = useDrawer();
-  const navigate = useNavigate();
 
   return useCallback(
-    (p: LiveProduct): boolean => {
+    (p: Pick<LiveProduct, "id" | "name" | "price" | "moq">): boolean => {
       const quantity = Math.max(p.moq || 1, 1);
-      try {
-        addLine({
-          productId: p.id,
-          slug: p.slug,
-          name: p.name,
-          quantity,
-          baseUnitPrice: p.price,
-          unitPrice: p.price,
-          setupFee: 0,
-          totalCost: p.price * quantity,
-          configuration: {},
-        } as unknown as CartPayload);
-      } catch {
-        navigate({ to: "/shop/$slug", params: { slug: p.slug } });
-        return false;
-      }
-
-      drawer.open();
+      addLine({
+        productId: p.id,
+        name: p.name,
+        quantity,
+        baseUnitPrice: p.price,
+        setupFee: 0,
+        totalCost: p.price * quantity,
+        configuration: {
+          color: "",
+          size: "",
+          printMethod: "",
+          artworkUrl: null,
+          customBranding: false,
+        },
+      });
       return true;
     },
-    [addLine, drawer, navigate]
+    [addLine]
   );
 }
 
@@ -354,12 +348,9 @@ function CartDrawer() {
         {lines.length > 0 && (
           <footer className="border-t border-brand-navy/10 px-6 pt-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
             <div className="flex items-center justify-between text-base font-bold text-brand-navy">
-              <span>Estimated total</span>
+              <span>Total</span>
               <span className="tabular-nums">{kes(subtotal)}</span>
             </div>
-            <p className="mt-1 text-xs text-brand-navy/55">
-              Artwork setup and delivery are confirmed before you pay.
-            </p>
             <div className="mt-4 grid gap-2">
               <Link
                 to="/checkout"
@@ -387,12 +378,12 @@ function CartDrawer() {
    Product card (clean, Shopify-style)
    ================================================================ */
 
-function QuickAdd({
+export function QuickAdd({
   product,
   className = "",
   solid = false,
 }: {
-  product: LiveProduct;
+  product: Pick<LiveProduct, "id" | "name" | "price" | "moq">;
   className?: string;
   solid?: boolean;
 }) {
@@ -416,13 +407,13 @@ function QuickAdd({
       type="button"
       onClick={handleClick}
       aria-label={`Add ${product.name} to cart`}
-      className={`inline-flex items-center justify-center gap-2 rounded-full text-xs font-semibold transition-colors ${
-        solid ? "px-3.5 py-2" : "px-4 py-2.5"
+      className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-lg text-sm font-bold transition-colors ${
+        solid ? "px-4 py-2.5" : "px-4 py-2.5"
       } ${
         added
           ? "bg-emerald-600 text-white"
           : solid
-            ? "bg-brand-navy text-white hover:bg-brand-orange"
+            ? "bg-brand-orange text-white hover:bg-brand-navy"
             : "bg-white text-brand-navy shadow-sm ring-1 ring-brand-navy/15 hover:bg-brand-navy hover:text-white"
       } ${className}`}
     >
@@ -432,7 +423,7 @@ function QuickAdd({
         </>
       ) : solid ? (
         <>
-          <ShoppingCart className="h-4 w-4" /> Add
+          <ShoppingCart className="h-4 w-4" /> Add to cart
         </>
       ) : (
         <>
@@ -481,8 +472,8 @@ export function ProductCard({ p }: { p: LiveProduct }) {
   const badge = discount !== null ? `-${discount}%` : (p.tag ?? null);
 
   return (
-    <article className="group">
-      <div className="relative overflow-hidden rounded-xl bg-brand-surface">
+    <article className="group flex h-full flex-col overflow-hidden rounded-2xl border border-brand-navy/10 bg-white transition-all duration-300 hover:-translate-y-1 hover:border-brand-navy/20 hover:shadow-lg">
+      <div className="relative overflow-hidden bg-brand-surface">
         <Link
           to="/shop/$slug"
           params={{ slug: p.slug }}
@@ -496,40 +487,36 @@ export function ProductCard({ p }: { p: LiveProduct }) {
             height={800}
             loading="lazy"
             decoding="async"
-            className="h-full w-full object-contain p-2 transition-transform duration-500 ease-out group-hover:scale-[1.04]"
+            className="h-full w-full object-contain p-3 transition-transform duration-500 ease-out group-hover:scale-[1.04] sm:p-4"
           />
         </Link>
 
         {badge ? (
-          <span className="pointer-events-none absolute left-3 top-3 rounded-full bg-brand-orange px-2.5 py-1 text-[11px] font-bold text-white shadow-sm">
+          <span className="pointer-events-none absolute left-2.5 top-2.5 rounded-full bg-brand-orange px-2.5 py-1 text-xs font-bold text-white shadow-sm sm:left-3 sm:top-3">
             {badge}
           </span>
         ) : null}
-
-        <div className="absolute inset-x-3 bottom-3 hidden transition-all duration-300 md:block md:translate-y-2 md:opacity-0 md:group-focus-within:translate-y-0 md:group-focus-within:opacity-100 md:group-hover:translate-y-0 md:group-hover:opacity-100">
-          <QuickAdd product={p} className="w-full" />
-        </div>
       </div>
 
-      <div className="mt-3 flex items-start justify-between gap-3 px-0.5">
+      <div className="flex flex-1 flex-col p-3 sm:p-4">
         <div className="min-w-0">
           <Link
             to="/shop/$slug"
             params={{ slug: p.slug }}
-            className="line-clamp-2 text-sm font-semibold leading-snug text-brand-navy transition-colors hover:text-brand-orange"
+            className="line-clamp-2 min-h-10 text-sm font-semibold leading-snug text-brand-navy transition-colors hover:text-brand-orange sm:text-base"
           >
             {p.name}
           </Link>
-          <p className="mt-1 flex items-baseline gap-2 text-sm">
-            <span className="font-bold tabular-nums text-brand-navy">{kes(p.price)}</span>
+          <p className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+            <span className="text-base font-extrabold tabular-nums text-brand-navy sm:text-lg">{kes(p.price)}</span>
             {p.compareAt && p.compareAt > p.price ? (
-              <span className="text-xs tabular-nums text-brand-navy/40 line-through">
+              <span className="text-xs tabular-nums text-brand-navy/45 line-through sm:text-sm">
                 {kes(p.compareAt)}
               </span>
             ) : null}
           </p>
         </div>
-        <QuickAdd product={p} solid className="shrink-0 md:hidden" />
+        <QuickAdd product={p} solid className="mt-3 w-full" />
       </div>
     </article>
   );
@@ -549,10 +536,10 @@ function ProductCardMini({ p }: { p: LiveProduct }) {
           alt={p.name}
           loading="lazy"
           decoding="async"
-          className="h-full w-full object-contain p-2 transition-transform duration-500 group-hover:scale-[1.04]"
+          className="h-full w-full object-contain p-2.5 transition-transform duration-500 group-hover:scale-[1.04]"
         />
         {p.tag ? (
-          <span className="absolute left-2 top-2 rounded-full bg-brand-orange px-2 py-0.5 text-[10px] font-bold text-white shadow-sm">
+          <span className="absolute left-2 top-2 rounded-full bg-brand-orange px-2 py-0.5 text-[11px] font-bold text-white shadow-sm">
             {p.tag}
           </span>
         ) : null}
@@ -562,11 +549,11 @@ function ProductCardMini({ p }: { p: LiveProduct }) {
           <Link
             to="/shop/$slug"
             params={{ slug: p.slug }}
-            className="line-clamp-1 text-[13px] font-semibold text-brand-navy transition-colors hover:text-brand-orange"
+            className="line-clamp-2 min-h-10 text-sm font-semibold leading-snug text-brand-navy transition-colors hover:text-brand-orange"
           >
             {p.name}
           </Link>
-          <p className="mt-0.5 text-[13px] font-bold tabular-nums text-brand-orange">
+          <p className="mt-1 text-sm font-extrabold tabular-nums text-brand-orange">
             {kes(p.price)}
           </p>
         </div>
@@ -586,7 +573,7 @@ function ProductSkeleton() {
   );
 }
 
-const GRID = "grid grid-cols-1 gap-x-4 gap-y-8 sm:grid-cols-2 sm:gap-x-5 sm:gap-y-6 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5";
+const GRID = "grid grid-cols-2 gap-x-3 gap-y-6 sm:gap-x-5 sm:gap-y-7 md:grid-cols-3 lg:grid-cols-5";
 
 function ProductGrid({ products }: { products: LiveProduct[] }) {
   return (

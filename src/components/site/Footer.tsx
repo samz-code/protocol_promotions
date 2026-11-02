@@ -94,7 +94,7 @@ const COLUMNS: { title: string; links: FooterLink[] }[] = [
 
 export function Footer() {
   return (
-    <footer className="relative mt-24 overflow-hidden bg-brand-navy text-white/85">
+    <footer className="footer-pattern relative mt-24 overflow-hidden bg-brand-navy text-white/85">
       <FooterStyles />
 
       {/* Top accent hairline */}

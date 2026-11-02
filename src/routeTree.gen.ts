@@ -32,6 +32,7 @@ import { Route as TrackOrderRouteImport } from './routes/track-order'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AdminAnalyticsRouteImport } from './routes/admin.analytics'
 import { Route as AdminArtworkRouteImport } from './routes/admin.artwork'
+import { Route as AdminBannersRouteImport } from './routes/admin.banners'
 import { Route as AdminCategoriesRouteImport } from './routes/admin.categories'
 import { Route as AdminCmsRouteImport } from './routes/admin.cms'
 import { Route as AdminCustomersRouteImport } from './routes/admin.customers'
@@ -40,6 +41,7 @@ import { Route as AdminInventoryRouteImport } from './routes/admin.inventory'
 import { Route as AdminMediaRouteImport } from './routes/admin.media'
 import { Route as AdminNotificationsRouteImport } from './routes/admin.notifications'
 import { Route as AdminOrdersRouteImport } from './routes/admin.orders'
+import { Route as AdminPartnersRouteImport } from './routes/admin.partners'
 import { Route as AdminPaymentsRouteImport } from './routes/admin.payments'
 import { Route as AdminPopupsRouteImport } from './routes/admin.popups'
 import { Route as AdminProductionRouteImport } from './routes/admin.production'
@@ -180,6 +182,11 @@ const AdminArtworkRoute = AdminArtworkRouteImport.update({
   path: '/artwork',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminBannersRoute = AdminBannersRouteImport.update({
+  id: '/banners',
+  path: '/banners',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminCategoriesRoute = AdminCategoriesRouteImport.update({
   id: '/categories',
   path: '/categories',
@@ -218,6 +225,11 @@ const AdminNotificationsRoute = AdminNotificationsRouteImport.update({
 const AdminOrdersRoute = AdminOrdersRouteImport.update({
   id: '/orders',
   path: '/orders',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminPartnersRoute = AdminPartnersRouteImport.update({
+  id: '/partners',
+  path: '/partners',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminPaymentsRoute = AdminPaymentsRouteImport.update({
@@ -365,6 +377,7 @@ export interface FileRoutesByFullPath {
   '/track-order': typeof TrackOrderRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/artwork': typeof AdminArtworkRoute
+  '/admin/banners': typeof AdminBannersRoute
   '/admin/categories': typeof AdminCategoriesRoute
   '/admin/cms': typeof AdminCmsRoute
   '/admin/customers': typeof AdminCustomersRoute
@@ -373,6 +386,7 @@ export interface FileRoutesByFullPath {
   '/admin/media': typeof AdminMediaRoute
   '/admin/notifications': typeof AdminNotificationsRoute
   '/admin/orders': typeof AdminOrdersRoute
+  '/admin/partners': typeof AdminPartnersRoute
   '/admin/payments': typeof AdminPaymentsRoute
   '/admin/popups': typeof AdminPopupsRoute
   '/admin/production': typeof AdminProductionRoute
@@ -420,6 +434,7 @@ export interface FileRoutesByTo {
   '/track-order': typeof TrackOrderRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/artwork': typeof AdminArtworkRoute
+  '/admin/banners': typeof AdminBannersRoute
   '/admin/categories': typeof AdminCategoriesRoute
   '/admin/cms': typeof AdminCmsRoute
   '/admin/customers': typeof AdminCustomersRoute
@@ -428,6 +443,7 @@ export interface FileRoutesByTo {
   '/admin/media': typeof AdminMediaRoute
   '/admin/notifications': typeof AdminNotificationsRoute
   '/admin/orders': typeof AdminOrdersRoute
+  '/admin/partners': typeof AdminPartnersRoute
   '/admin/payments': typeof AdminPaymentsRoute
   '/admin/popups': typeof AdminPopupsRoute
   '/admin/production': typeof AdminProductionRoute
@@ -477,6 +493,7 @@ export interface FileRoutesById {
   '/track-order': typeof TrackOrderRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/artwork': typeof AdminArtworkRoute
+  '/admin/banners': typeof AdminBannersRoute
   '/admin/categories': typeof AdminCategoriesRoute
   '/admin/cms': typeof AdminCmsRoute
   '/admin/customers': typeof AdminCustomersRoute
@@ -485,6 +502,7 @@ export interface FileRoutesById {
   '/admin/media': typeof AdminMediaRoute
   '/admin/notifications': typeof AdminNotificationsRoute
   '/admin/orders': typeof AdminOrdersRoute
+  '/admin/partners': typeof AdminPartnersRoute
   '/admin/payments': typeof AdminPaymentsRoute
   '/admin/popups': typeof AdminPopupsRoute
   '/admin/production': typeof AdminProductionRoute
@@ -536,6 +554,7 @@ export interface FileRouteTypes {
     | '/track-order'
     | '/admin/analytics'
     | '/admin/artwork'
+    | '/admin/banners'
     | '/admin/categories'
     | '/admin/cms'
     | '/admin/customers'
@@ -544,6 +563,7 @@ export interface FileRouteTypes {
     | '/admin/media'
     | '/admin/notifications'
     | '/admin/orders'
+    | '/admin/partners'
     | '/admin/payments'
     | '/admin/popups'
     | '/admin/production'
@@ -591,6 +611,7 @@ export interface FileRouteTypes {
     | '/track-order'
     | '/admin/analytics'
     | '/admin/artwork'
+    | '/admin/banners'
     | '/admin/categories'
     | '/admin/cms'
     | '/admin/customers'
@@ -599,6 +620,7 @@ export interface FileRouteTypes {
     | '/admin/media'
     | '/admin/notifications'
     | '/admin/orders'
+    | '/admin/partners'
     | '/admin/payments'
     | '/admin/popups'
     | '/admin/production'
@@ -647,6 +669,7 @@ export interface FileRouteTypes {
     | '/track-order'
     | '/admin/analytics'
     | '/admin/artwork'
+    | '/admin/banners'
     | '/admin/categories'
     | '/admin/cms'
     | '/admin/customers'
@@ -655,6 +678,7 @@ export interface FileRouteTypes {
     | '/admin/media'
     | '/admin/notifications'
     | '/admin/orders'
+    | '/admin/partners'
     | '/admin/payments'
     | '/admin/popups'
     | '/admin/production'
@@ -869,6 +893,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminArtworkRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/banners': {
+      id: '/admin/banners'
+      path: '/banners'
+      fullPath: '/admin/banners'
+      preLoaderRoute: typeof AdminBannersRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/categories': {
       id: '/admin/categories'
       path: '/categories'
@@ -923,6 +954,13 @@ declare module '@tanstack/react-router' {
       path: '/orders'
       fullPath: '/admin/orders'
       preLoaderRoute: typeof AdminOrdersRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/partners': {
+      id: '/admin/partners'
+      path: '/partners'
+      fullPath: '/admin/partners'
+      preLoaderRoute: typeof AdminPartnersRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/payments': {
@@ -1099,6 +1137,7 @@ declare module '@tanstack/react-router' {
 interface AdminRouteChildren {
   AdminAnalyticsRoute: typeof AdminAnalyticsRoute
   AdminArtworkRoute: typeof AdminArtworkRoute
+  AdminBannersRoute: typeof AdminBannersRoute
   AdminCategoriesRoute: typeof AdminCategoriesRoute
   AdminCmsRoute: typeof AdminCmsRoute
   AdminCustomersRoute: typeof AdminCustomersRoute
@@ -1107,6 +1146,7 @@ interface AdminRouteChildren {
   AdminMediaRoute: typeof AdminMediaRoute
   AdminNotificationsRoute: typeof AdminNotificationsRoute
   AdminOrdersRoute: typeof AdminOrdersRoute
+  AdminPartnersRoute: typeof AdminPartnersRoute
   AdminPaymentsRoute: typeof AdminPaymentsRoute
   AdminPopupsRoute: typeof AdminPopupsRoute
   AdminProductionRoute: typeof AdminProductionRoute
@@ -1122,6 +1162,7 @@ interface AdminRouteChildren {
 const AdminRouteChildren: AdminRouteChildren = {
   AdminAnalyticsRoute: AdminAnalyticsRoute,
   AdminArtworkRoute: AdminArtworkRoute,
+  AdminBannersRoute: AdminBannersRoute,
   AdminCategoriesRoute: AdminCategoriesRoute,
   AdminCmsRoute: AdminCmsRoute,
   AdminCustomersRoute: AdminCustomersRoute,
@@ -1130,6 +1171,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminMediaRoute: AdminMediaRoute,
   AdminNotificationsRoute: AdminNotificationsRoute,
   AdminOrdersRoute: AdminOrdersRoute,
+  AdminPartnersRoute: AdminPartnersRoute,
   AdminPaymentsRoute: AdminPaymentsRoute,
   AdminPopupsRoute: AdminPopupsRoute,
   AdminProductionRoute: AdminProductionRoute,

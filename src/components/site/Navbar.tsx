@@ -1,5 +1,6 @@
-import { useEffect, useState, useRef, type FormEvent } from "react";
+import { useEffect, useMemo, useState, useRef, type FormEvent } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import {
   Menu,
   Search,
@@ -9,14 +10,54 @@ import {
   X,
   ArrowRight,
   TrendingUp,
-  Sparkles,
+  Flame,
+  MapPin,
+  ShoppingBag,
+  Package,
+  type LucideIcon,
 } from "lucide-react";
+import * as LucideIcons from "lucide-react";
 import { Logo } from "./Logo";
 import { shopMenu, services, industries } from "./nav-data";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/lib/supabase";
 import { useCart } from "@/lib/cart";
 
 type Panel = "shop" | "services" | "industries" | null;
+
+type DbCategory = {
+  id: string;
+  slug: string;
+  name: string;
+  icon: string | null;
+  sort_order: number | null;
+  is_active: boolean | null;
+};
+
+function getCategoryIcon(iconName: string | null): LucideIcon {
+  if (!iconName) return Package;
+  if (iconName.toLowerCase() === "sparkles") return Package;
+  const icon = (LucideIcons as Record<string, unknown>)[iconName];
+  if (
+    typeof icon === "function" ||
+    (typeof icon === "object" && icon !== null && "$$typeof" in icon)
+  ) {
+    return icon as LucideIcon;
+  }
+  return Package;
+}
+
+async function fetchHeaderCategories(): Promise<DbCategory[]> {
+  const { data, error } = await supabase
+    .from("categories")
+    .select("id, slug, name, icon, sort_order, is_active")
+    .eq("is_active", true)
+    .order("sort_order", { ascending: true, nullsFirst: false })
+    .order("name", { ascending: true });
+
+  if (error) throw error;
+  return (data ?? []) as DbCategory[];
+}
 
 export function Navbar() {
   const [panel, setPanel] = useState<Panel>(null);
@@ -25,8 +66,20 @@ export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const { count } = useCart();
 
-  // Close every overlay on route change, otherwise the drawer survives
-  // navigation and leaves the page unusable.
+  const { data: categories = [] } = useQuery({
+    queryKey: ["categories", "header"],
+    queryFn: fetchHeaderCategories,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const categoryLinks = useMemo(() => {
+    const sorted = [...categories]
+      .filter((category) => category.slug && category.name)
+      .sort((a, b) => (a.sort_order ?? 9999) - (b.sort_order ?? 9999) || a.name.localeCompare(b.name));
+
+    return sorted.slice(0, 10);
+  }, [categories]);
+
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   useEffect(() => {
     setMobileOpen(false);
@@ -46,50 +99,71 @@ export function Navbar() {
   return (
     <header
       className={`sticky top-0 z-50 bg-white transition-shadow ${
-        scrolled
-          ? "shadow-[0_1px_0_0_var(--color-border),0_8px_24px_-16px_rgb(0_0_0/0.18)]"
-          : "border-b border-border"
+        scrolled ? "shadow-[0_8px_22px_-18px_rgba(0,0,0,0.22)]" : "shadow-[inset_0_-1px_0_rgba(15,23,42,0.08)]"
       }`}
       onMouseLeave={close}
     >
-      {/* min-w-0 lets the flex children actually shrink instead of overflowing */}
-      {/* lg:px is intentionally larger than sm:px and 2xl:px — at laptop widths
-          the container was using full available width with only a small side
-          inset, leaving a large unclaimed gap between the logo and the nav
-          group. Extra padding here insets both sides so they sit closer
-          together, without touching the (already fine) phone/desktop layout. */}
-      <div className="container-page flex h-20 min-w-0 items-center gap-2 px-4 sm:gap-3 sm:px-6 md:h-24 lg:px-16 2xl:px-6">
-        {/* Logo renders its own link and caps its own height per breakpoint */}
-        <Logo className="shrink" imgClassName="h-10 md:h-14" priority />
+      <div className="border-b border-border bg-white">
+        <div className="container-page flex items-center gap-2 py-3 sm:gap-3 lg:py-4">
+          <Logo className="shrink" imgClassName="h-11 sm:h-12 md:h-14" priority />
 
-        {/* nav + icons travel together as one group so they stay a fixed
-            distance apart, instead of the icon cluster being pushed to the
-            container's far edge regardless of where the nav links end.
-            That mismatch was what caused the big empty gap on laptop widths. */}
-        <div className="ml-auto flex min-w-0 items-center gap-3 sm:gap-4 lg:gap-6 2xl:gap-10">
-          {/* Desktop nav. Was gated behind xl (1280px), which pushed real laptop
-              viewports (zoom, devtools, non-maximized windows) into the mobile
-              layout. lg (1024px) is a safer floor for "laptop" screens. */}
-          <nav className="hidden items-center gap-0 whitespace-nowrap text-[15px] font-bold tracking-[-0.01em] lg:flex 2xl:gap-0.5 2xl:text-[16.5px]">
-            <NavTrigger label="Shop" active={panel === "shop"} onEnter={() => setPanel("shop")} />
-            <NavTrigger label="Services" active={panel === "services"} onEnter={() => setPanel("services")} />
-            <NavTrigger label="Industries" active={panel === "industries"} onEnter={() => setPanel("industries")} />
-            <NavLink to="/bulk-orders" onEnter={close}>Bulk Orders</NavLink>
-            <NavLink to="/track-order" onEnter={close}>Track Order</NavLink>
-            <NavLink to="/about" onEnter={close}>About</NavLink>
-            <NavLink to="/contact" onEnter={close}>Contact</NavLink>
-          </nav>
-
-          <div className="flex shrink-0 items-center gap-0.5 sm:gap-1.5 md:gap-2 lg:gap-1.5 2xl:gap-2.5">
+          <div className="relative mx-2 hidden min-w-0 flex-1 items-center md:flex lg:mx-8">
             <button
               type="button"
               onClick={() => setSearchOpen(true)}
+              className="flex w-full items-center gap-3 rounded-xl border border-border bg-brand-surface px-4 py-3 text-left text-base text-brand-navy transition hover:border-brand-blue/40 focus:outline-none focus:ring-2 focus:ring-brand-blue/20"
               aria-label="Search products"
-              className="inline-flex h-11 w-11 items-center justify-center rounded-sm text-brand-navy transition-colors hover:bg-brand-navy/6"
             >
-              <Search className="h-5 w-5" />
+              <Search className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
+              <span className="flex-1 truncate text-muted-foreground">Search for products</span>
             </button>
-            <IconLink to="/cart" label="Cart">
+          </div>
+
+          <div className="ml-auto flex shrink-0 items-center gap-1.5 sm:gap-2 lg:gap-3">
+            <div className="hidden items-center gap-2 lg:inline-flex">
+              <div className="inline-flex items-center gap-1.5 whitespace-nowrap text-sm font-bold text-brand-navy">
+                <MapPin className="h-5 w-5 text-brand-blue" strokeWidth={3} aria-hidden="true" />
+                <span>Nairobi</span>
+              </div>
+            </div>
+
+            <div className="hidden items-center gap-2 md:flex">
+              <Link
+                to="/login"
+                className="inline-flex items-center gap-2 rounded-lg px-2.5 py-2 text-sm font-extrabold text-brand-navy transition hover:bg-brand-orange/10"
+              >
+                <User className="h-5 w-5 text-brand-orange" aria-hidden="true" />
+                <span>Sign in</span>
+              </Link>
+              <Link
+                to="/register"
+                className="hidden items-center rounded-lg px-2.5 py-2 text-sm font-extrabold text-brand-navy transition hover:bg-brand-surface lg:inline-flex"
+              >
+                Register
+              </Link>
+            </div>
+
+            <div className="flex items-center gap-1.5 md:hidden">
+              <button
+                type="button"
+                onClick={() => setSearchOpen(true)}
+                className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-brand-surface text-brand-navy"
+                aria-label="Search products"
+              >
+                <Search className="h-5 w-5" aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-brand-surface text-brand-navy"
+                onClick={() => setMobileOpen(true)}
+                aria-label="Open menu"
+                aria-expanded={mobileOpen}
+              >
+                <Menu className="h-6 w-6" aria-hidden="true" />
+              </button>
+            </div>
+
+            <IconLink to="/cart" label="Cart" className="inline-flex">
               <span className="relative">
                 <ShoppingCart className="h-5 w-5" />
                 {count > 0 && (
@@ -99,23 +173,60 @@ export function Navbar() {
                 )}
               </span>
             </IconLink>
-            <IconLink to="/login" label="Login" className="hidden sm:inline-flex">
-              <User className="h-5 w-5" />
-            </IconLink>
-            <button
-              type="button"
-              className="inline-flex h-11 w-11 items-center justify-center rounded-sm text-brand-navy hover:bg-brand-navy/6 lg:hidden"
-              onClick={() => setMobileOpen(true)}
-              aria-label="Open menu"
-              aria-expanded={mobileOpen}
-            >
-              <Menu className="h-6 w-6" />
-            </button>
           </div>
         </div>
       </div>
 
-      {/* Mega menu panels */}
+      <div className="hidden border-b border-border bg-white">
+        <div className="container-page overflow-x-auto py-2">
+          <nav className="flex min-w-max items-center gap-0.5 whitespace-nowrap text-xs font-black uppercase tracking-[0.06em] text-brand-navy sm:gap-1 sm:text-sm">
+            <NavTrigger label="SHOP" active={panel === "shop"} onEnter={() => setPanel("shop")} />
+            <NavTrigger label="SERVICES" active={panel === "services"} onEnter={() => setPanel("services")} />
+            <NavTrigger label="INDUSTRIES" active={panel === "industries"} onEnter={() => setPanel("industries")} />
+            <NavLink to="/bulk-orders" onEnter={close}>
+              BULK ORDERS
+            </NavLink>
+            <NavLink to="/track-order" onEnter={close}>
+              TRACK ORDER
+            </NavLink>
+            <NavLink to="/about" onEnter={close}>
+              ABOUT
+            </NavLink>
+            <NavLink to="/contact" onEnter={close}>
+              CONTACT
+            </NavLink>
+          </nav>
+        </div>
+      </div>
+
+      <div className="border-b border-brand-blue/20 bg-brand-surface">
+        <div className="container-page overflow-x-auto py-2">
+          <div className="flex min-w-max items-center gap-1.5">
+            <Link
+              to="/shop"
+              className="group inline-flex items-center gap-2 whitespace-nowrap rounded-lg bg-brand-navy px-3 py-2 text-xs font-extrabold uppercase tracking-[0.06em] text-white transition hover:bg-brand-navy/90 sm:text-sm"
+            >
+              <ShoppingBag className="h-4 w-4" aria-hidden="true" />
+              Categories
+            </Link>
+            {categoryLinks.map((category) => {
+              const CategoryIcon = getCategoryIcon(category.icon);
+              return (
+                <Link
+                  key={category.slug}
+                  to="/shop"
+                  search={{ category: category.slug }}
+                  className="group inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg border border-brand-blue/20 bg-white px-3 py-2 text-xs font-extrabold uppercase tracking-[0.04em] text-brand-navy transition hover:border-brand-orange/50 hover:bg-brand-orange/5 sm:text-sm"
+                >
+                  <CategoryIcon className="h-4 w-4 text-brand-blue" aria-hidden="true" />
+                  {category.name}
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
       {panel && (
         <div
           className="absolute inset-x-0 top-full hidden border-t-2 border-brand-navy bg-white shadow-lg lg:block"
@@ -129,10 +240,8 @@ export function Navbar() {
         </div>
       )}
 
-      {/* Search overlay */}
       {searchOpen && <SearchOverlay onClose={() => setSearchOpen(false)} />}
 
-      {/* Mobile drawer */}
       {mobileOpen && (
         <MobileDrawer
           onClose={() => setMobileOpen(false)}
@@ -260,7 +369,7 @@ export function SearchSection() {
   return (
     <div className="w-full max-w-3xl">
       <div className="relative flex items-center">
-        <div className="pointer-events-none absolute left-5 flex items-center justify-center text-[#783190]">
+        <div className="pointer-events-none absolute left-5 flex items-center justify-center text-brand-navy">
           <Search className="h-5 w-5 stroke-[2.5]" />
         </div>
 
@@ -269,7 +378,7 @@ export function SearchSection() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search products (e.g., 'Embroidered Polo Shirts', 'Spot UV Cards')..."
-          className="h-14 w-full rounded-2xl border-2 border-slate-200 bg-white pl-13 pr-24 text-sm font-medium text-slate-800 placeholder-slate-400 outline-none shadow-sm transition-all focus:border-[#783190] focus:ring-4 focus:ring-[#783190]/10"
+          className="h-14 w-full rounded-2xl border-2 border-border bg-white pl-13 pr-24 text-sm font-medium text-foreground placeholder:text-muted-foreground outline-none shadow-sm transition-all focus:border-brand-navy focus:ring-4 focus:ring-brand-navy/10"
         />
 
         <div className="absolute right-3 flex items-center gap-2">
@@ -283,7 +392,7 @@ export function SearchSection() {
             </button>
           )}
           <button
-            className="flex h-9 items-center gap-1.5 rounded-xl bg-[#783190] px-4 text-xs font-bold uppercase tracking-wider text-white transition-all hover:bg-[#5b236f]"
+            className="flex h-9 items-center gap-1.5 rounded-xl bg-brand-navy px-4 text-xs font-bold uppercase tracking-wider text-white transition-all hover:bg-brand-navy/90"
           >
             <span>Search</span>
             <ArrowRight className="h-3.5 w-3.5" />
@@ -301,7 +410,7 @@ export function SearchSection() {
             onClick={() => setSelectedCategory(cat)}
             className={`rounded-lg px-3 py-1 text-xs font-bold transition-all ${
               selectedCategory === cat
-                ? "bg-[#783190] text-white shadow-sm"
+                ? "bg-brand-navy text-white shadow-sm"
                 : "bg-slate-100 text-slate-600 hover:bg-slate-200"
             }`}
           >
@@ -311,7 +420,7 @@ export function SearchSection() {
       </div>
 
       <div className="mt-5">
-        <div className="flex items-center gap-1.5 text-xs font-bold text-[#f78e1f] uppercase tracking-wider mb-2.5">
+        <div className="mb-2.5 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-brand-orange">
           <TrendingUp className="h-4 w-4" />
           <span>Popular Searches</span>
         </div>
@@ -322,12 +431,12 @@ export function SearchSection() {
               <button
                 key={item.term}
                 onClick={() => setQuery(item.term)}
-                className="group flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 shadow-xs transition-all hover:border-[#00a7a7] hover:bg-[#00a7a7]/5 hover:text-[#00a7a7]"
+                className="group flex items-center gap-2 rounded-xl border border-border bg-white px-3.5 py-2 text-xs font-semibold text-foreground shadow-xs transition-all hover:border-brand-blue hover:bg-brand-blue/5 hover:text-brand-blue"
               >
                 <span>{item.term}</span>
                 {item.popular && (
-                  <span className="flex items-center gap-0.5 rounded-md bg-[#de166a]/10 px-1.5 py-0.5 text-[9px] font-bold text-[#de166a]">
-                    <Sparkles className="h-2.5 w-2.5" />
+                  <span className="flex items-center gap-0.5 rounded-md bg-brand-pink/10 px-1.5 py-0.5 text-[9px] font-bold text-brand-pink">
+                    <Flame className="h-2.5 w-2.5" />
                     HOT
                   </span>
                 )}
@@ -342,19 +451,26 @@ export function SearchSection() {
   );
 }
 
-function NavTrigger({ label, active, onEnter }: { label: string; active: boolean; onEnter: () => void }) {
+function NavTrigger({
+  label,
+  active,
+  onEnter,
+}: {
+  label: string;
+  active: boolean;
+  onEnter: () => void;
+}) {
   return (
     <button
       type="button"
       onMouseEnter={onEnter}
       onFocus={onEnter}
       aria-expanded={active}
-      className={`relative inline-flex items-center gap-1 whitespace-nowrap px-2.5 py-2 transition-colors 2xl:px-3.5 ${
+      className={`relative inline-flex items-center whitespace-nowrap px-3 py-2.5 transition-colors 2xl:px-3.5 ${
         active ? "text-brand-navy" : "text-brand-navy/70 hover:text-brand-navy"
       }`}
     >
       {label}
-      <ChevronDown className={`h-3.5 w-3.5 transition-transform 2xl:h-4 2xl:w-4 ${active ? "rotate-180" : ""}`} />
       <span
         className={`absolute -bottom-px left-2.5 right-2.5 h-0.5 origin-left bg-brand-orange transition-transform 2xl:left-3.5 2xl:right-3.5 ${
           active ? "scale-x-100" : "scale-x-0"
@@ -364,13 +480,21 @@ function NavTrigger({ label, active, onEnter }: { label: string; active: boolean
   );
 }
 
-function NavLink({ to, children, onEnter }: { to: string; children: React.ReactNode; onEnter: () => void }) {
+function NavLink({
+  to,
+  children,
+  onEnter,
+}: {
+  to: string;
+  children: React.ReactNode;
+  onEnter: () => void;
+}) {
   return (
     <Link
       to={to}
       onMouseEnter={onEnter}
-      className="whitespace-nowrap px-2.5 py-2 text-brand-navy/70 transition-colors hover:text-brand-navy 2xl:px-3.5"
-      activeProps={{ className: "whitespace-nowrap px-2.5 py-2 text-brand-navy 2xl:px-3.5" }}
+      className="inline-flex items-center whitespace-nowrap px-3 py-2.5 text-brand-navy/70 transition-colors hover:text-brand-navy 2xl:px-3.5"
+      activeProps={{ className: "inline-flex items-center whitespace-nowrap px-3 py-2.5 text-brand-navy 2xl:px-3.5" }}
     >
       {children}
     </Link>
@@ -507,7 +631,8 @@ function MobileDrawer({ onClose, onSearch }: { onClose: () => void; onSearch: ()
     { to: "/about", label: "About" },
     { to: "/contact", label: "Contact" },
     { to: "/faqs", label: "FAQs" },
-    { to: "/login", label: "Login" },
+    { to: "/login", label: "Sign In" },
+    { to: "/register", label: "Register" },
   ];
 
   return (
@@ -541,7 +666,7 @@ function MobileDrawer({ onClose, onSearch }: { onClose: () => void; onSearch: ()
           <button
             type="button"
             onClick={onSearch}
-            className="flex w-full items-center gap-3 border-l-2 border-transparent px-4 py-3.5 text-[17px] font-bold text-brand-navy transition-colors hover:border-brand-orange hover:bg-brand-navy/4"
+            className="flex w-full items-center gap-3 border-l-2 border-transparent px-4 py-3.5 text-[17px] font-bold uppercase text-brand-navy transition-colors hover:border-brand-orange hover:bg-brand-navy/4"
           >
             <Search className="h-5 w-5 text-brand-navy/50" /> Search products
           </button>
@@ -550,7 +675,7 @@ function MobileDrawer({ onClose, onSearch }: { onClose: () => void; onSearch: ()
               key={l.to}
               to={l.to}
               onClick={onClose}
-              className="block border-l-2 border-transparent px-4 py-3.5 text-[17px] font-bold text-brand-navy transition-colors hover:border-brand-orange hover:bg-brand-navy/4"
+              className="block border-l-2 border-transparent px-4 py-3.5 text-[17px] font-bold uppercase text-brand-navy transition-colors hover:border-brand-orange hover:bg-brand-navy/4"
             >
               {l.label}
             </Link>

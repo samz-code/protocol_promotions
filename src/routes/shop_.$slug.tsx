@@ -1012,7 +1012,7 @@ function ReviewForm({ productId }: { productId: string }) {
         author_name: authorName,
         author_role: authorRole || null,
         body,
-        status: "approved",
+        status: "pending",
       });
       if (error) throw error;
     },
@@ -1035,13 +1035,18 @@ function ReviewForm({ productId }: { productId: string }) {
     >
       <div>
         <h3 className="text-xs font-extrabold uppercase tracking-wider text-brand-navy">Rate & Review Product</h3>
-        <p className="text-[10px] text-brand-navy/60">Share your experience with this item.</p>
+        <p className="text-[10px] text-brand-navy/60">Share your experience. Reviews are published after moderation.</p>
       </div>
 
       {submitted && (
         <div className="p-2 bg-green-50 text-green-700 text-xs rounded border border-green-200">
-          Thank you! Your review has been successfully submitted.
+          Thank you! Your review has been submitted for approval.
         </div>
+      )}
+      {mutation.isError && (
+        <p role="alert" className="text-xs text-red-700">
+          Could not submit your review. Please try again.
+        </p>
       )}
 
       <div>
