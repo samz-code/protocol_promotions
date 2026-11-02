@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronLeft, ChevronRight } from "lucide-react";
 import {
   fetchPromotionalBanners,
   isPromotionalBannerActive,
@@ -38,7 +37,6 @@ export function PromotionalBannerCarousel() {
     queryFn: fetchPromotionalBanners,
   });
   const [activeIndex, setActiveIndex] = useState(0);
-  const [hasScrolled, setHasScrolled] = useState(false);
   const banners = useMemo(
     () => (bannersQuery.data ?? []).filter((banner) => isPromotionalBannerActive(banner)),
     [bannersQuery.data],
@@ -47,13 +45,6 @@ export function PromotionalBannerCarousel() {
   useEffect(() => {
     if (bannersQuery.isError) console.error("Unable to load homepage promotional banners:", bannersQuery.error);
   }, [bannersQuery.error, bannersQuery.isError]);
-
-  useEffect(() => {
-    const updateScrollState = () => setHasScrolled(window.scrollY > 0);
-    updateScrollState();
-    window.addEventListener("scroll", updateScrollState, { passive: true });
-    return () => window.removeEventListener("scroll", updateScrollState);
-  }, []);
 
   useEffect(() => setActiveIndex(0), [banners.length]);
 
@@ -69,9 +60,6 @@ export function PromotionalBannerCarousel() {
 
   const currentIndex = activeIndex % banners.length;
   const current = banners[currentIndex];
-  const move = (offset: number) => {
-    setActiveIndex((index) => (index + offset + banners.length) % banners.length);
-  };
 
   return (
     <section
@@ -92,16 +80,6 @@ export function PromotionalBannerCarousel() {
 
         {banners.length > 1 && (
           <>
-            {!hasScrolled && (
-              <button
-                type="button"
-                aria-label="Previous banner"
-                onClick={() => move(-1)}
-                className="absolute left-0 top-1/2 z-10 flex h-9 w-9 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-brand-navy/20 bg-white text-brand-navy shadow-sm transition hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-orange sm:h-10 sm:w-10"
-              >
-                <ChevronLeft size={18} aria-hidden="true" />
-              </button>
-            )}
             <div
               className="absolute bottom-3 left-1/2 z-10 flex max-w-[calc(100%-5rem)] -translate-x-1/2 items-center justify-center gap-1.5 overflow-hidden rounded-full bg-white/70 px-2 py-1 sm:bottom-4"
               role="group"
@@ -120,16 +98,6 @@ export function PromotionalBannerCarousel() {
                 />
               ))}
             </div>
-            {!hasScrolled && (
-              <button
-                type="button"
-                aria-label="Next banner"
-                onClick={() => move(1)}
-                className="absolute right-0 top-1/2 z-10 flex h-9 w-9 translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-brand-navy/20 bg-white text-brand-navy shadow-sm transition hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-orange sm:h-10 sm:w-10"
-              >
-                <ChevronRight size={18} aria-hidden="true" />
-              </button>
-            )}
           </>
         )}
       </div>
